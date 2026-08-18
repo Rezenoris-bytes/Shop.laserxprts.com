@@ -19,14 +19,14 @@ integration; the MVP is enquiry and quotation driven.
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Frontend | Next.js + React + TypeScript + Tailwind |
-| Backend | NestJS + Fastify (modular monolith) |
-| Database | MySQL 8 + Prisma |
-| Cache | Redis — rate limiting and refresh-token families only |
-| Search | MySQL exact/prefix + FULLTEXT behind a SearchService |
-| Hosting | Hostinger VPS + Docker + Nginx |
+| Layer    | Choice                                                |
+| -------- | ----------------------------------------------------- |
+| Frontend | Next.js + React + TypeScript + Tailwind               |
+| Backend  | NestJS + Fastify (modular monolith)                   |
+| Database | MySQL 8 + Prisma                                      |
+| Cache    | Redis — rate limiting and refresh-token families only |
+| Search   | MySQL exact/prefix + FULLTEXT behind a SearchService  |
+| Hosting  | Hostinger VPS + Docker + Nginx                        |
 
 ## Getting started
 
@@ -76,11 +76,11 @@ files/                 specification and design documents
 
 These three erode silently if left to code review, so none of them is:
 
-| Rule | Enforced by |
-|---|---|
-| Controllers never touch Prisma | ESLint — `PrismaService` importable only in `*.repository.ts` |
+| Rule                                                 | Enforced by                                                          |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Controllers never touch Prisma                       | ESLint — `PrismaService` importable only in `*.repository.ts`        |
 | Every route is `@Public()` or `@RequirePermission()` | Boot assertion — **the process exits** if any route declares neither |
-| Soft-deleted rows are never read by accident | Prisma client extension injects `deletedAt: null` |
+| Soft-deleted rows are never read by accident         | Prisma client extension injects `deletedAt: null`                    |
 
 Plus, in CI: no hardcoded catalogue data in `apps/web`, no `Float` in the
 schema, no wildcard CORS, no SVG in an upload allowlist, no hardcoded domain.

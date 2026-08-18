@@ -13,6 +13,11 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
+    // Keep the incremental cache INSIDE outDir. nest-cli's deleteOutDir wipes
+    // dist before each build; if the cache lived outside it, tsc would compare
+    // against a cache describing files that no longer exist, report
+    // "Found 0 errors", emit nothing, and leave dist empty.
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,

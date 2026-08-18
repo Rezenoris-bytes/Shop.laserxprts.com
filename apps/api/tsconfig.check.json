@@ -2,7 +2,12 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
-    "rootDir": "./"
+    "rootDir": "./",
+    // Must NOT share tsconfig.json's cache file. This config has a different
+    // include set (it also covers prisma/), so writing the same .tsbuildinfo
+    // would leave the next `nest build` comparing against the wrong program
+    // and skipping its emit.
+    "incremental": false
   },
   "include": ["src/**/*", "prisma/**/*"]
 }

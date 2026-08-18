@@ -44,3 +44,7 @@ Thumbs.db
 # misc
 .turbo/
 .cache/
+
+# local-only directories
+files/
+.claude/

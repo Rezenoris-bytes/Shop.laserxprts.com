@@ -1,0 +1,61 @@
+# LEI local development stack.
+# Only MySQL and Redis run in Docker for development — Next.js and NestJS run
+# via `npm run dev` for fast reload. Application containers are added in the
+# deployment phase (Stage 5), per the GitHub Actions plan.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: lei-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --innodb-ft-min-token-size=2
+      # Allows the app user to create triggers in development. In production,
+      # triggers are applied by a privileged user during deployment instead.
+      - --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lei}
+      MYSQL_USER: ${MYSQL_USER:-lei}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_me_app}
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-p${MYSQL_ROOT_PASSWORD:-change_me_root}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    # Prevents a memory spike in one service OOM-killing the database.
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
+  redis:
+    image: redis:7-alpine
+    container_name: lei-redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+volumes:
+  mysql_data:
+  redis_data:

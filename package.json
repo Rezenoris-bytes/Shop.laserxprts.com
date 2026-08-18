@@ -1,0 +1,37 @@
+{
+  "name": "lei-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Laser Experts India — catalogue, enquiry and quotation platform",
+  "engines": {
+    "node": ">=20.11.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run dev -w @lei/api",
+    "dev:web": "npm run dev -w @lei/web",
+    "build": "npm run build -w @lei/shared && npm run build -w @lei/api && npm run build -w @lei/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "db:generate": "npm run db:generate -w @lei/api",
+    "db:migrate": "npm run db:migrate -w @lei/api",
+    "db:seed": "npm run db:seed -w @lei/api",
+    "db:studio": "npm run db:studio -w @lei/api",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:reset": "docker compose down -v && docker compose up -d"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}

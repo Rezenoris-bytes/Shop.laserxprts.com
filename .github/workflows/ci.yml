@@ -1,0 +1,98 @@
+name: CI
+
+# Per the GitHub Actions development plan: two branches only (dev, main),
+# and no deployment workflow until the hosting phase begins.
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  build:
+    name: Lint, type-check, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The Prisma client is a build input for the API's type-check.
+      - name: Generate Prisma client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: mysql://ci:ci@localhost:3306/ci
+
+      - name: Build shared package
+        run: npm run build -w @lei/shared
+
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: mysql://ci:ci@localhost:3306/ci
+
+  # Requirement from the design package: dummy data must never be hardcoded
+  # into the frontend. Enforced mechanically rather than by review, because a
+  # convention that is only checked by humans erodes.
+  no-hardcoded-catalogue:
+    name: No hardcoded catalogue data in the frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail on literal product data in apps/web
+        run: |
+          set -euo pipefail
+          if [ ! -d apps/web ]; then
+            echo "apps/web not present yet - skipping"
+            exit 0
+          fi
+
+          # Catalogue data reaches the UI through the API only. These patterns
+          # indicate a fixture that has leaked into a component.
+          PATTERNS='(NZ-[A-Z]{2,3}-|part_number\s*:|partNumber\s*:\s*.[A-Z0-9]|hsnCode\s*:\s*.[0-9]{6})'
+
+          if grep -rEn "$PATTERNS" apps/web \
+              --include='*.ts' --include='*.tsx' \
+              --exclude-dir=node_modules --exclude-dir=.next \
+              --exclude='*.d.ts' --exclude='*.test.*' --exclude='*.spec.*'; then
+            echo ""
+            echo "Hardcoded catalogue data found in apps/web."
+            echo "Product, variant and pricing data must come from the API."
+            exit 1
+          fi
+
+          echo "OK - no hardcoded catalogue data in the frontend."

@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# env — NEVER commit real credentials
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# prisma
+apps/api/prisma/migrations/dev.db*
+
+# uploads (runtime storage, never in git)
+storage/
+uploads/
+
+# logs
+logs/
+*.log
+npm-debug.log*
+
+# testing
+coverage/
+.nyc_output/
+
+# editors / os
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# misc
+.turbo/
+.cache/

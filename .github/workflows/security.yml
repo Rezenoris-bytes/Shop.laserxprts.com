@@ -1,0 +1,122 @@
+name: Security
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [main, dev]
+  schedule:
+    # Weekly, so a newly disclosed advisory in an unchanged dependency is still
+    # found. Push-only scanning goes quiet exactly when a repo is stable.
+    - cron: '0 3 * * 1'
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependencies:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: npm
+
+      - run: npm ci
+
+      # Severity policy from the plan: critical/high blocks, moderate/low reports.
+      - name: Audit (critical and high block the build)
+        run: npm audit --audit-level=high
+
+      - name: Audit report (moderate and low, informational)
+        run: npm audit --audit-level=moderate || true
+
+      - name: Outdated dependencies (informational)
+        run: npm outdated || true
+
+  secrets:
+    name: Committed secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan history with gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # gitleaks scans content; this catches the file existing at all.
+      - name: No .env committed
+        run: |
+          set -euo pipefail
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo ".env is tracked by git. It must never be committed."
+            exit 1
+          fi
+          TRACKED=$(git ls-files | grep -E '^\.env' | grep -v '^\.env\.example$' || true)
+          if [ -n "$TRACKED" ]; then
+            echo "Environment files are tracked:"
+            echo "$TRACKED"
+            exit 1
+          fi
+          echo "OK - only .env.example is tracked."
+
+  configuration:
+    name: Unsafe configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Each of these corresponds to a specific finding from the architecture
+      # review. They are cheap to check and expensive to discover in production.
+      - name: Static safety checks
+        run: |
+          set -euo pipefail
+          FAILED=0
+
+          fail() { echo "FAIL: $1"; FAILED=1; }
+
+          # Money must never be a float — rounding drift on quote totals.
+          if grep -rn "Float" apps/api/prisma/schema.prisma; then
+            fail "schema.prisma uses Float. Money and measures must be Decimal."
+          fi
+
+          # A wildcard CORS origin would defeat the credentialed cookie setup.
+          if grep -rn "origin: *'\*'" apps/api/src --include='*.ts'; then
+            fail "Wildcard CORS origin found."
+          fi
+
+          # Refresh tokens live in HttpOnly cookies, never in web storage.
+          if [ -d apps/web ] && grep -rn "localStorage.*refresh\|refresh.*localStorage" apps/web \
+               --include='*.ts' --include='*.tsx' --exclude-dir=node_modules --exclude-dir=.next; then
+            fail "Refresh token appears to touch localStorage."
+          fi
+
+          # SVG uploads are stored XSS when served from the application origin.
+          if grep -rn "image/svg" apps/api/src --include='*.ts' | grep -vi "block\|reject\|deny\|forbid"; then
+            fail "SVG appears in an upload allowlist. SVG must be blocked."
+          fi
+
+          # The production domain is deferred; nothing may hardcode a hostname.
+          if grep -rn "laserxprts\.com" apps/ packages/ --include='*.ts' --include='*.tsx' \
+               --include='*.prisma' --exclude-dir=node_modules --exclude-dir=.next 2>/dev/null; then
+            fail "Hardcoded domain found. Use SITE_URL."
+          fi
+
+          [ "$FAILED" -eq 0 ] || exit 1
+          echo "OK - configuration checks passed."

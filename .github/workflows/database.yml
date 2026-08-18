@@ -1,0 +1,139 @@
+name: Database
+
+# A frontend build can pass while a broken Prisma schema slips through, so
+# schema and migration validation is a separate required check.
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: database-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    name: Prisma format, validate, generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/lei_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: npm
+
+      - run: npm ci
+
+      # --check fails rather than rewriting, so a malformed schema cannot be
+      # silently normalised by CI and merged.
+      - name: Prisma format check
+        working-directory: apps/api
+        run: npx prisma format --check
+
+      - name: Prisma validate
+        working-directory: apps/api
+        run: npx prisma validate
+
+      - name: Prisma generate
+        working-directory: apps/api
+        run: npx prisma generate
+
+  migrations:
+    name: Migrations apply to a clean database
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Never point CI at a developer's database. A throwaway service container
+    # is created and destroyed per run.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_root
+          MYSQL_DATABASE: lei_ci
+          MYSQL_USER: ci
+          MYSQL_PASSWORD: ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pci_root"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/lei_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: npm
+
+      - run: npm ci
+
+      # The app user needs these for the shadow database and for the
+      # immutability triggers. Production grants them to the deploy user only.
+      - name: Grant migration privileges
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -pci_root -e "
+            GRANT ALL PRIVILEGES ON \`prisma_migrate_shadow_db%\`.* TO 'ci'@'%';
+            GRANT TRIGGER ON \`lei_ci\`.* TO 'ci'@'%';
+            SET GLOBAL log_bin_trust_function_creators = 1;
+            FLUSH PRIVILEGES;"
+
+      - name: Apply migrations
+        working-directory: apps/api
+        run: npx prisma migrate deploy
+
+      # A schema that has drifted from its migrations means someone edited
+      # schema.prisma without generating a migration.
+      - name: Detect schema drift
+        working-directory: apps/api
+        run: npx prisma migrate diff
+          --from-migrations prisma/migrations
+          --to-schema-datamodel prisma/schema.prisma
+          --shadow-database-url "$DATABASE_URL"
+          --exit-code
+        continue-on-error: false
+
+      - name: Verify constraints, indexes and triggers landed
+        run: |
+          set -euo pipefail
+          RESULT=$(mysql -h 127.0.0.1 -P 3306 -uroot -pci_root -N -B -e "
+            SELECT
+              (SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema='lei_ci'),
+              (SELECT COUNT(*) FROM information_schema.triggers
+                 WHERE trigger_schema='lei_ci'),
+              (SELECT COUNT(DISTINCT index_name) FROM information_schema.statistics
+                 WHERE table_schema='lei_ci' AND index_type='FULLTEXT'),
+              (SELECT COUNT(*) FROM information_schema.columns
+                 WHERE table_schema='lei_ci' AND extra LIKE '%GENERATED%');")
+
+          TABLES=$(echo "$RESULT" | cut -f1)
+          TRIGGERS=$(echo "$RESULT" | cut -f2)
+          FULLTEXT=$(echo "$RESULT" | cut -f3)
+          GENERATED=$(echo "$RESULT" | cut -f4)
+
+          echo "tables=$TABLES triggers=$TRIGGERS fulltext=$FULLTEXT generated=$GENERATED"
+
+          # 40 models + _prisma_migrations
+          [ "$TABLES" -eq 41 ]   || { echo "Expected 41 tables, got $TABLES"; exit 1; }
+          [ "$TRIGGERS" -eq 6 ]  || { echo "Expected 6 triggers, got $TRIGGERS"; exit 1; }
+          [ "$FULLTEXT" -eq 2 ]  || { echo "Expected 2 full-text indexes, got $FULLTEXT"; exit 1; }
+          [ "$GENERATED" -eq 2 ] || { echo "Expected 2 generated columns, got $GENERATED"; exit 1; }
+
+          echo "OK - database objects verified."

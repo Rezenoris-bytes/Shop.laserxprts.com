@@ -1,0 +1,1562 @@
+// ============================================================================
+// LEI Platform — Prisma schema
+//
+// Migration 001 creates 40 models:
+//   Tier 1 (35) — required for Phase 1, with application code
+//   Tier 2  (5) — future foundation; tables exist, no Phase 1 code
+//
+// 8 Tier-3 models are deliberately NOT here (Order, OrderItem, CustomerMachine,
+// ProductRelation, Redirect, and the three translation tables). Nothing in this
+// file references them, so they are purely additive in a later migration.
+//
+// CRITICAL DESIGN NOTE — Product vs ProductVariant
+// -----------------------------------------------
+// Nothing in this schema encodes any rule about what groups variants into a
+// product. The grouping arrives in the `product_key` column of the import CSV.
+// Because every commercial record (EnquiryItem, QuoteRevisionItem) references a
+// ProductVariant and never a Product, the grouping can be changed later with
+// `UPDATE product_variants SET product_id = ...` without touching a single
+// historical enquiry, quote or PDF.
+//
+// Target: MySQL 8.0+ / utf8mb4 / utf8mb4_0900_ai_ci
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+}
+
+/// Descriptive business assignment. NEVER read by the permission guard —
+/// it only pre-fills permission templates in the admin UI.
+enum AdminDepartment {
+  SALES
+  SERVICE
+  CATALOGUE
+  CONTENT
+  OPERATIONS
+}
+
+enum PermissionModule {
+  CATALOGUE
+  INVENTORY
+  MACHINES
+  SERVICES
+  SERVICE_REQUESTS
+  CUSTOMERS
+  ENQUIRIES
+  LEADS
+  QUOTES
+  ORDERS
+  REPORTS
+  USERS
+  AUDIT
+  SETTINGS
+}
+
+enum ProductType {
+  SPARE_PART
+  CONSUMABLE
+  COMPONENT
+  ACCESSORY
+  KIT
+}
+
+enum PriceType {
+  FIXED
+  ON_REQUEST
+  CONTACT_SALES
+}
+
+enum UnitOfMeasure {
+  PIECE
+  SET
+  PACK
+  METRE
+  LITRE
+  KG
+  HOUR
+  VISIT
+  LOT
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+  MADE_TO_ORDER
+  DISCONTINUED
+}
+
+enum AttributeDataType {
+  STRING
+  DECIMAL
+  INTEGER
+  BOOLEAN
+  ENUM
+}
+
+/// Advisory default for the importer and admin form only. It does NOT
+/// constrain where an AttributeValue may be written — see AttributeValue.
+enum AttributeScope {
+  PRODUCT
+  VARIANT
+}
+
+enum MediaType {
+  IMAGE
+  DATASHEET
+  BROCHURE
+  MANUAL
+  CERTIFICATE
+  DRAWING
+}
+
+enum FileContext {
+  PRODUCT
+  VARIANT
+  CATEGORY
+  PART_BRAND
+  MACHINE_BRAND
+  SERVICE
+  SERVICE_REQUEST
+  ENQUIRY
+  QUOTE
+  IMPORT
+}
+
+enum CustomerType {
+  BUSINESS
+  INDIVIDUAL
+}
+
+enum CustomerStatus {
+  PROSPECT
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum EnquiryType {
+  PRODUCT
+  SERVICE
+  BULK
+  GENERAL
+}
+
+enum EnquiryStatus {
+  NEW
+  ACKNOWLEDGED
+  IN_PROGRESS
+  QUOTED
+  CLOSED_WON
+  CLOSED_LOST
+  SPAM
+}
+
+enum LeadType {
+  PRODUCT
+  SERVICE
+  BULK
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  QUOTED
+  NEGOTIATION
+  WON
+  LOST
+  DORMANT
+}
+
+enum LeadSource {
+  WEBSITE_ENQUIRY
+  WEBSITE_QUOTE_REQUEST
+  SERVICE_REQUEST
+  PHONE
+  WHATSAPP
+  EMAIL
+  REFERRAL
+  EXHIBITION
+  MANUAL
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  UNDER_REVISION
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+/// Determined by comparing LEI's state code to the customer's place of supply.
+enum TaxTreatment {
+  CGST_SGST
+  IGST
+  EXEMPT
+  ZERO_RATED
+}
+
+enum ServicePricingType {
+  FIXED
+  PER_HOUR
+  PER_VISIT
+  ON_REQUEST
+  CONTACT_SALES
+}
+
+enum ServiceRequestStatus {
+  NEW
+  ASSIGNED
+  ASSESSMENT
+  QUOTED
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Locale {
+  en
+  hi
+}
+
+enum EventType {
+  PAGE_VIEW
+  PRODUCT_VIEW
+  VARIANT_VIEW
+  CATEGORY_VIEW
+  SERVICE_VIEW
+  SEARCH
+  SEARCH_NO_RESULTS
+  FILTER_USED
+  COMPATIBILITY_SEARCH
+  QUOTE_REQUEST_START
+  QUOTE_REQUEST_ITEM_ADDED
+  QUOTE_REQUEST_ITEM_REMOVED
+  QUOTE_REQUEST_SUBMIT
+  BROCHURE_DOWNLOAD
+  WHATSAPP_CLICK
+  PHONE_CLICK
+  CONTACT_SUBMIT
+  LOGIN
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  SOFT_DELETE
+  RESTORE
+  HARD_DELETE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_RESET
+  PERMISSION_CHANGE
+  QUOTE_SENT
+  QUOTE_ACCEPTED
+  QUOTE_REJECTED
+  STOCK_ADJUST
+  IMPORT
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  FAILED
+}
+
+enum ImportStatus {
+  PENDING
+  VALIDATING
+  VALIDATED
+  APPLYING
+  COMPLETED
+  FAILED
+}
+
+enum ImportType {
+  MACHINES
+  ATTRIBUTES
+  CATEGORIES
+  PART_BRANDS
+  PRODUCTS
+  VARIANTS
+  COMPATIBILITY
+  INVENTORY
+}
+
+// ============================================================================
+// IDENTITY, ACCESS & AUDIT  (Tier 1)
+// ============================================================================
+
+model User {
+  id     Int              @id @default(autoincrement())
+  name   String           @db.VarChar(120)
+  email  String           @unique @db.VarChar(190)
+  /// Lowercased/trimmed match key so login lookups use an index.
+  emailNormalized String  @unique @map("email_normalized") @db.VarChar(190)
+  passwordHash    String  @map("password_hash") @db.VarChar(255)
+  role            UserRole
+  department      AdminDepartment?
+  phone           String?          @db.VarChar(20)
+  isActive        Boolean          @default(true) @map("is_active")
+
+  // Brute-force protection
+  lastLoginAt        DateTime? @map("last_login_at") @db.DateTime(3)
+  failedLoginCount   Int       @default(0) @map("failed_login_count") @db.TinyInt
+  lockedUntil        DateTime? @map("locked_until") @db.DateTime(3)
+  passwordChangedAt  DateTime? @map("password_changed_at") @db.DateTime(3)
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt DateTime? @map("deleted_at") @db.DateTime(3)
+
+  permissions       AdminPermission[]
+  refreshTokens     RefreshToken[]
+  passwordResets    PasswordResetToken[]
+  auditLogs         AdminAuditLog[]
+  uploadedFiles     File[]                 @relation("FileUploader")
+  assignedEnquiries Enquiry[]              @relation("EnquiryAssignee")
+  assignedLeads     Lead[]                 @relation("LeadAssignee")
+  ownedQuotes       Quote[]                @relation("QuoteOwner")
+  createdRevisions  QuoteRevision[]        @relation("RevisionAuthor")
+  assignedRequests  ServiceRequest[]       @relation("ServiceRequestAssignee")
+  stockMovements    StockMovement[]
+  verifiedCompat    ProductCompatibility[] @relation("CompatibilityVerifier")
+  importJobs        ImportJob[]
+
+  @@index([role, isActive])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+/// The ONLY authorization source of truth. The permission guard reads this
+/// table and nothing else — never User.department.
+model AdminPermission {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  module    PermissionModule
+  canView   Boolean          @default(false) @map("can_view")
+  canCreate Boolean          @default(false) @map("can_create")
+  canUpdate Boolean          @default(false) @map("can_update")
+  canDelete Boolean          @default(false) @map("can_delete")
+  createdAt DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module])
+  @@index([userId])
+  @@map("admin_permissions")
+}
+
+/// Refresh-token rotation with reuse detection. Rotation without a store cannot
+/// detect replay, which is the entire security benefit of rotating.
+model RefreshToken {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  /// SHA-256 of the token. The raw token is never stored.
+  tokenHash     String    @unique @map("token_hash") @db.VarChar(255)
+  /// One family per login session. Replay revokes the whole family.
+  familyId      String    @map("family_id") @db.VarChar(36)
+  issuedAt      DateTime  @default(now()) @map("issued_at") @db.DateTime(3)
+  expiresAt     DateTime  @map("expires_at") @db.DateTime(3)
+  revokedAt     DateTime? @map("revoked_at") @db.DateTime(3)
+  revokedReason String?   @map("revoked_reason") @db.VarChar(64)
+  replacedById  Int?      @unique @map("replaced_by_id")
+  ipAddress     String?   @map("ip_address") @db.VarChar(45)
+  userAgent     String?   @map("user_agent") @db.VarChar(255)
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replacedBy RefreshToken? @relation("TokenRotation", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces   RefreshToken? @relation("TokenRotation")
+
+  @@index([userId, familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  /// Hashed at rest — a leaked database must not yield usable reset links.
+  tokenHash String    @unique @map("token_hash") @db.VarChar(255)
+  expiresAt DateTime  @map("expires_at") @db.DateTime(3)
+  usedAt    DateTime? @map("used_at") @db.DateTime(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
+/// Append-only. Written by a single interceptor, with a field ALLOWLIST so
+/// credentials and full PII never enter oldValues/newValues.
+model AdminAuditLog {
+  id         Int         @id @default(autoincrement())
+  userId     Int?        @map("user_id")
+  action     AuditAction
+  entityType String      @map("entity_type") @db.VarChar(64)
+  entityId   String?     @map("entity_id") @db.VarChar(64)
+  oldValues  Json?       @map("old_values")
+  newValues  Json?       @map("new_values")
+  ipAddress  String?     @map("ip_address") @db.VarChar(45)
+  userAgent  String?     @map("user_agent") @db.VarChar(255)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("admin_audit_logs")
+}
+
+// ============================================================================
+// PLATFORM: settings, counters, files, email, import  (Tier 1)
+// ============================================================================
+
+/// LEI's own company data lives here. None of the source specification
+/// documents contained it, yet a quote PDF cannot be rendered without it.
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(100)
+  value       String   @db.Text
+  valueType   String   @default("string") @map("value_type") @db.VarChar(20)
+  group       String   @default("general") @db.VarChar(50)
+  /// Masked in the admin UI and redacted from audit logs.
+  isSecret    Boolean  @default(false) @map("is_secret")
+  description String?  @db.VarChar(255)
+  updatedById Int?     @map("updated_by_id")
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([group])
+  @@map("settings")
+}
+
+/// Concurrent-safe document numbering. MUST be read with SELECT ... FOR UPDATE
+/// inside the same transaction as the insert, or two admins clicking
+/// "create quote" in the same second receive the same number.
+model Counter {
+  id           Int      @id @default(autoincrement())
+  scope        String   @db.VarChar(50)
+  /// Indian financial year, e.g. "2026-27", or "GLOBAL".
+  period       String   @db.VarChar(20)
+  currentValue Int      @default(0) @map("current_value")
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([scope, period])
+  @@map("counters")
+}
+
+model File {
+  id             Int         @id @default(autoincrement())
+  originalName   String      @map("original_name") @db.VarChar(255)
+  storedName     String      @unique @map("stored_name") @db.VarChar(255)
+  path           String      @db.VarChar(500)
+  mimeType       String      @map("mime_type") @db.VarChar(100)
+  extension      String      @db.VarChar(16)
+  sizeBytes      Int         @map("size_bytes")
+  /// Deduplication and integrity verification.
+  checksumSha256 String      @map("checksum_sha256") @db.Char(64)
+  context        FileContext
+  width          Int?
+  height         Int?
+  /// false = served only through a signed, expiring URL.
+  isPublic       Boolean     @default(true) @map("is_public")
+  uploadedById   Int?        @map("uploaded_by_id")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  deletedAt      DateTime?   @map("deleted_at") @db.DateTime(3)
+
+  uploadedBy      User?                      @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  derivatives     FileDerivative[]
+  productMedia    ProductMedia[]
+  quoteRevisions  QuoteRevision[]            @relation("QuoteRevisionPdf")
+  enquiryAttach   EnquiryAttachment[]
+  requestAttach   ServiceRequestAttachment[]
+  importJobs      ImportJob[]
+
+  @@index([context, createdAt])
+  @@index([checksumSha256])
+  @@map("files")
+}
+
+/// Image sizes generated ONCE at upload. Running sharp per request on a small
+/// VPS would contend for the CPU MySQL needs.
+model FileDerivative {
+  id        Int    @id @default(autoincrement())
+  fileId    Int    @map("file_id")
+  variant   String @db.VarChar(20)
+  format    String @db.VarChar(10)
+  path      String @db.VarChar(500)
+  width     Int
+  height    Int
+  sizeBytes Int    @map("size_bytes")
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, variant, format])
+  @@map("file_derivatives")
+}
+
+/// Delivery and bounce visibility. Without this, sales believes a quote was
+/// delivered when it actually bounced.
+model EmailLog {
+  id           Int         @id @default(autoincrement())
+  toEmail      String      @map("to_email") @db.VarChar(190)
+  template     String      @db.VarChar(64)
+  subject      String      @db.VarChar(255)
+  status       EmailStatus @default(QUEUED)
+  providerId   String?     @map("provider_id") @db.VarChar(190)
+  entityType   String?     @map("entity_type") @db.VarChar(64)
+  entityId     String?     @map("entity_id") @db.VarChar(64)
+  errorMessage String?     @map("error_message") @db.Text
+  attempts     Int         @default(0) @db.TinyInt
+  sentAt       DateTime?   @map("sent_at") @db.DateTime(3)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([status, createdAt])
+  @@index([entityType, entityId])
+  @@index([toEmail])
+  @@map("email_logs")
+}
+
+/// The seed catalogue is loaded through this same importer, so the production
+/// import path is exercised continuously from the first day of development.
+model ImportJob {
+  id            Int          @id @default(autoincrement())
+  type          ImportType
+  fileId        Int?         @map("file_id")
+  status        ImportStatus @default(PENDING)
+  totalRows     Int          @default(0) @map("total_rows")
+  processedRows Int          @default(0) @map("processed_rows")
+  successRows   Int          @default(0) @map("success_rows")
+  errorRows     Int          @default(0) @map("error_rows")
+  /// Row-level errors, so an admin can fix the CSV and re-run instead of
+  /// being told only "import failed".
+  errorReport   Json?        @map("error_report")
+  isDryRun      Boolean      @default(true) @map("is_dry_run")
+  startedById   Int?         @map("started_by_id")
+  startedAt     DateTime?    @map("started_at") @db.DateTime(3)
+  completedAt   DateTime?    @map("completed_at") @db.DateTime(3)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+
+  file      File? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  startedBy User? @relation(fields: [startedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("import_jobs")
+}
+
+// ============================================================================
+// CATALOGUE  (Tier 1)
+// ============================================================================
+
+model Category {
+  id           Int     @id @default(autoincrement())
+  parentId     Int?    @map("parent_id")
+  name         String  @db.VarChar(150)
+  slug         String  @unique @db.VarChar(190)
+  description  String? @db.Text
+  imageFileId  Int?    @map("image_file_id")
+  sortOrder    Int     @default(0) @map("sort_order")
+  isActive     Boolean @default(true) @map("is_active")
+  /// Cached for the "128+ Products" tiles. Recomputed on product save —
+  /// an aggregate per tile per request is a needless cost.
+  productCount Int     @default(0) @map("product_count")
+
+  metaTitle         String? @map("meta_title") @db.VarChar(255)
+  metaDescription   String? @map("meta_description") @db.VarChar(500)
+  /// NULL = derive the canonical from slug + SITE_URL. Stored absolute URLs
+  /// rot silently on any domain change.
+  canonicalOverride String? @map("canonical_override") @db.VarChar(500)
+  seoIndexable      Boolean @default(true) @map("seo_indexable")
+
+  isSeedData Boolean   @default(false) @map("is_seed_data")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt  DateTime? @map("deleted_at") @db.DateTime(3)
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId, sortOrder])
+  @@index([isActive, deletedAt])
+  @@index([isSeedData])
+  @@map("categories")
+}
+
+model PartBrand {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(150)
+  slug        String    @unique @db.VarChar(190)
+  logoFileId  Int?      @map("logo_file_id")
+  description String?   @db.Text
+  website     String?   @db.VarChar(255)
+  isActive    Boolean   @default(true) @map("is_active")
+  isSeedData  Boolean   @default(false) @map("is_seed_data")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt   DateTime? @map("deleted_at") @db.DateTime(3)
+
+  products Product[]
+
+  @@index([isActive, deletedAt])
+  @@index([isSeedData])
+  @@map("part_brands")
+}
+
+/// A PRESENTATION GROUP over variants — one page, one URL, one SEO record.
+///
+/// What groups variants together is decided entirely by the `product_key`
+/// column in the import CSV. This schema encodes no rule about it.
+model Product {
+  id          Int         @id @default(autoincrement())
+  categoryId  Int         @map("category_id")
+  partBrandId Int?        @map("part_brand_id")
+
+  name             String      @db.VarChar(255)
+  slug             String      @unique @db.VarChar(190)
+  productType      ProductType @default(SPARE_PART) @map("product_type")
+  shortDescription String?     @map("short_description") @db.VarChar(500)
+  description      String?     @db.Text
+
+  /// Tax classification is commodity-level, so it lives here rather than on
+  /// the variant. Snapshotted onto quote lines at issue time.
+  hsnCode String?  @map("hsn_code") @db.VarChar(12)
+  gstRate Decimal? @map("gst_rate") @db.Decimal(5, 2)
+
+  isFeatured Boolean @default(false) @map("is_featured")
+  isActive   Boolean @default(true) @map("is_active")
+
+  /// Denormalised from variants for fast listing and sorting. Recomputed
+  /// whenever a variant is saved or imported.
+  minPrice Decimal? @map("min_price") @db.Decimal(14, 2)
+  maxPrice Decimal? @map("max_price") @db.Decimal(14, 2)
+  hasStock Boolean  @default(false) @map("has_stock")
+
+  /// DERIVED, never configured: the attribute slugs whose values differ across
+  /// this product's variants. Drives the selector on the product page, so one
+  /// component renders a family with zero, one, two or three axes.
+  variantAxes Json? @map("variant_axes")
+
+  metaTitle         String? @map("meta_title") @db.VarChar(255)
+  metaDescription   String? @map("meta_description") @db.VarChar(500)
+  canonicalOverride String? @map("canonical_override") @db.VarChar(500)
+  ogTitle           String? @map("og_title") @db.VarChar(255)
+  ogDescription     String? @map("og_description") @db.VarChar(500)
+  ogImageFileId     Int?    @map("og_image_file_id")
+  seoIndexable      Boolean @default(true) @map("seo_indexable")
+
+  isSeedData  Boolean   @default(false) @map("is_seed_data")
+  createdById Int?      @map("created_by_id")
+  updatedById Int?      @map("updated_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt   DateTime? @map("deleted_at") @db.DateTime(3)
+  publishedAt DateTime? @map("published_at") @db.DateTime(3)
+
+  category        Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  partBrand       PartBrand?             @relation(fields: [partBrandId], references: [id], onDelete: Restrict)
+  variants        ProductVariant[]
+  media           ProductMedia[]
+  attributeValues AttributeValue[]
+  compatibility   ProductCompatibility[]
+
+  @@index([categoryId, isActive, deletedAt])
+  @@index([partBrandId, isActive])
+  @@index([isFeatured, isActive])
+  @@index([isActive, deletedAt, createdAt])
+  @@index([minPrice])
+  @@index([isSeedData])
+  @@map("products")
+}
+
+/// THE SELLABLE UNIT. Colloquially "a SKU".
+///
+/// Fixed columns here are only what is commercially identical across every
+/// product LEI will ever sell. Everything technical — head/series, nozzle type,
+/// thread, height, orifice diameter — is an Attribute, because those differ by
+/// family and always will. Adding a new characteristic is an Attribute row plus
+/// a CSV column: no migration, no code change.
+model ProductVariant {
+  id        Int @id @default(autoincrement())
+  productId Int @map("product_id")
+
+  /// LEI's internal stock code. Globally unique.
+  sku        String  @unique @db.VarChar(64)
+  /// Printed on the part / OEM catalogue number. Deliberately NOT unique —
+  /// LEI does not control OEM numbering and enforcing uniqueness here would
+  /// reject legitimate imports.
+  partNumber String  @map("part_number") @db.VarChar(100)
+  mpn        String? @db.VarChar(100)
+  barcode    String? @db.VarChar(64)
+
+  /// Normalised match key: UPPER, non-alphanumerics stripped.
+  /// "D27.9 T4.1" -> "D279T41". Exact and prefix matches run against this
+  /// BEFORE full-text, because MySQL FULLTEXT drops short tokens and splits on
+  /// punctuation — so a customer typing their exact part number would
+  /// otherwise get nothing.
+  searchKey String @map("search_key") @db.VarChar(255)
+
+  /// Composed at import from the axis values: "D1.5", "H20 / D1.5",
+  /// "15mm / D1.4", or "Standard" for single-variant products.
+  variantName String  @map("variant_name") @db.VarChar(120)
+  isDefault   Boolean @default(false) @map("is_default")
+  position    Int     @default(0)
+
+  price         Decimal?      @db.Decimal(14, 2)
+  priceType     PriceType     @default(FIXED) @map("price_type")
+  mrp           Decimal?      @db.Decimal(14, 2)
+  unitOfMeasure UnitOfMeasure @default(PIECE) @map("unit_of_measure")
+  packSize      Int           @default(1) @map("pack_size")
+  minOrderQty   Int           @default(1) @map("min_order_qty")
+  leadTimeDays  Int?          @map("lead_time_days")
+  weightGrams   Int?          @map("weight_grams")
+
+  isActive   Boolean   @default(true) @map("is_active")
+  isSeedData Boolean   @default(false) @map("is_seed_data")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt  DateTime? @map("deleted_at") @db.DateTime(3)
+
+  product         Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
+  inventory       Inventory?
+  attributeValues AttributeValue[]
+  compatibility   ProductCompatibility[]
+  enquiryItems    EnquiryItem[]
+  quoteItems      QuoteRevisionItem[]
+  stockMovements  StockMovement[]
+
+  @@unique([productId, variantName])
+  @@index([partNumber])
+  @@index([searchKey])
+  @@index([productId, isActive, position])
+  @@index([isActive, deletedAt])
+  @@index([isSeedData])
+  @@map("product_variants")
+}
+
+model ProductMedia {
+  id        Int       @id @default(autoincrement())
+  productId Int       @map("product_id")
+  fileId    Int       @map("file_id")
+  type      MediaType @default(IMAGE)
+  /// Required for image search and screen readers. Absent from the source
+  /// specification documents.
+  altText   String?   @map("alt_text") @db.VarChar(255)
+  title     String?   @db.VarChar(255)
+  sortOrder Int       @default(0) @map("sort_order")
+  isPrimary Boolean   @default(false) @map("is_primary")
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  file    File    @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@index([productId, sortOrder])
+  @@index([productId, isPrimary])
+  @@map("product_media")
+}
+
+model Attribute {
+  id           Int               @id @default(autoincrement())
+  name         String            @db.VarChar(120)
+  slug         String            @unique @db.VarChar(190)
+  dataType     AttributeDataType @default(STRING) @map("data_type")
+  /// Advisory hint for the importer and admin form ONLY. It never constrains
+  /// where a value may be written — moving an attribute between product and
+  /// variant level is a data operation, not a migration.
+  defaultScope AttributeScope    @default(VARIANT) @map("default_scope")
+  unit         String?           @db.VarChar(20)
+  isFilterable Boolean           @default(true) @map("is_filterable")
+  isSearchable Boolean           @default(false) @map("is_searchable")
+  showInSpecs  Boolean           @default(true) @map("show_in_specs")
+  sortOrder    Int               @default(0) @map("sort_order")
+  isSeedData   Boolean           @default(false) @map("is_seed_data")
+  createdAt    DateTime          @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime          @updatedAt @map("updated_at") @db.DateTime(3)
+
+  values AttributeValue[]
+
+  @@index([isFilterable, sortOrder])
+  @@map("attributes")
+}
+
+/// ONE table for both product-level and variant-level specifications.
+///
+/// Exactly one of productId / variantId is non-null, enforced by a CHECK
+/// constraint added in the migration (MySQL 8.0.16+ enforces CHECK).
+///
+/// A single table is deliberate: with the Product/Variant boundary decided by
+/// imported data rather than by the schema, moving an attribute between levels
+/// must be a one-column UPDATE — not a migration of rows between two tables.
+model AttributeValue {
+  id          Int  @id @default(autoincrement())
+  attributeId Int  @map("attribute_id")
+  productId   Int? @map("product_id")
+  variantId   Int? @map("variant_id")
+
+  valueString String?  @map("value_string") @db.VarChar(255)
+  /// Populated for numeric attributes so range filters compare numbers.
+  /// Without this, filtering diameter 1.0-3.0 as text returns the 10mm nozzle,
+  /// because "10.0" sorts between "1.0" and "3.0".
+  valueDecimal Decimal? @map("value_decimal") @db.Decimal(14, 4)
+  valueBool    Boolean? @map("value_bool")
+
+  attribute Attribute       @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeId])
+  @@unique([variantId, attributeId])
+  @@index([attributeId, valueDecimal])
+  @@index([attributeId, valueString(length: 100)])
+  @@map("attribute_values")
+}
+
+// ============================================================================
+// INVENTORY  (Tier 1)
+// ============================================================================
+
+model Inventory {
+  id               Int         @id @default(autoincrement())
+  /// 1:1 with the SELLABLE unit, not the product.
+  variantId        Int         @unique @map("variant_id")
+  quantity         Int         @default(0)
+  reservedQuantity Int         @default(0) @map("reserved_quantity")
+  reorderLevel     Int         @default(0) @map("reorder_level")
+  stockStatus      StockStatus @default(OUT_OF_STOCK) @map("stock_status")
+  /// TRUE when a human set the status (MADE_TO_ORDER / DISCONTINUED). The
+  /// recalculation job MUST skip these rows, or it silently overwrites a
+  /// deliberate decision.
+  isManualOverride Boolean     @default(false) @map("is_manual_override")
+  location         String?     @db.VarChar(100)
+  lastCountedAt    DateTime?   @map("last_counted_at") @db.DateTime(3)
+  updatedById      Int?        @map("updated_by_id")
+  updatedAt        DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([stockStatus])
+  @@index([quantity])
+  @@map("inventory")
+}
+
+/// Append-only ledger. Inventory.quantity alone cannot answer "why did stock
+/// change?", which makes stock disputes unresolvable.
+model StockMovement {
+  id             Int      @id @default(autoincrement())
+  variantId      Int      @map("variant_id")
+  quantityBefore Int      @map("quantity_before")
+  quantityChange Int      @map("quantity_change")
+  quantityAfter  Int      @map("quantity_after")
+  reason         String   @db.VarChar(50)
+  reference      String?  @db.VarChar(100)
+  notes          String?  @db.VarChar(500)
+  performedById  Int?     @map("performed_by_id")
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  performedBy User?          @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([variantId, createdAt])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+// ============================================================================
+// MACHINES & COMPATIBILITY  (Tier 1)
+// ============================================================================
+
+model MachineBrand {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(150)
+  slug       String   @unique @db.VarChar(190)
+  logoFileId Int?     @map("logo_file_id")
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @default(0) @map("sort_order")
+  isSeedData Boolean  @default(false) @map("is_seed_data")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  models          MachineModel[]
+  compatibility   ProductCompatibility[]
+  serviceRequests ServiceRequest[]
+
+  @@index([isActive, sortOrder])
+  @@map("machine_brands")
+}
+
+model MachineModel {
+  id             Int      @id @default(autoincrement())
+  machineBrandId Int      @map("machine_brand_id")
+  name           String   @db.VarChar(150)
+  slug           String   @db.VarChar(190)
+  description    String?  @db.Text
+  isActive       Boolean  @default(true) @map("is_active")
+  isSeedData     Boolean  @default(false) @map("is_seed_data")
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  brand           MachineBrand           @relation(fields: [machineBrandId], references: [id], onDelete: Restrict)
+  variants        MachineVariant[]
+  compatibility   ProductCompatibility[]
+  serviceRequests ServiceRequest[]
+
+  @@unique([machineBrandId, slug])
+  @@index([machineBrandId, isActive])
+  @@map("machine_models")
+}
+
+model MachineVariant {
+  id             Int      @id @default(autoincrement())
+  machineModelId Int      @map("machine_model_id")
+  name           String   @db.VarChar(150)
+  laserType      String?  @map("laser_type") @db.VarChar(50)
+  /// Numeric, not "3kW" — so power can be filtered and compared.
+  powerWatts     Int?     @map("power_watts")
+  isActive       Boolean  @default(true) @map("is_active")
+  isSeedData     Boolean  @default(false) @map("is_seed_data")
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  model           MachineModel           @relation(fields: [machineModelId], references: [id], onDelete: Restrict)
+  compatibility   ProductCompatibility[]
+  serviceRequests ServiceRequest[]
+
+  @@unique([machineModelId, name])
+  @@index([machineModelId, isActive])
+  @@map("machine_variants")
+}
+
+/// The commercial core of the platform.
+///
+/// `variantId` is nullable so fitment can attach at EITHER level:
+///   NULL -> applies to every variant of the product (the common case)
+///   set  -> applies only to that variant
+/// This is what allows the Product/Variant grouping to stay a data decision.
+///
+/// Uniqueness needs generated columns because MySQL treats each NULL as
+/// distinct; the migration adds:
+///   variant_key         INT AS (IFNULL(variant_id,0))         STORED
+///   machine_variant_key INT AS (IFNULL(machine_variant_id,0)) STORED
+///   UNIQUE (product_id, variant_key, machine_model_id, machine_variant_key)
+model ProductCompatibility {
+  id               Int     @id @default(autoincrement())
+  productId        Int     @map("product_id")
+  variantId        Int?    @map("variant_id")
+  machineBrandId   Int     @map("machine_brand_id")
+  machineModelId   Int     @map("machine_model_id")
+  machineVariantId Int?    @map("machine_variant_id")
+  notes            String? @db.VarChar(500)
+
+  /// Imported/claimed vs engineer-confirmed. Wrong compatibility is worse than
+  /// missing compatibility — it produces a confident wrong answer and a
+  /// returned part — so the UI must distinguish the two.
+  isVerified   Boolean   @default(false) @map("is_verified")
+  verifiedById Int?      @map("verified_by_id")
+  verifiedAt   DateTime? @map("verified_at") @db.DateTime(3)
+
+  isSeedData Boolean  @default(false) @map("is_seed_data")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  machineBrand   MachineBrand    @relation(fields: [machineBrandId], references: [id], onDelete: Restrict)
+  machineModel   MachineModel    @relation(fields: [machineModelId], references: [id], onDelete: Restrict)
+  machineVariant MachineVariant? @relation(fields: [machineVariantId], references: [id], onDelete: Restrict)
+  verifiedBy     User?           @relation("CompatibilityVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([machineModelId, productId])
+  @@index([machineBrandId, machineModelId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([isSeedData])
+  @@map("product_compatibility")
+}
+
+// ============================================================================
+// CUSTOMERS  (Tier 1 + Tier 2)
+// ============================================================================
+
+/// NOTE: `user_id` from the source specification is deliberately ABSENT.
+/// Linking customer records into the admin `users` table would mean customers
+/// and SUPER_ADMIN eventually share one credential store and one role column,
+/// turning any future authorization bug into a privilege-escalation path from
+/// the public internet. Customer login, when built, gets its own table.
+model Customer {
+  id           Int          @id @default(autoincrement())
+  customerType CustomerType @default(BUSINESS) @map("customer_type")
+  companyName  String?      @map("company_name") @db.VarChar(200)
+  contactName  String       @map("contact_name") @db.VarChar(150)
+  email        String?      @db.VarChar(190)
+  phone        String?      @db.VarChar(20)
+
+  /// Stored match keys for find-or-create, so lookups use an index instead of
+  /// applying LOWER() across the table.
+  emailNormalized String? @map("email_normalized") @db.VarChar(190)
+  phoneNormalized String? @map("phone_normalized") @db.VarChar(20)
+
+  gstin      String?        @db.VarChar(15)
+  /// GST state code 01-38. Drives CGST+SGST vs IGST.
+  stateCode  String?        @map("state_code") @db.Char(2)
+  city       String?        @db.VarChar(100)
+  country    String         @default("IN") @db.Char(2)
+  status     CustomerStatus @default(PROSPECT)
+  /// false = auto-created from a public enquiry, not yet confirmed by sales.
+  isVerified Boolean        @default(false) @map("is_verified")
+  source     LeadSource?
+  notes      String?        @db.Text
+
+  isSeedData  Boolean   @default(false) @map("is_seed_data")
+  createdById Int?      @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt   DateTime? @map("deleted_at") @db.DateTime(3)
+
+  addresses       CustomerAddress[]
+  enquiries       Enquiry[]
+  leads           Lead[]
+  quotes          Quote[]
+  serviceRequests ServiceRequest[]
+  events          CustomerEvent[]
+
+  @@index([emailNormalized])
+  @@index([phoneNormalized])
+  @@index([status, deletedAt])
+  @@index([companyName])
+  @@index([createdAt])
+  @@index([isSeedData])
+  @@map("customers")
+}
+
+/// TIER 2 — table created, no Phase 1 code. Phase 1 uses Customer.stateCode
+/// for the GST determination.
+model CustomerAddress {
+  id         Int      @id @default(autoincrement())
+  customerId Int      @map("customer_id")
+  label      String?  @db.VarChar(50)
+  line1      String   @db.VarChar(255)
+  line2      String?  @db.VarChar(255)
+  city       String   @db.VarChar(100)
+  state      String   @db.VarChar(100)
+  stateCode  String?  @map("state_code") @db.Char(2)
+  pincode    String   @db.VarChar(10)
+  country    String   @default("IN") @db.Char(2)
+  isDefault  Boolean  @default(false) @map("is_default")
+  isBilling  Boolean  @default(false) @map("is_billing")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, isDefault])
+  @@map("customer_addresses")
+}
+
+// ============================================================================
+// ENQUIRIES — the Quote Request basket  (Tier 1)
+// ============================================================================
+
+model Enquiry {
+  id Int @id @default(autoincrement())
+
+  /// Random 12-character token given to the customer. Deliberately NOT
+  /// sequential — a sequential public reference is an enumeration
+  /// vulnerability exposing other customers' details.
+  publicRef String @unique @map("public_ref") @db.VarChar(16)
+
+  /// Nullable: an enquiry must never be lost because customer resolution
+  /// failed. The link is populated during submission and correctable by sales.
+  customerId Int?          @map("customer_id")
+  type       EnquiryType   @default(PRODUCT)
+  status     EnquiryStatus @default(NEW)
+  priority   Priority      @default(MEDIUM)
+  source     LeadSource    @default(WEBSITE_QUOTE_REQUEST)
+
+  /// Contact snapshot — what was actually typed. NOT redundant with Customer:
+  /// if sales later corrects the company name, this enquiry must still show
+  /// what the customer submitted.
+  contactName    String  @map("contact_name") @db.VarChar(150)
+  contactEmail   String? @map("contact_email") @db.VarChar(190)
+  contactPhone   String? @map("contact_phone") @db.VarChar(20)
+  contactCompany String? @map("contact_company") @db.VarChar(200)
+  contactCity    String? @map("contact_city") @db.VarChar(100)
+
+  subject String? @db.VarChar(255)
+  message String? @db.Text
+
+  /// Machine context captured ONCE for the whole basket — all the items in a
+  /// request are normally for the same machine.
+  machineBrandId   Int? @map("machine_brand_id")
+  machineModelId   Int? @map("machine_model_id")
+  machineVariantId Int? @map("machine_variant_id")
+
+  /// DPDP Act 2023 — consent is recorded with its text and timestamp,
+  /// not assumed.
+  consentGiven Boolean   @default(false) @map("consent_given")
+  consentText  String?   @map("consent_text") @db.VarChar(500)
+  consentAt    DateTime? @map("consent_at") @db.DateTime(3)
+
+  ipAddress String? @map("ip_address") @db.VarChar(45)
+  userAgent String? @map("user_agent") @db.VarChar(255)
+  spamScore Int     @default(0) @map("spam_score") @db.TinyInt
+  sessionId Int?    @map("session_id")
+
+  assignedToId   Int?      @map("assigned_to_id")
+  acknowledgedAt DateTime? @map("acknowledged_at") @db.DateTime(3)
+
+  isSeedData Boolean  @default(false) @map("is_seed_data")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  customer    Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  assignedTo  User?               @relation("EnquiryAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  items       EnquiryItem[]
+  attachments EnquiryAttachment[]
+  quotes      Quote[]
+  lead        Lead?
+
+  @@index([status, createdAt])
+  @@index([assignedToId, status])
+  @@index([customerId, createdAt])
+  @@index([createdAt])
+  @@index([isSeedData])
+  @@map("enquiries")
+}
+
+/// Without this table the homepage's "Add to Quote" button has nowhere to
+/// write. A customer needing three parts for one machine would otherwise have
+/// to submit three enquiries, producing three leads for one opportunity.
+model EnquiryItem {
+  id        Int  @id @default(autoincrement())
+  enquiryId Int  @map("enquiry_id")
+  variantId Int? @map("variant_id")
+  serviceId Int? @map("service_id")
+
+  /// Snapshots so the enquiry stays readable if the variant is later renamed,
+  /// repriced or discontinued.
+  productNameSnapshot String?  @map("product_name_snapshot") @db.VarChar(255)
+  partNumberSnapshot  String?  @map("part_number_snapshot") @db.VarChar(100)
+  unitPriceSnapshot   Decimal? @map("unit_price_snapshot") @db.Decimal(14, 2)
+
+  quantity     Int      @default(1)
+  customerNote String?  @map("customer_note") @db.VarChar(500)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  enquiry Enquiry         @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  service Service?        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@index([enquiryId, sortOrder])
+  @@index([variantId])
+  @@map("enquiry_items")
+}
+
+/// Customers photograph the broken part. Extremely common in this domain and
+/// absent from all four source specification documents.
+model EnquiryAttachment {
+  id        Int      @id @default(autoincrement())
+  enquiryId Int      @map("enquiry_id")
+  fileId    Int      @map("file_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  file    File    @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@index([enquiryId])
+  @@map("enquiry_attachments")
+}
+
+model Lead {
+  id               Int  @id @default(autoincrement())
+  customerId       Int  @map("customer_id")
+  enquiryId        Int? @unique @map("enquiry_id")
+  /// Every service request creates or links a SERVICE lead, so high-value
+  /// retrofit and repair work never disappears from the commercial pipeline.
+  serviceRequestId Int? @unique @map("service_request_id")
+
+  leadType       LeadType   @default(PRODUCT) @map("lead_type")
+  source         LeadSource @default(WEBSITE_ENQUIRY)
+  status         LeadStatus @default(NEW)
+  priority       Priority   @default(MEDIUM)
+  /// Reserved for post-MVP intent scoring; stays NULL in Phase 1.
+  score          Int?       @db.SmallInt
+  estimatedValue Decimal?   @map("estimated_value") @db.Decimal(14, 2)
+  assignedToId   Int?       @map("assigned_to_id")
+  nextFollowUpAt DateTime?  @map("next_follow_up_at") @db.DateTime(3)
+  lostReason     String?    @map("lost_reason") @db.VarChar(255)
+  notes          String?    @db.Text
+
+  isSeedData Boolean  @default(false) @map("is_seed_data")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  enquiry        Enquiry?        @relation(fields: [enquiryId], references: [id], onDelete: SetNull)
+  serviceRequest ServiceRequest? @relation(fields: [serviceRequestId], references: [id], onDelete: SetNull)
+  assignedTo     User?           @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  @@index([status, assignedToId, createdAt])
+  @@index([customerId])
+  @@index([leadType, status])
+  @@index([nextFollowUpAt])
+  @@map("leads")
+}
+
+// ============================================================================
+// QUOTES  (Tier 1)
+// ============================================================================
+
+model Quote {
+  id          Int    @id @default(autoincrement())
+  /// Financial-year scoped, e.g. "LEI/Q/2026-27/0042". Sequential is fine here
+  /// because quotes are never fetched by number from a public endpoint.
+  quoteNumber String @unique @map("quote_number") @db.VarChar(50)
+  customerId  Int    @map("customer_id")
+  enquiryId   Int?   @map("enquiry_id")
+
+  currentRevisionId Int? @unique @map("current_revision_id")
+  /// Which revision the customer actually agreed to. Absent from the source
+  /// documents — without it, acceptance is unrecorded unless an order exists,
+  /// so a quote accepted but not yet fulfilled loses that fact entirely.
+  acceptedRevisionId Int? @unique @map("accepted_revision_id")
+
+  status          QuoteStatus @default(DRAFT)
+  ownerId         Int?        @map("owner_id")
+  acceptedAt      DateTime?   @map("accepted_at") @db.DateTime(3)
+  rejectedAt      DateTime?   @map("rejected_at") @db.DateTime(3)
+  rejectionReason String?     @map("rejection_reason") @db.VarChar(500)
+
+  isSeedData Boolean  @default(false) @map("is_seed_data")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  enquiry  Enquiry? @relation(fields: [enquiryId], references: [id], onDelete: SetNull)
+  owner    User?    @relation("QuoteOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  // Circular relation with QuoteRevision. Legal because these are nullable;
+  // creation is a two-step insert inside one transaction.
+  currentRevision  QuoteRevision?  @relation("QuoteCurrentRevision", fields: [currentRevisionId], references: [id], onDelete: SetNull)
+  acceptedRevision QuoteRevision?  @relation("QuoteAcceptedRevision", fields: [acceptedRevisionId], references: [id], onDelete: SetNull)
+  revisions        QuoteRevision[] @relation("QuoteRevisions")
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+  @@index([ownerId, status])
+  @@index([isSeedData])
+  @@map("quotes")
+}
+
+/// IMMUTABLE. Note the absence of `updatedAt` — that absence is the signal.
+/// A commercial change creates revision N+1; revision N is never touched.
+/// The service layer exposes no update method, and the migration adds a
+/// BEFORE UPDATE trigger as a second line of defence.
+model QuoteRevision {
+  id             Int @id @default(autoincrement())
+  quoteId        Int @map("quote_id")
+  revisionNumber Int @map("revision_number")
+
+  validUntil DateTime? @map("valid_until") @db.DateTime(3)
+
+  subtotal       Decimal @default(0) @db.Decimal(14, 2)
+  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  freightAmount  Decimal @default(0) @map("freight_amount") @db.Decimal(14, 2)
+  taxableAmount  Decimal @default(0) @map("taxable_amount") @db.Decimal(14, 2)
+
+  /// GST split is STORED, not derived at render time — the treatment must
+  /// freeze with the document, because rates change by notification.
+  taxTreatment TaxTreatment @default(CGST_SGST) @map("tax_treatment")
+  cgstAmount   Decimal      @default(0) @map("cgst_amount") @db.Decimal(14, 2)
+  sgstAmount   Decimal      @default(0) @map("sgst_amount") @db.Decimal(14, 2)
+  igstAmount   Decimal      @default(0) @map("igst_amount") @db.Decimal(14, 2)
+  roundOff     Decimal      @default(0) @map("round_off") @db.Decimal(6, 2)
+  total        Decimal      @default(0) @db.Decimal(14, 2)
+  currency     String       @default("INR") @db.Char(3)
+
+  notes         String? @db.Text
+  /// Terms frozen at issue time, so a later change to the default T&C cannot
+  /// retroactively alter a document the customer already holds.
+  termsSnapshot String? @map("terms_snapshot") @db.Text
+  paymentTerms  String? @map("payment_terms") @db.VarChar(255)
+  deliveryTerms String? @map("delivery_terms") @db.VarChar(255)
+
+  /// Generated ONCE and never regenerated. If the template changes next year,
+  /// old quotes must still render as the customer received them.
+  pdfFileId   Int?      @unique @map("pdf_file_id")
+  sentAt      DateTime? @map("sent_at") @db.DateTime(3)
+  sentToEmail String?   @map("sent_to_email") @db.VarChar(190)
+
+  createdById Int?     @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  quote     Quote               @relation("QuoteRevisions", fields: [quoteId], references: [id], onDelete: Restrict)
+  createdBy User?               @relation("RevisionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  pdfFile   File?               @relation("QuoteRevisionPdf", fields: [pdfFileId], references: [id], onDelete: SetNull)
+  items     QuoteRevisionItem[]
+
+  currentOf  Quote? @relation("QuoteCurrentRevision")
+  acceptedOf Quote? @relation("QuoteAcceptedRevision")
+
+  @@unique([quoteId, revisionNumber])
+  @@index([quoteId, revisionNumber])
+  @@index([validUntil])
+  @@map("quote_revisions")
+}
+
+/// IMMUTABLE. Every field is a snapshot, because this must render identically
+/// in three years after the product has been renamed, repriced and withdrawn.
+/// FKs are nullable AND Restrict, so a historical line can never be orphaned.
+model QuoteRevisionItem {
+  id              Int  @id @default(autoincrement())
+  quoteRevisionId Int  @map("quote_revision_id")
+  variantId       Int? @map("variant_id")
+  serviceId       Int? @map("service_id")
+
+  productNameSnapshot String        @map("product_name_snapshot") @db.VarChar(255)
+  partNumberSnapshot  String?       @map("part_number_snapshot") @db.VarChar(100)
+  hsnCodeSnapshot     String?       @map("hsn_code_snapshot") @db.VarChar(12)
+  description         String?       @db.Text
+  unitOfMeasure       UnitOfMeasure @default(PIECE) @map("unit_of_measure")
+
+  /// 3 decimals so 2.5 metres of cable is representable.
+  quantity        Decimal @db.Decimal(12, 3)
+  unitPrice       Decimal @map("unit_price") @db.Decimal(14, 2)
+  discountPercent Decimal @default(0) @map("discount_percent") @db.Decimal(5, 2)
+  lineSubtotal    Decimal @map("line_subtotal") @db.Decimal(14, 2)
+  gstRate         Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
+  gstAmount       Decimal @default(0) @map("gst_amount") @db.Decimal(14, 2)
+  lineTotal       Decimal @map("line_total") @db.Decimal(14, 2)
+
+  sortOrder Int @default(0) @map("sort_order")
+
+  revision QuoteRevision   @relation(fields: [quoteRevisionId], references: [id], onDelete: Cascade)
+  variant  ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  service  Service?        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@index([quoteRevisionId, sortOrder])
+  @@index([variantId])
+  @@map("quote_revision_items")
+}
+
+// ============================================================================
+// SERVICES  (Tier 2 — tables required now because Tier 1 models reference
+// them; zero Phase 1 application code)
+// ============================================================================
+
+model ServiceCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(150)
+  slug        String   @unique @db.VarChar(190)
+  description String?  @db.Text
+  iconFileId  Int?     @map("icon_file_id")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  services Service[]
+
+  @@index([isActive, sortOrder])
+  @@map("service_categories")
+}
+
+model Service {
+  id                Int                @id @default(autoincrement())
+  serviceCategoryId Int                @map("service_category_id")
+  name              String             @db.VarChar(200)
+  slug              String             @unique @db.VarChar(190)
+  shortDescription  String?            @map("short_description") @db.VarChar(500)
+  description       String?            @db.Text
+  pricingType       ServicePricingType @default(ON_REQUEST) @map("pricing_type")
+  price             Decimal?           @db.Decimal(14, 2)
+  /// Services use SAC codes rather than HSN.
+  sacCode           String?            @map("sac_code") @db.VarChar(12)
+  gstRate           Decimal?           @map("gst_rate") @db.Decimal(5, 2)
+  isFeatured        Boolean            @default(false) @map("is_featured")
+  isActive          Boolean            @default(true) @map("is_active")
+
+  metaTitle         String? @map("meta_title") @db.VarChar(255)
+  metaDescription   String? @map("meta_description") @db.VarChar(500)
+  canonicalOverride String? @map("canonical_override") @db.VarChar(500)
+  seoIndexable      Boolean @default(true) @map("seo_indexable")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt DateTime? @map("deleted_at") @db.DateTime(3)
+
+  category     ServiceCategory     @relation(fields: [serviceCategoryId], references: [id], onDelete: Restrict)
+  requests     ServiceRequest[]
+  enquiryItems EnquiryItem[]
+  quoteItems   QuoteRevisionItem[]
+
+  @@index([serviceCategoryId, isActive])
+  @@index([isActive, deletedAt])
+  @@map("services")
+}
+
+model ServiceRequest {
+  id         Int    @id @default(autoincrement())
+  publicRef  String @unique @map("public_ref") @db.VarChar(16)
+  customerId Int?   @map("customer_id")
+  serviceId  Int    @map("service_id")
+
+  contactName    String  @map("contact_name") @db.VarChar(150)
+  contactEmail   String? @map("contact_email") @db.VarChar(190)
+  contactPhone   String? @map("contact_phone") @db.VarChar(20)
+  contactCompany String? @map("contact_company") @db.VarChar(200)
+
+  machineBrandId   Int? @map("machine_brand_id")
+  machineModelId   Int? @map("machine_model_id")
+  machineVariantId Int? @map("machine_variant_id")
+  /// Fallback ONLY when machineVariantId is NULL. When a variant is selected
+  /// the referenced variant is authoritative.
+  laserTypeFallback  String? @map("laser_type_fallback") @db.VarChar(50)
+  powerWattsFallback Int?    @map("power_watts_fallback")
+  serialNumber       String? @map("serial_number") @db.VarChar(100)
+
+  problemDescription String               @map("problem_description") @db.Text
+  preferredDate      DateTime?            @map("preferred_date") @db.Date
+  location           String?              @db.VarChar(255)
+  status             ServiceRequestStatus @default(NEW)
+  priority           Priority             @default(MEDIUM)
+  assignedToId       Int?                 @map("assigned_to_id")
+
+  consentGiven    Boolean   @default(false) @map("consent_given")
+  ipAddress       String?   @map("ip_address") @db.VarChar(45)
+  assessmentNotes String?   @map("assessment_notes") @db.Text
+  completedAt     DateTime? @map("completed_at") @db.DateTime(3)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  customer       Customer?                  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  service        Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  machineBrand   MachineBrand?              @relation(fields: [machineBrandId], references: [id], onDelete: Restrict)
+  machineModel   MachineModel?              @relation(fields: [machineModelId], references: [id], onDelete: Restrict)
+  machineVariant MachineVariant?            @relation(fields: [machineVariantId], references: [id], onDelete: Restrict)
+  assignedTo     User?                      @relation("ServiceRequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  attachments    ServiceRequestAttachment[]
+  lead           Lead?
+
+  @@index([status, createdAt])
+  @@index([assignedToId, status])
+  @@index([customerId])
+  @@index([serviceId])
+  @@map("service_requests")
+}
+
+model ServiceRequestAttachment {
+  id               Int      @id @default(autoincrement())
+  serviceRequestId Int      @map("service_request_id")
+  fileId           Int      @map("file_id")
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  serviceRequest ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  file           File           @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@index([serviceRequestId])
+  @@map("service_request_attachments")
+}
+
+// ============================================================================
+// ANALYTICS  (Tier 1, thin)
+// ============================================================================
+
+model VisitorSession {
+  id          Int      @id @default(autoincrement())
+  sessionKey  String   @unique @map("session_key") @db.VarChar(64)
+  customerId  Int?     @map("customer_id")
+  firstSeenAt DateTime @default(now()) @map("first_seen_at") @db.DateTime(3)
+  lastSeenAt  DateTime @updatedAt @map("last_seen_at") @db.DateTime(3)
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.VarChar(255)
+  referrer    String?  @db.VarChar(500)
+  utmSource   String?  @map("utm_source") @db.VarChar(100)
+  utmMedium   String?  @map("utm_medium") @db.VarChar(100)
+  utmCampaign String?  @map("utm_campaign") @db.VarChar(100)
+  landingPath String?  @map("landing_path") @db.VarChar(500)
+
+  events CustomerEvent[]
+
+  @@index([customerId])
+  @@index([lastSeenAt])
+  @@map("visitor_sessions")
+}
+
+model CustomerEvent {
+  id         Int       @id @default(autoincrement())
+  sessionId  Int?      @map("session_id")
+  customerId Int?      @map("customer_id")
+  eventType  EventType @map("event_type")
+  entityType String?   @map("entity_type") @db.VarChar(64)
+  entityId   Int?      @map("entity_id")
+  path       String?   @db.VarChar(500)
+  /// Strictly validated server-side against a fixed shape. No free-form
+  /// storage — this endpoint is public and would otherwise be an abuse vector.
+  metadata   Json?
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  session  VisitorSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  customer Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([createdAt])
+  @@map("customer_events")
+}
+
+/// Zero-result searches are the single most commercially valuable signal this
+/// site produces: a list of parts customers want that LEI either does not stock
+/// or has not listed correctly.
+model SearchQueryLog {
+  id               Int      @id @default(autoincrement())
+  query            String   @db.VarChar(255)
+  /// Same normalisation as ProductVariant.searchKey.
+  normalized       String   @db.VarChar(255)
+  resultCount      Int      @map("result_count")
+  sessionId        Int?     @map("session_id")
+  filters          Json?
+  clickedVariantId Int?     @map("clicked_variant_id")
+  createdAt        DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([normalized, createdAt])
+  @@index([resultCount, createdAt])
+  @@map("search_query_logs")
+}

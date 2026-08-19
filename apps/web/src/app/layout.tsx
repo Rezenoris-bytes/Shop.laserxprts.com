@@ -1,11 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { QuoteRequestProvider } from '@/lib/quote-request';
-import { SiteHeader } from '@/components/site-header';
-import { SiteFooter } from '@/components/site-footer';
-import { QuoteRequestDrawer } from '@/components/quote-request-drawer';
-import { ScrollToTop } from '@/components/scroll-to-top';
-import { DemoBanner } from '@/components/demo-banner';
+import { StorefrontChrome } from '@/components/storefront-chrome';
 import { demoMode, siteName, siteTagline, siteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -35,22 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-IN">
       <body className="flex min-h-screen flex-col">
         <QuoteRequestProvider>
-          {demoMode && <DemoBanner />}
-          <SiteHeader />
-          {/* Skip link — the first thing a keyboard user needs. */}
-          <a
-            href="#main"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50
-                       focus:rounded-md focus:bg-ink focus:px-4 focus:py-2 focus:text-white"
-          >
-            Skip to main content
-          </a>
-          <main id="main" className="flex-1">
-            {children}
-          </main>
-          <SiteFooter />
-          <ScrollToTop />
-          <QuoteRequestDrawer />
+          <StorefrontChrome demoMode={demoMode}>{children}</StorefrontChrome>
         </QuoteRequestProvider>
       </body>
     </html>

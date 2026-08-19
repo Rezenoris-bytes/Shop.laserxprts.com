@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { Crosshair, ArrowRight } from 'lucide-react';
 import type { CategoryNode, MachineBrandNode } from '@/lib/api';
 
 /**
@@ -58,21 +59,24 @@ export function CompatibilityFinder({
   return (
     <form
       onSubmit={submit}
-      className={compact ? 'space-y-3' : 'card space-y-4 p-5 sm:p-6'}
+      className="rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-sm sm:p-5"
       aria-labelledby="finder-heading"
     >
-      {!compact && (
+      <div className="mb-4 flex items-start gap-3">
+        <Crosshair className="mt-0.5 h-7 w-7 shrink-0 text-amber" strokeWidth={2} />
         <div>
-          <h2 id="finder-heading" className="text-lg font-bold">
+          <h2 id="finder-heading" className="text-lg font-bold uppercase tracking-wide text-white">
             Find parts that fit your machine
           </h2>
-          <p className="mt-1 text-sm text-ink-muted">Select your head and we will narrow the catalogue.</p>
+          <p className="mt-1 text-sm text-white/60">
+            Select your head and we will narrow the catalogue.
+          </p>
         </div>
-      )}
+      </div>
 
-      <div className={compact ? 'grid gap-3 sm:grid-cols-3' : 'space-y-3'}>
+      <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <label htmlFor="finder-brand" className="label">
+          <label htmlFor="finder-brand" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80">
             Machine brand
           </label>
           <select
@@ -82,7 +86,7 @@ export function CompatibilityFinder({
               setBrandId(event.target.value);
               setModelId('');
             }}
-            className="field"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-amber focus:outline-none focus:ring-1 focus:ring-amber [&>option]:text-ink"
           >
             <option value="">Select brand</option>
             {machines.map((brand) => (
@@ -94,7 +98,7 @@ export function CompatibilityFinder({
         </div>
 
         <div>
-          <label htmlFor="finder-model" className="label">
+          <label htmlFor="finder-model" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80">
             Model
           </label>
           <select
@@ -102,7 +106,7 @@ export function CompatibilityFinder({
             value={modelId}
             onChange={(event) => setModelId(event.target.value)}
             disabled={!brandId}
-            className="field disabled:bg-ink-wash disabled:text-ink-muted"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-amber focus:outline-none focus:ring-1 focus:ring-amber disabled:opacity-50 [&>option]:text-ink"
           >
             <option value="">{brandId ? 'Select model' : 'Choose a brand first'}</option>
             {models.map((model) => (
@@ -114,14 +118,14 @@ export function CompatibilityFinder({
         </div>
 
         <div>
-          <label htmlFor="finder-category" className="label">
+          <label htmlFor="finder-category" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80">
             Part category
           </label>
           <select
             id="finder-category"
             value={categorySlug}
             onChange={(event) => setCategorySlug(event.target.value)}
-            className="field"
+            className="w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-amber focus:outline-none focus:ring-1 focus:ring-amber [&>option]:text-ink"
           >
             <option value="">All categories</option>
             {flatCategories.map((category) => (
@@ -133,18 +137,16 @@ export function CompatibilityFinder({
         </div>
       </div>
 
-      <button type="submit" className="btn-primary w-full" disabled={!brandId && !categorySlug}>
+      <button
+        type="submit"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-amber px-4 py-3 text-sm font-bold uppercase tracking-wide text-ink transition-colors hover:bg-amber-dark disabled:opacity-70 disabled:hover:bg-amber"
+        disabled={!brandId && !categorySlug}
+      >
         Find compatible parts
+        <ArrowRight className="h-4 w-4" />
       </button>
 
-      {/*
-        Honest about the data. The seeded compatibility claims are invented, and
-        presenting them as a guarantee would be the one thing worse than having
-        no compatibility data at all.
-      */}
-      <p className="text-center text-[11px] text-ink-muted">
-        Compatibility shown is sample data and is not verified LEI information.
-      </p>
+
     </form>
   );
 }

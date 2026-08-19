@@ -1,9 +1,9 @@
 import Link from 'next/link';
+
 import { api } from '@/lib/api';
 import { canonical, popularSearches } from '@/lib/site';
 import { ProductCardTile } from '@/components/product-card';
 import { CompatibilityFinder } from '@/components/compatibility-finder';
-import { HeroSearch } from '@/components/hero-search';
 
 export const metadata = {
   alternates: { canonical: canonical('/') },
@@ -24,60 +24,51 @@ export default async function HomePage() {
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="bg-ink text-white">
-        <div className="container-lei grid gap-10 py-14 lg:grid-cols-5 lg:py-20">
-          <div className="lg:col-span-3">
-            <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl">
-              Precision Parts.
-              <span className="block text-amber">Peak Performance.</span>
-            </h1>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-white/70">
-              Genuine laser spares and consumables for all major fiber laser cutting machines.
-              Built for accuracy. Backed by LEI.
-            </p>
+      <section className="relative overflow-hidden bg-ink text-white">
+        {/*
+          The background uses a subtle radial gradient so the left text area is
+          pure black for readability, fading slightly towards the right where
+          the image sits.
+        */}
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_left,_var(--tw-gradient-stops))] from-ink via-ink/95 to-ink/50" />
 
-            <div className="mt-7 max-w-xl">
-              <HeroSearch />
-            </div>
+        <div className="relative z-10 container-lei">
+          <div className="flex flex-col lg:flex-row lg:items-center">
+            
+            {/* ── Content ── */}
+            <div className="w-full py-8 lg:py-10 max-w-2xl">
+              <h1 className="text-3xl font-black leading-[1.05] tracking-tight uppercase sm:text-4xl lg:text-5xl">
+                The Right Parts,<br/>
+                <span className="text-amber">The Right Performance.</span>
+              </h1>
+              <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-white/70">
+                Genuine laser spares and consumables for all major fiber laser cutting machines.
+                Built for accuracy. Backed by LEI.
+              </p>
 
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-white/50">Popular:</span>
-              {popularSearches.map((term) => (
-                <Link
-                  key={term}
-                  href={`/search?q=${encodeURIComponent(term)}`}
-                  className="rounded-md bg-white/10 px-2.5 py-1 text-xs text-white/85 hover:bg-white/20"
-                >
-                  {term}
-                </Link>
-              ))}
-            </div>
-          </div>
+              <div className="mt-8 mb-6">
+                <CompatibilityFinder machines={machines} categories={home.categories} />
+              </div>
 
-          <div className="lg:col-span-2">
-            <div className="rounded-card bg-white p-5 text-ink shadow-xl">
-              <CompatibilityFinder machines={machines} categories={home.categories} />
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-white/50">Popular:</span>
+                {popularSearches.map((term) => (
+                  <Link
+                    key={term}
+                    href={`/search?q=${encodeURIComponent(term)}`}
+                    className="rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white/85 transition-colors hover:bg-white/20"
+                  >
+                    {term}
+                  </Link>
+                ))}
+              </div>
             </div>
+            
           </div>
         </div>
       </section>
 
-      {/* ── Trust strip. No "Secure Payments" — there is no checkout. ─── */}
-      <section className="border-b border-ink-line bg-white">
-        <div className="container-lei grid gap-6 py-7 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ['100% genuine parts', 'Original quality you can trust'],
-            ['Pan-India delivery', 'Fast, reliable despatch'],
-            ['Expert support', 'Advice from laser engineers'],
-            ['GST invoicing', 'Compliant documentation'],
-          ].map(([title, detail]) => (
-            <div key={title}>
-              <p className="text-sm font-semibold">{title}</p>
-              <p className="mt-0.5 text-xs text-ink-muted">{detail}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       {/* ── Categories ───────────────────────────────────────────────── */}
       <section className="container-lei py-12">

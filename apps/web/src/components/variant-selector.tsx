@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { ProductDetail, ProductVariantView } from '@/lib/api';
 import { useQuoteRequest } from '@/lib/quote-request';
-import { formatInr } from '@/lib/format';
+
 import { stockLabel, stockToneClass } from '@/lib/stock';
 
 /**
@@ -134,8 +134,9 @@ export function VariantSelector({ product }: { product: ProductDetail }) {
           <>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div>
-                <p className="text-2xl font-bold">
-                  {selected.priceType === 'FIXED' ? formatInr(selected.price) : 'Price on request'}
+                <p className="inline-flex items-center gap-1.5 rounded-md bg-amber/10 px-3 py-1 text-sm font-semibold text-amber-dark">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  Price on enquiry
                 </p>
                 <p className="mt-0.5 font-mono text-xs text-ink-muted">
                   {selected.partNumber} · SKU {selected.sku}

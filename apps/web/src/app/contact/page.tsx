@@ -1,10 +1,26 @@
 import type { Metadata } from 'next';
-import { canonical } from '@/lib/site';
+import { canonical, siteName, siteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'Contact us',
-  description: 'Talk to the LEI team about parts, availability or technical support.',
+  title: 'Contact Us | Get a Quote for Laser Spares & Consumables',
+  description:
+    'Contact Laser Experts India for genuine laser cutting machine spares, nozzles, protective windows, focus lenses and ceramic rings. Get a quick quote from our expert team.',
+  keywords: ['contact laser experts india', 'laser parts enquiry', 'get laser parts quote', 'laser cutting spares support'],
   alternates: { canonical: canonical('/contact') },
+  openGraph: {
+    title: 'Contact Us | Laser Experts India',
+    description: 'Get in touch with our team for genuine laser cutting machine spares and expert technical support. Quick response guaranteed.',
+    url: canonical('/contact'),
+    siteName,
+    type: 'website',
+    images: [{ url: `${siteUrl}/H.avif`, width: 1200, height: 630, alt: 'Laser Experts India — Contact Us' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Contact Us | Laser Experts India',
+    description: 'Get genuine laser cutting machine spares with expert technical support.',
+    images: [`${siteUrl}/H.avif`],
+  },
 };
 
 interface PageProps {

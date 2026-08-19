@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { useQuoteRequest } from '@/lib/quote-request';
-import { formatInr } from '@/lib/format';
+
 
 /**
  * Quote Request drawer.
@@ -38,12 +38,9 @@ export function QuoteRequestDrawer() {
 
   if (!isOpen) return null;
 
-  const estimate = resolved.reduce((sum, line) => {
-    const price = line.resolved?.price;
-    return price === null || price === undefined ? sum : sum + price * line.quantity;
-  }, 0);
 
-  const hasOnRequest = resolved.some((line) => line.resolved?.priceType !== 'FIXED');
+
+
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Quote request">
@@ -96,11 +93,7 @@ export function QuoteRequestDrawer() {
                         <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
                           {line.resolved.partNumber} · {line.resolved.name}
                         </p>
-                        <p className="mt-1 text-sm font-medium">
-                          {line.resolved.priceType === 'FIXED'
-                            ? formatInr(line.resolved.price)
-                            : 'Price on request'}
-                        </p>
+
                       </>
                     ) : (
                       /* Resolved to nothing: deactivated or withdrawn since it
@@ -142,22 +135,13 @@ export function QuoteRequestDrawer() {
           {isLoading && <p className="mt-3 text-xs text-ink-muted">Checking availability…</p>}
         </div>
 
-        {resolved.length > 0 && (
-          <div className="border-t border-ink-line px-5 py-4">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="text-ink-muted">Indicative total</span>
-              <span className="text-lg font-bold">{formatInr(estimate)}</span>
-            </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-              Indicative only, excluding GST and freight.
-              {hasOnRequest && ' Some items are priced on request.'} Your quotation will confirm
-              final pricing.
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+              Our team will confirm pricing with your quotation.
             </p>
             <Link href="/quote-request" onClick={close} className="btn-primary mt-3 w-full">
               Review and submit
             </Link>
-          </div>
-        )}
+
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ProductCard as ProductCardData } from '@/lib/api';
-import { formatInr } from '@/lib/format';
+
 
 /**
  * Product card.
@@ -11,13 +11,7 @@ import { formatInr } from '@/lib/format';
  * customers end up with the wrong diameter.
  */
 export function ProductCardTile({ product }: { product: ProductCardData }) {
-  const priceLabel = () => {
-    if (product.priceFrom === null) return 'Price on request';
-    if (product.priceTo !== null && product.priceTo !== product.priceFrom) {
-      return `${formatInr(product.priceFrom)} – ${formatInr(product.priceTo)}`;
-    }
-    return formatInr(product.priceFrom);
-  };
+
 
   return (
     <article className="card group flex flex-col overflow-hidden transition-shadow hover:shadow-md">
@@ -48,7 +42,7 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
         )}
 
         <div className="mt-auto pt-3">
-          <p className="text-sm font-bold">{priceLabel()}</p>
+          <p className="text-sm font-semibold text-amber-dark">Get Quote</p>
           <p className="mt-0.5 text-[11px] text-ink-muted">
             {product.variantCount === 1
               ? '1 option'

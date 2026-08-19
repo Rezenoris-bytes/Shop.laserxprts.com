@@ -15,6 +15,12 @@ export const siteName = 'Laser Experts India';
 
 export const siteTagline = 'Laser spares, consumables and technical services';
 
+/** Business contact & trust details — shown in the identity bar. */
+export const businessPhone = '+91 99400 00000';
+export const businessEmail = 'sales@laserxprts.com';
+export const businessLocation = 'Chennai, Tamil Nadu';
+export const businessGst = '33XXXXX0000X1ZX';
+
 /** Canonicals are DERIVED. Storing absolute URLs rots them on any domain change. */
 export const canonical = (path: string): string =>
   `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
@@ -31,7 +37,6 @@ export const primaryNav = [
   { label: 'Home', href: '/' },
   { label: 'Spares & Consumables', href: '/catalogue' },
   { label: 'Find Parts', href: '/compatibility' },
-  { label: 'About LEI', href: '/about' },
   { label: 'Contact', href: '/contact' },
 ];
 

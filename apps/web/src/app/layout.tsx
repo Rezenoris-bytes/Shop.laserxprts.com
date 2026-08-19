@@ -4,6 +4,7 @@ import { QuoteRequestProvider } from '@/lib/quote-request';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { QuoteRequestDrawer } from '@/components/quote-request-drawer';
+import { ScrollToTop } from '@/components/scroll-to-top';
 import { DemoBanner } from '@/components/demo-banner';
 import { demoMode, siteName, siteTagline, siteUrl } from '@/lib/site';
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <SiteFooter />
+          <ScrollToTop />
           <QuoteRequestDrawer />
         </QuoteRequestProvider>
       </body>

@@ -13,11 +13,11 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#12161c',
-          soft: '#1c2430',
-          muted: '#5b6672',
-          line: '#e3e6ea',
-          wash: '#f6f7f9',
+          DEFAULT: '#000000',
+          soft: '#111111',
+          muted: '#6b7280',
+          line: '#e5e7eb',
+          wash: '#f3f4f6',
         },
         amber: {
           DEFAULT: '#f5b301',

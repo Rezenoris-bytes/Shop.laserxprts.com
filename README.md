@@ -129,16 +129,6 @@ When contributing:
 5. Run linting, type checking, and tests before committing.
 6. Update documentation when introducing significant changes.
 
-## Documentation
-
-Project specifications and supporting documentation are maintained under:
-
-```text
-files/
-```
-
-For detailed technical decisions, refer to the relevant project documentation rather than expanding this README.
-
 ## License
 
 This project is proprietary software belonging to **Laser Experts India**.

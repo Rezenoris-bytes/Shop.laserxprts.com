@@ -15,7 +15,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: canonical('/'), changeFrequency: 'weekly', priority: 1 },
     { url: canonical('/catalogue'), changeFrequency: 'daily', priority: 0.9 },
     { url: canonical('/compatibility'), changeFrequency: 'monthly', priority: 0.8 },
-    { url: canonical('/about'), changeFrequency: 'yearly', priority: 0.3 },
     { url: canonical('/contact'), changeFrequency: 'yearly', priority: 0.5 },
   ];
 

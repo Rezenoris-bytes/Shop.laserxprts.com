@@ -2,7 +2,7 @@ import { INestApplication, Logger, Type } from '@nestjs/common';
 import { MetadataScanner, Reflector } from '@nestjs/core';
 import { DiscoveryService } from '@nestjs/core';
 import { PATH_METADATA } from '@nestjs/common/constants';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { IS_AUTHENTICATED_KEY, IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator';
 
 /**
@@ -25,6 +25,7 @@ export function assertEveryRouteIsGuarded(app: INestApplication): void {
 
   const unguarded: string[] = [];
   let publicCount = 0;
+  let authOnlyCount = 0;
   let guardedCount = 0;
 
   for (const wrapper of discovery.getControllers()) {
@@ -44,10 +45,16 @@ export function assertEveryRouteIsGuarded(app: INestApplication): void {
       if (routePath === undefined) continue;
 
       const isPublic = reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [handler, controller]);
+      const isAuthOnly = reflector.getAllAndOverride<boolean>(IS_AUTHENTICATED_KEY, [
+        handler,
+        controller,
+      ]);
       const permission = reflector.getAllAndOverride(PERMISSION_KEY, [handler, controller]);
 
       if (isPublic) {
         publicCount += 1;
+      } else if (isAuthOnly) {
+        authOnlyCount += 1;
       } else if (permission) {
         guardedCount += 1;
       } else {
@@ -67,6 +74,7 @@ export function assertEveryRouteIsGuarded(app: INestApplication): void {
   }
 
   logger.log(
-    `Route coverage OK — ${publicCount} public, ${guardedCount} permission-guarded, 0 unguarded.`,
+    `Route coverage OK — ${publicCount} public, ${authOnlyCount} auth-only, ` +
+      `${guardedCount} permission-guarded, 0 unguarded.`,
   );
 }

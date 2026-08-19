@@ -1,0 +1,8 @@
+name,slug,parent_slug,sort_order,description
+Nozzles,nozzles,,10,"Cutting nozzles for fiber laser cutting heads, in single and double layer designs."
+Single Layer Nozzles,single-layer-nozzles,nozzles,11,Single layer nozzles for thin to medium sheet cutting.
+Double Layer Nozzles,double-layer-nozzles,nozzles,12,Double layer nozzles for thicker sections and oxygen cutting.
+Protective Windows,protective-windows,,20,Protective lenses that shield the focus optics from spatter.
+Focus Lenses,focus-lenses,,30,Focusing optics for fiber laser cutting heads.
+Ceramic Rings,ceramic-rings,,40,Ceramic holders and insulating rings for laser cutting heads.
+Consumable Kits,consumable-kits,,50,Pre-assembled kits of the parts most often replaced together.

@@ -1,129 +1,144 @@
 # LEI Platform
 
-Catalogue, enquiry and quotation platform for Laser Experts India.
+Catalogue, enquiry, and quotation platform for Laser Experts India.
 
-**Status: Phase 1 — Stage 1.1/1.3 complete.** Development/staging only.
-`DEMO_MODE` is ON: the catalogue is sample data, and indexing is blocked.
+## Status
 
-## What this is
+**Phase 1 — Development / Staging**
 
-A technical-catalogue-driven lead generation and sales-operations system:
+> The project is currently under active development. Staging uses sample data and is not production-ready.
 
-```
-discover the right part for your machine
-  -> Quote Request  ->  enquiry  ->  lead  ->  quote (+ revisions)  ->  accepted
-```
+## Overview
 
-It is **not** an online shop. There is no cart, no checkout and no payment
-integration; the MVP is enquiry and quotation driven.
+LEI Platform is a technical catalogue and sales platform designed to help users:
 
-## Stack
+* Browse and search products
+* Find suitable parts
+* Submit enquiries
+* Request quotations
+* Manage leads
+* Create and manage quotations
 
-| Layer    | Choice                                                |
-| -------- | ----------------------------------------------------- |
-| Frontend | Next.js + React + TypeScript + Tailwind               |
-| Backend  | NestJS + Fastify (modular monolith)                   |
-| Database | MySQL 8 + Prisma                                      |
-| Cache    | Redis — rate limiting and refresh-token families only |
-| Search   | MySQL exact/prefix + FULLTEXT behind a SearchService  |
-| Hosting  | Hostinger VPS + Docker + Nginx                        |
+The platform is **not an online store**. It does not currently include cart, checkout, or payment functionality.
 
-## Getting started
+## Tech Stack
 
-```bash
-cp .env.example .env          # then fill in the secrets
-npm install
-docker compose up -d          # MySQL 8 + Redis
-npm run db:migrate            # apply migrations
-npm run dev:api               # http://localhost:4000
-curl http://localhost:4000/health
-```
+| Layer      | Technology                               |
+| ---------- | ---------------------------------------- |
+| Frontend   | Next.js, React, TypeScript, Tailwind CSS |
+| Backend    | NestJS, Fastify                          |
+| Database   | MySQL 8, Prisma                          |
+| Cache      | Redis                                    |
+| Search     | MySQL                                    |
+| Deployment | Docker, Nginx, Hostinger VPS             |
 
-MySQL runs on **3307** by default to avoid clashing with a local install.
+## Project Structure
 
-### One-time database grants (development)
-
-The app user needs two extra rights that a fresh MySQL container does not give
-it. In production these belong to the deploy user, not the application user.
-
-```bash
-docker exec -i lei-mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "
-  GRANT ALL PRIVILEGES ON \`prisma_migrate_shadow_db%\`.* TO 'lei'@'%';
-  GRANT TRIGGER ON \`lei\`.* TO 'lei'@'%';
-  FLUSH PRIVILEGES;"
-```
-
-## Repository layout
-
-```
+```text
 apps/
-  api/                 NestJS + Fastify backend
-    prisma/            schema, migrations, seed
-    src/
-      config/          env validation (fails fast at boot)
-      common/          guards, filters, interceptors, pipes, decorators
-      prisma/          PrismaService (soft-delete extension)
-      redis/           rate limiting + token families
-      demo/            DEMO_MODE rails and the production safety check
-      health/          /health
-  web/                 Next.js storefront and admin (Stage 2)
+├── api/              # Backend API
+└── web/              # Frontend application
+
 packages/
-  shared-types/        API contract, enums, money/GST, normalisation
-files/                 specification and design documents
+└── shared-types/     # Shared types, enums and utilities
+
+files/
+└── specifications/   # Project specifications and documentation
 ```
 
-## Architectural rules, enforced by tooling
+## Getting Started
 
-These three erode silently if left to code review, so none of them is:
-
-| Rule                                                 | Enforced by                                                          |
-| ---------------------------------------------------- | -------------------------------------------------------------------- |
-| Controllers never touch Prisma                       | ESLint — `PrismaService` importable only in `*.repository.ts`        |
-| Every route is `@Public()` or `@RequirePermission()` | Boot assertion — **the process exits** if any route declares neither |
-| Soft-deleted rows are never read by accident         | Prisma client extension injects `deletedAt: null`                    |
-
-Plus, in CI: no hardcoded catalogue data in `apps/web`, no `Float` in the
-schema, no wildcard CORS, no SVG in an upload allowlist, no hardcoded domain.
-
-## Two things worth knowing before reading the schema
-
-**Product vs ProductVariant.** Nothing in the schema encodes what groups
-variants into a product — that arrives in the `product_key` column of the
-import CSV. Because every commercial record references a `ProductVariant` and
-never a `Product`, the grouping can be changed later with
-`UPDATE product_variants SET product_id = ...` without touching a single
-historical enquiry, quote or PDF.
-
-**Search.** MySQL FULLTEXT splits on punctuation and drops short tokens, so a
-customer typing `D27.9 T4.1` would get nothing. Exact and prefix matching runs
-first against `product_variants.search_key`, a normalised form (`D279T41`)
-produced by one shared function used at both write and read time.
-
-## Commands
+### 1. Clone the repository
 
 ```bash
-npm run dev              # both apps
-npm run build            # shared -> api -> web
-npm run lint
-npm run typecheck
-npm run test
-npm run db:migrate
-npm run db:studio
-npm run docker:reset     # destroys volumes and restarts
+git clone <repository-url>
+cd <project-directory>
 ```
 
-## DEMO_MODE
+### 2. Configure environment
 
-The staging deployment sits on a subdomain of a real trading company's domain
-and carries invented compatibility claims and placeholder prices. `DEMO_MODE`
-exists so none of that can escape:
+```bash
+cp .env.example .env
+```
 
-- `robots.txt` disallows everything; `X-Robots-Tag: noindex` on every response
-- persistent sample-data banner on the storefront
-- `SAMPLE — NOT A COMMERCIAL DOCUMENT` watermark on quote PDFs
-- outbound email restricted to `MAIL_DEMO_ALLOWLIST`
-- seed records visibly chipped in the admin UI
+Update `.env` with the required configuration.
 
-Setting `DEMO_MODE=false` while any seed data or `PLACEHOLDER` setting remains
-in the database **refuses to boot**, so going live cannot be a checklist item
-someone forgets.
+### 3. Start dependencies
+
+```bash
+docker compose up -d
+```
+
+### 4. Install dependencies
+
+```bash
+npm install
+```
+
+### 5. Run database migrations
+
+```bash
+npm run db:migrate
+```
+
+### 6. Start the application
+
+```bash
+npm run dev
+```
+
+The development applications will be available at their configured local ports.
+
+## Common Commands
+
+```bash
+npm run dev          # Start development environment
+npm run build        # Build applications
+npm run lint         # Run linting
+npm run typecheck    # Run TypeScript checks
+npm run test         # Run tests
+
+npm run db:migrate   # Run database migrations
+npm run db:studio    # Open Prisma Studio
+
+npm run docker:reset # Reset Docker environment
+```
+
+## Environment
+
+Environment-specific configuration should be stored in `.env`.
+
+Do not commit:
+
+* Secrets
+* Passwords
+* API keys
+* Production credentials
+* Local environment files
+
+Use `.env.example` as the reference for required variables.
+
+## Development Guidelines
+
+When contributing:
+
+1. Keep frontend and backend responsibilities separated.
+2. Reuse shared types and utilities where appropriate.
+3. Avoid hardcoding environment-specific values.
+4. Keep database changes migration-based.
+5. Run linting, type checking, and tests before committing.
+6. Update documentation when introducing significant changes.
+
+## Documentation
+
+Project specifications and supporting documentation are maintained under:
+
+```text
+files/
+```
+
+For detailed technical decisions, refer to the relevant project documentation rather than expanding this README.
+
+## License
+
+This project is proprietary software belonging to **Laser Experts India**.

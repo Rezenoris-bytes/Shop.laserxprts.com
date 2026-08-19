@@ -57,8 +57,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const status = exception.getStatus();
       const response = exception.getResponse();
 
-      if (typeof response === 'object' && response !== null && 'error' in response) {
-        // Already an ApiError (thrown by the validation pipe).
+      // Only OUR ApiError shape, where `error` is an object carrying a `code`.
+      // Nest's own exceptions also set `error`, but to a STRING ("Forbidden"),
+      // and spreading a string yields character-indexed keys.
+      if (
+        typeof response === 'object' &&
+        response !== null &&
+        'error' in response &&
+        typeof (response as { error: unknown }).error === 'object' &&
+        (response as { error: unknown }).error !== null
+      ) {
         const typed = response as ApiError;
         return {
           status,

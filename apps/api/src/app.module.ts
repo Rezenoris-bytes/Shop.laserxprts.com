@@ -13,6 +13,8 @@ import { SettingsModule } from './settings/settings.module';
 import { AuthModule } from './auth/auth.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { SalesModule } from './sales/sales.module';
+import { CustomersModule } from './customers/customers.module';
+import { AdminModule } from './admin/admin.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -39,6 +41,8 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     AuthModule,
     CatalogueModule,
     SalesModule,
+    CustomersModule,
+    AdminModule,
     HealthModule,
   ],
   providers: [

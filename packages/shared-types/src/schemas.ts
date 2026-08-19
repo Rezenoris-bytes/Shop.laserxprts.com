@@ -394,3 +394,91 @@ export const createQuoteSchema = createRevisionSchema.extend({
   enquiryId: z.number().int().positive().nullable().optional(),
 });
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
+
+// ── Admin: machines & attributes ────────────────────────────────────────────
+
+export const createMachineBrandSchema = z.object({
+  name: z.string().trim().min(1).max(150),
+});
+export type CreateMachineBrandInput = z.infer<typeof createMachineBrandSchema>;
+
+export const createMachineModelSchema = z.object({
+  machineBrandId: z.number().int().positive(),
+  name: z.string().trim().min(1).max(150),
+});
+export type CreateMachineModelInput = z.infer<typeof createMachineModelSchema>;
+
+export const createMachineVariantSchema = z.object({
+  machineModelId: z.number().int().positive(),
+  name: z.string().trim().min(1).max(150),
+  laserType: z.string().trim().max(50).optional(),
+  powerWatts: z.number().int().positive().optional(),
+});
+export type CreateMachineVariantInput = z.infer<typeof createMachineVariantSchema>;
+
+export const createAttributeSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  slug: z.string().trim().max(190).regex(/^[a-z0-9-]+$/).optional(),
+  dataType: z.enum(['STRING', 'DECIMAL', 'INTEGER', 'BOOLEAN', 'ENUM']).default('STRING'),
+  defaultScope: z.enum(['PRODUCT', 'VARIANT']).default('VARIANT'),
+  unit: z.string().trim().max(20).optional(),
+  isFilterable: z.boolean().default(true),
+  sortOrder: z.number().int().min(0).default(0),
+});
+export type CreateAttributeInput = z.infer<typeof createAttributeSchema>;
+
+// ── Admin: dashboard ─────────────────────────────────────────────────────────
+
+export const dashboardResponseSchema = z.object({
+  enquiries: z.object({
+    new: z.number(),
+    acknowledged: z.number(),
+    inProgress: z.number(),
+    total: z.number(),
+  }),
+  quotes: z.object({
+    draft: z.number(),
+    sent: z.number(),
+    expiringSoon: z.number(),
+  }),
+  inventory: z.object({
+    lowStock: z.number(),
+    outOfStock: z.number(),
+  }),
+  searchNoResults: z.array(z.object({ normalized: z.string(), count: z.number() })),
+  demoData: z.record(z.string(), z.number()),
+  placeholderSettings: z.array(z.string()),
+});
+export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
+
+// ── Admin: users & permissions (SUPER_ADMIN only) ───────────────────────────
+
+export const createAdminUserSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: emailSchema,
+  department: z.enum(['SALES', 'SERVICE', 'CATALOGUE', 'CONTENT', 'OPERATIONS']),
+});
+export type CreateAdminUserInput = z.infer<typeof createAdminUserSchema>;
+
+export const permissionGrantSchema = z.object({
+  module: z.enum([
+    'CATALOGUE', 'INVENTORY', 'MACHINES', 'SERVICES', 'SERVICE_REQUESTS',
+    'CUSTOMERS', 'ENQUIRIES', 'LEADS', 'QUOTES', 'ORDERS', 'REPORTS',
+    'USERS', 'AUDIT', 'SETTINGS',
+  ]),
+  canView: z.boolean().default(false),
+  canCreate: z.boolean().default(false),
+  canUpdate: z.boolean().default(false),
+  canDelete: z.boolean().default(false),
+});
+export type PermissionGrantInput = z.infer<typeof permissionGrantSchema>;
+
+export const setPermissionsSchema = z.object({
+  permissions: z.array(permissionGrantSchema).max(20),
+});
+export type SetPermissionsInput = z.infer<typeof setPermissionsSchema>;
+
+export const updateSettingSchema = z.object({
+  value: z.string().max(20000),
+});
+export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;

@@ -139,6 +139,11 @@ export class AuditService {
     return Object.keys(output).length > 0 ? (output as Prisma.InputJsonObject) : undefined;
   }
 
+  /** SUPER_ADMIN audit log viewer — thin passthrough to keep repositories out of controllers. */
+  list(params: { skip: number; take: number; entityType?: string; entityId?: string; userId?: number }) {
+    return this.repository.list(params);
+  }
+
   /** Only the fields that actually changed, for a compact diff. */
   diff(
     before: Record<string, unknown>,

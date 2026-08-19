@@ -4,7 +4,7 @@ import { config as loadEnv } from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { AdminDepartment, normalizeEmail } from '@lei/shared';
-import { expandTemplate } from './permissions';
+import { expandTemplate } from '../../src/admin/permission-templates';
 import { seedCatalogueFromCsv } from './catalogue';
 
 loadEnv({ path: path.resolve(__dirname, '../../../../.env') });
@@ -274,7 +274,7 @@ async function seedUsers() {
     // SUPER_ADMIN needs no permission rows — the guard short-circuits on role.
     if (account.department) {
       await prisma.adminPermission.createMany({
-        data: expandTemplate(account.department).map((row) => ({ ...row, userId: user.id })),
+        data: expandTemplate(account.department).map((row) => ({ ...row, userId: user.id })) as never,
       });
     }
 

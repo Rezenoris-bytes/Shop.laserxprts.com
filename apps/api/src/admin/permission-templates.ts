@@ -68,7 +68,7 @@ export const DEPARTMENT_TEMPLATES: Record<
 };
 
 export function expandTemplate(department: AdminDepartment) {
-  const template = DEPARTMENT_TEMPLATES[department];
+  const template = DEPARTMENT_TEMPLATES[department] ?? {};
   return Object.entries(template).map(([module, grant]) => ({
     module: module as PermissionModule,
     canView: grant.view ?? false,

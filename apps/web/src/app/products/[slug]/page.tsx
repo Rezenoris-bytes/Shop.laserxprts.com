@@ -48,7 +48,6 @@ export default async function ProductPage({ params }: PageProps) {
     throw error;
   }
 
-  const verified = product.compatibility.filter((row) => row.isVerified);
   const claimed = product.compatibility.filter((row) => !row.isVerified);
 
   return (

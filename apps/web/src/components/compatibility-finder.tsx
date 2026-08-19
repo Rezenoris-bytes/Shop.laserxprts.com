@@ -19,11 +19,9 @@ import type { CategoryNode, MachineBrandNode } from '@/lib/api';
 export function CompatibilityFinder({
   machines,
   categories,
-  compact = false,
 }: {
   machines: MachineBrandNode[];
   categories: CategoryNode[];
-  compact?: boolean;
 }) {
   const router = useRouter();
   const [brandId, setBrandId] = useState('');

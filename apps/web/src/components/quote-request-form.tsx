@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { quoteRequestSchema } from '@lei/shared';
 import { ApiRequestError, api, type MachineBrandNode } from '@/lib/api';
 import { useQuoteRequest } from '@/lib/quote-request';

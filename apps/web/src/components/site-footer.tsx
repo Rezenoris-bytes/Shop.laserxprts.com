@@ -17,7 +17,7 @@ export function SiteFooter() {
               Eliminate <span className="text-amber">Machine Downtime</span> – Today
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-white/60 sm:text-base">
-              India's best laser machine service network. One call gets you certified engineers nationwide.
+              India&apos;s best laser machine service network. One call gets you certified engineers nationwide.
             </p>
           </div>
           <div className="flex w-full max-w-lg flex-col items-start gap-3 lg:items-end lg:text-right">

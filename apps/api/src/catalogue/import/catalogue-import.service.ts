@@ -233,7 +233,9 @@ export class CatalogueImportService {
             parentId,
             description: row.values.description || null,
             sortOrder: asInt(row.values.sort_order, 0),
-            metaTitle: `${name} | Laser Experts India`,
+            // No site-name suffix: the frontend title template appends it,
+            // and storing it here rendered it twice.
+            metaTitle: name,
             metaDescription: row.values.description?.slice(0, 300) || null,
             isSeedData: options.isSeedData,
           },
@@ -356,7 +358,8 @@ export class CatalogueImportService {
           description: row.values.description || null,
           hsnCode: row.values.hsn_code || null,
           gstRate: asNumber(row.values.gst_rate),
-          metaTitle: `${name} | Laser Experts India`,
+          // No site-name suffix — the frontend title template appends it.
+          metaTitle: name,
           metaDescription: row.values.short_description?.slice(0, 300) || null,
           publishedAt: new Date(),
           isSeedData: options.isSeedData,
@@ -659,10 +662,29 @@ export class CatalogueImportService {
 
     // Category tiles show a product count; computing it per tile per request is
     // an aggregate for every card on the page.
-    const categories = await db.category.findMany({ select: { id: true } });
+    //
+    // The count INCLUDES descendants, matching what the listing query returns.
+    // Counting only direct children made the "Nozzles" tile read "0 products"
+    // while the page behind it listed six — a tile that looks like a dead end
+    // but is not.
+    const categories = await db.category.findMany({ select: { id: true, parentId: true } });
+
+    const descendantsOf = (rootId: number): number[] => {
+      const ids = [rootId];
+      let frontier = [rootId];
+      while (frontier.length > 0) {
+        const next = categories
+          .filter((c) => c.parentId !== null && frontier.includes(c.parentId))
+          .map((c) => c.id);
+        ids.push(...next);
+        frontier = next;
+      }
+      return ids;
+    };
+
     for (const { id } of categories) {
       const productCount = await db.product.count({
-        where: { categoryId: id, isActive: true, deletedAt: null },
+        where: { categoryId: { in: descendantsOf(id) }, isActive: true, deletedAt: null },
       });
       await db.category.update({ where: { id }, data: { productCount } });
     }

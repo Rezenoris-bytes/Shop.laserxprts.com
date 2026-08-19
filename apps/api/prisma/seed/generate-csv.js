@@ -166,7 +166,7 @@ for (const thread of ['H15', 'H20']) {
       'PIECE', 1, 1, qty, 15, status, index === 1 ? 'true' : 'false', index * 10,
       // nozzle-height deliberately omitted: the thread designation already
       // encodes it, and emitting both would derive two correlated axes.
-      thread, '', d, 28, '', '', '',
+      thread, '', dp1(d), 28, '', '', '',
     ]);
   });
 }
@@ -199,7 +199,7 @@ for (const thread of ['H15', 'H20']) {
         `NZ-RT-DL-${thread}-${code}`, `D${dp1(d)} ${thread} DL`, `${thread} / D${dp1(d)}`, price, 'FIXED',
         'PIECE', 1, 1, qty, 12, qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
         thread === 'H15' && d === 1.5 ? 'true' : 'false', position,
-        thread, '', d, 28, '', '', '',
+        thread, '', dp1(d), 28, '', '', '',
       ]);
       position += 10;
     });
@@ -228,7 +228,7 @@ for (const thread of ['H15', 'H20']) {
         1320 + height * 12 + Math.round(d * 40), 'FIXED',
         'PIECE', 1, 1, 30 + height, 10, 'IN_STOCK',
         height === 15 && d === 1.4 ? 'true' : 'false', position,
-        'M11', height, d, 32, '', '', '',
+        'M11', height, dp1(d), 32, '', '', '',
       ]);
       position += 10;
     });
@@ -259,7 +259,7 @@ for (const thread of ['H15', 'H20']) {
       price, priceType, uom, pack, 1, qty, 6,
       qty === 0 ? 'OUT_OF_STOCK' : qty <= 10 ? 'LOW_STOCK' : 'IN_STOCK',
       index === 0 ? 'true' : 'false', index * 10,
-      'H15', 15, d, 28, '', '', uom === 'PACK' ? '10 nozzles per box' : '',
+      'H15', 15, dp1(d), 28, '', '', uom === 'PACK' ? '10 nozzles per box' : '',
     ]);
   });
 }

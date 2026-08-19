@@ -9,7 +9,10 @@ import { DemoModule } from './demo/demo.module';
 import { AuditModule } from './audit/audit.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
+import { SettingsModule } from './settings/settings.module';
 import { AuthModule } from './auth/auth.module';
+import { CatalogueModule } from './catalogue/catalogue.module';
+import { SalesModule } from './sales/sales.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { PermissionsGuard } from './common/guards/permissions.guard';
 
@@ -31,8 +34,11 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     DemoModule,
     AuditModule,
     NotificationsModule,
+    SettingsModule,
     JwtModule.register({}),
     AuthModule,
+    CatalogueModule,
+    SalesModule,
     HealthModule,
   ],
   providers: [

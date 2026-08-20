@@ -42,3 +42,14 @@ export class ZodValidationPipe implements PipeTransform {
     }
   }
 }
+
+/**
+ * Convenience factory: `@Body(ZodBody(loginSchema)) body: LoginInput`.
+ *
+ * Keeps the schema and the inferred type adjacent at the call site, so a
+ * schema change surfaces as a type error on the handler signature.
+ */
+export const ZodBody = (schema: ZodSchema) => new ZodValidationPipe(schema);
+
+/** Same, for query strings. */
+export const ZodQuery = (schema: ZodSchema) => new ZodValidationPipe(schema);

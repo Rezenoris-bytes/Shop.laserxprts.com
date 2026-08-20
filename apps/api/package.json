@@ -20,7 +20,8 @@
     "db:format": "prisma format",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
-    "db:seed": "ts-node --transpile-only prisma/seed/index.ts"
+    "db:seed": "ts-node --transpile-only prisma/seed/index.ts",
+    "db:purge-seed": "ts-node --transpile-only prisma/seed/purge.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.1",

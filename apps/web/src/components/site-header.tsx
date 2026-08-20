@@ -45,8 +45,8 @@ export function SiteHeader() {
           scrolled ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0',
         ].join(' ')}
       >
-        {/* Layer 1: Identity bar */}
-        <div className="border-b border-white/10 bg-ink">
+        {/* Layer 1: Identity bar (hidden on mobile, visible on desktop) */}
+        <div className="hidden lg:block border-b border-white/10 bg-ink">
           <div className="container-lei flex flex-wrap items-center justify-between gap-y-2 py-2.5">
             {/* Logo + company info */}
             <Link href="/" className="flex items-center gap-3">
@@ -285,7 +285,6 @@ function ListIcon({ className = '' }: { className?: string }) {
     </svg>
   );
 }
-
 
 function PinIcon() {
   return (

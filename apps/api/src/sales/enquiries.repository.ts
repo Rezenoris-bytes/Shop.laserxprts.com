@@ -227,7 +227,9 @@ export class EnquiriesRepository {
                 partNumber: true,
                 variantName: true,
                 price: true,
-                product: { select: { id: true, name: true, slug: true, hsnCode: true, gstRate: true } },
+                product: {
+                  select: { id: true, name: true, slug: true, hsnCode: true, gstRate: true },
+                },
               },
             },
           },

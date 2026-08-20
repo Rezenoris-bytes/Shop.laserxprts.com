@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { adminApi, type AdminCategory, type AdminPartBrand, type AdminProductDetail } from '@/lib/admin-api';
+import {
+  adminApi,
+  type AdminCategory,
+  type AdminPartBrand,
+  type AdminProductDetail,
+} from '@/lib/admin-api';
 
 /**
  * Product fields, editable in place.
@@ -266,7 +271,9 @@ export function ProductDetailsForm({
         </label>
 
         {error && <p className="text-xs text-bad">{error}</p>}
-        {saved && !error && <p className="text-xs text-ok">Saved. The storefront has been updated.</p>}
+        {saved && !error && (
+          <p className="text-xs text-ok">Saved. The storefront has been updated.</p>
+        )}
 
         {canUpdate && (
           <button type="submit" disabled={saving} className="btn-primary text-sm">

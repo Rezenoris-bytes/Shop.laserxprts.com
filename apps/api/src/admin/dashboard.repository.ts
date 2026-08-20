@@ -33,7 +33,10 @@ export class DashboardRepository {
   async searchNoResultsRecent(days: number, limit: number) {
     return this.prisma.raw.searchQueryLog.groupBy({
       by: ['normalized'],
-      where: { resultCount: 0, createdAt: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) } },
+      where: {
+        resultCount: 0,
+        createdAt: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) },
+      },
       _count: { _all: true },
       orderBy: { _count: { normalized: 'desc' } },
       take: limit,

@@ -54,8 +54,7 @@ export function ContactForm({ prefillSubject }: Props) {
         </div>
         <h3 className="text-lg font-bold text-ink">Message received!</h3>
         <p className="mt-2 text-sm text-ink-muted">
-          Your reference is{' '}
-          <span className="font-mono font-semibold text-ink">{publicRef}</span>.
+          Your reference is <span className="font-mono font-semibold text-ink">{publicRef}</span>.
           We&apos;ll be in touch within one working day.
         </p>
         <button
@@ -184,11 +183,7 @@ export function ContactForm({ prefillSubject }: Props) {
         <p className="text-xs text-ink-muted">
           By submitting you agree to be contacted about your enquiry.
         </p>
-        <button
-          type="submit"
-          disabled={status === 'submitting'}
-          className="btn-primary shrink-0"
-        >
+        <button type="submit" disabled={status === 'submitting'} className="btn-primary shrink-0">
           {status === 'submitting' ? (
             <>
               <SpinnerIcon />
@@ -207,7 +202,16 @@ export function ContactForm({ prefillSubject }: Props) {
 
 function CheckIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <path d="m20 6-11 11-5-5" />
     </svg>
   );

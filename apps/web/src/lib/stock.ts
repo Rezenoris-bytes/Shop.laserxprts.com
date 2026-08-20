@@ -1,5 +1,8 @@
 /** Stock presentation. Empty and edge states are designed, not accidental. */
-export function stockLabel(status: string): { label: string; tone: 'ok' | 'warn' | 'bad' | 'muted' } {
+export function stockLabel(status: string): {
+  label: string;
+  tone: 'ok' | 'warn' | 'bad' | 'muted';
+} {
   switch (status) {
     case 'IN_STOCK':
       return { label: 'In stock', tone: 'ok' };

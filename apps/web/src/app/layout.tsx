@@ -21,9 +21,7 @@ export const metadata: Metadata = {
   // DEMO_MODE also sets X-Robots-Tag at the server (next.config.mjs). The meta
   // tag alone is not enough — a header cannot be missed on a route someone
   // forgets to annotate.
-  robots: demoMode
-    ? { index: false, follow: false, nocache: true }
-    : { index: true, follow: true },
+  robots: demoMode ? { index: false, follow: false, nocache: true } : { index: true, follow: true },
   openGraph: {
     type: 'website',
     siteName,

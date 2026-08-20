@@ -85,45 +85,45 @@ export function ProductGallery({ product }: { product: GalleryProduct }) {
             className="flex gap-2 overflow-x-auto pb-1
                        sm:absolute sm:inset-0 sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto sm:pb-0 sm:pr-1"
           >
-          {images.map((image, index) => (
-            <li key={image.id} className="shrink-0">
-              <button
-                type="button"
-                // Hover swaps the main image, so scanning the strip with the
-                // mouse previews each shot without a click. Click still does
-                // the same thing — it is the only way through on touch, where
-                // hover never fires — and focus mirrors it so tabbing along
-                // the strip previews too.
-                onMouseEnter={() => setActiveIndex(index)}
-                onFocus={() => setActiveIndex(index)}
-                onClick={() => setActiveIndex(index)}
-                aria-label={`Show image ${index + 1} of ${images.length}`}
-                aria-current={index === activeIndex}
-                className={[
-                  'grid h-16 w-16 place-items-center overflow-hidden rounded border bg-white p-1 transition-colors',
-                  index === activeIndex
-                    ? 'border-amber ring-2 ring-amber'
-                    : 'border-ink-line hover:border-ink',
-                ].join(' ')}
-              >
-                <Image
-                  src={mediaUrl(image.path)}
-                  alt=""
-                  width={56}
-                  height={56}
-                  // A fixed box, not `w-auto`: an auto-sized image has no
-                  // intrinsic size until it loads, so it lays out at 0x0 and
-                  // the lazy-loading observer never fires — it waits for a
-                  // size that only loading would give it.
-                  className="h-14 w-14 object-contain"
-                  // Four ~3KB thumbnails sitting directly under the main image.
-                  // Deferring them saves nothing worth having and leaves the
-                  // strip blank in any context where the observer is slow to
-                  // run, so they load with the page.
-                  loading="eager"
-                />
-              </button>
-            </li>
+            {images.map((image, index) => (
+              <li key={image.id} className="shrink-0">
+                <button
+                  type="button"
+                  // Hover swaps the main image, so scanning the strip with the
+                  // mouse previews each shot without a click. Click still does
+                  // the same thing — it is the only way through on touch, where
+                  // hover never fires — and focus mirrors it so tabbing along
+                  // the strip previews too.
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onFocus={() => setActiveIndex(index)}
+                  onClick={() => setActiveIndex(index)}
+                  aria-label={`Show image ${index + 1} of ${images.length}`}
+                  aria-current={index === activeIndex}
+                  className={[
+                    'grid h-16 w-16 place-items-center overflow-hidden rounded border bg-white p-1 transition-colors',
+                    index === activeIndex
+                      ? 'border-amber ring-2 ring-amber'
+                      : 'border-ink-line hover:border-ink',
+                  ].join(' ')}
+                >
+                  <Image
+                    src={mediaUrl(image.path)}
+                    alt=""
+                    width={56}
+                    height={56}
+                    // A fixed box, not `w-auto`: an auto-sized image has no
+                    // intrinsic size until it loads, so it lays out at 0x0 and
+                    // the lazy-loading observer never fires — it waits for a
+                    // size that only loading would give it.
+                    className="h-14 w-14 object-contain"
+                    // Four ~3KB thumbnails sitting directly under the main image.
+                    // Deferring them saves nothing worth having and leaves the
+                    // strip blank in any context where the observer is slow to
+                    // run, so they load with the page.
+                    loading="eager"
+                  />
+                </button>
+              </li>
             ))}
           </ul>
         </div>

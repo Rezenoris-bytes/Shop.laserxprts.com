@@ -21,17 +21,25 @@ export class DashboardService {
   ) {}
 
   async get(): Promise<DashboardResponse> {
-    const [enquiryCounts, quoteCounts, expiringSoon, lowStock, outOfStock, noResults, demoData, placeholders] =
-      await Promise.all([
-        this.repository.enquiryCountsByStatus(),
-        this.repository.quoteCountsByStatus(),
-        this.repository.quotesExpiringSoon(),
-        this.repository.lowStockCount(),
-        this.repository.outOfStockCount(),
-        this.repository.searchNoResultsRecent(7, 10),
-        this.demo.census(),
-        this.settings.placeholderKeys(),
-      ]);
+    const [
+      enquiryCounts,
+      quoteCounts,
+      expiringSoon,
+      lowStock,
+      outOfStock,
+      noResults,
+      demoData,
+      placeholders,
+    ] = await Promise.all([
+      this.repository.enquiryCountsByStatus(),
+      this.repository.quoteCountsByStatus(),
+      this.repository.quotesExpiringSoon(),
+      this.repository.lowStockCount(),
+      this.repository.outOfStockCount(),
+      this.repository.searchNoResultsRecent(7, 10),
+      this.demo.census(),
+      this.settings.placeholderKeys(),
+    ]);
 
     const byStatus = (rows: Array<{ status: string; _count: { _all: number } }>, key: string) =>
       rows.find((row) => row.status === key)?._count._all ?? 0;

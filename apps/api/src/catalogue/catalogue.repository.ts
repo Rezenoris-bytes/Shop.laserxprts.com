@@ -369,7 +369,14 @@ export class CatalogueRepository {
         ogTitle: true,
         ogDescription: true,
         seoIndexable: true,
-        category: { select: { id: true, name: true, slug: true, parent: { select: { name: true, slug: true } } } },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            parent: { select: { name: true, slug: true } },
+          },
+        },
         partBrand: { select: { id: true, name: true, slug: true } },
         media: {
           orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
@@ -385,7 +392,9 @@ export class CatalogueRepository {
           select: {
             valueString: true,
             valueDecimal: true,
-            attribute: { select: { name: true, slug: true, unit: true, showInSpecs: true, sortOrder: true } },
+            attribute: {
+              select: { name: true, slug: true, unit: true, showInSpecs: true, sortOrder: true },
+            },
           },
         },
         variants: {
@@ -531,7 +540,12 @@ export class CatalogueRepository {
         where: {
           attributeId: attribute.id,
           ...(productIds
-            ? { OR: [{ productId: { in: productIds } }, { variant: { productId: { in: productIds } } }] }
+            ? {
+                OR: [
+                  { productId: { in: productIds } },
+                  { variant: { productId: { in: productIds } } },
+                ],
+              }
             : {}),
         },
         select: { valueString: true, valueDecimal: true },
@@ -618,7 +632,9 @@ export class CatalogueRepository {
 
       if (exact.length > 0) {
         // An exact key match outranks a prefix match.
-        const exactIds = exact.filter((v) => v.searchKey.split(' ').includes(key)).map((v) => v.productId);
+        const exactIds = exact
+          .filter((v) => v.searchKey.split(' ').includes(key))
+          .map((v) => v.productId);
         const prefixIds = exact.map((v) => v.productId);
         const ordered = [...new Set([...exactIds, ...prefixIds])];
 
@@ -629,9 +645,15 @@ export class CatalogueRepository {
 
         // Preserve the ranking the id ordering established.
         const byId = new Map(items.map((item) => [item.id, item]));
-        const ranked = ordered.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+        const ranked = ordered
+          .map((id) => byId.get(id))
+          .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
-        return { items: ranked.slice(offset, offset + limit), total: ranked.length, matchType: 'part_number' as const };
+        return {
+          items: ranked.slice(offset, offset + limit),
+          total: ranked.length,
+          matchType: 'part_number' as const,
+        };
       }
     }
 

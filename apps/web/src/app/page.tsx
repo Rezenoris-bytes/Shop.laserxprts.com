@@ -58,11 +58,11 @@ export default async function HomePage() {
 
         <div className="relative z-10 container-lei">
           <div className="flex flex-col lg:flex-row lg:items-center">
-            
             {/* ── Content ── */}
             <div className="w-full py-8 lg:py-10 max-w-2xl lg:max-w-[52%]">
               <h1 className="text-3xl font-black leading-[1.05] tracking-tight uppercase sm:text-4xl lg:text-5xl">
-                The Right Parts,<br/>
+                The Right Parts,
+                <br />
                 <span className="text-amber">The Right Performance.</span>
               </h1>
               <p className="mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-white/70">
@@ -87,18 +87,18 @@ export default async function HomePage() {
                 ))}
               </div>
             </div>
-            
           </div>
         </div>
       </section>
-
-
 
       {/* ── Categories ───────────────────────────────────────────────── */}
       <section className="container-lei py-12">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-bold">Shop by category</h2>
-          <Link href="/catalogue" className="text-sm font-medium text-ink-muted hover:text-amber-dark">
+          <Link
+            href="/catalogue"
+            className="text-sm font-medium text-ink-muted hover:text-amber-dark"
+          >
             View all →
           </Link>
         </div>
@@ -136,7 +136,10 @@ export default async function HomePage() {
       <section className="container-lei pb-14">
         <div className="flex items-end justify-between">
           <h2 className="text-xl font-bold">Top selling products</h2>
-          <Link href="/catalogue" className="text-sm font-medium text-ink-muted hover:text-amber-dark">
+          <Link
+            href="/catalogue"
+            className="text-sm font-medium text-ink-muted hover:text-amber-dark"
+          >
             View all →
           </Link>
         </div>
@@ -177,8 +180,8 @@ export default async function HomePage() {
               <span className="block text-amber">Get special pricing.</span>
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-white/70">
-              Add everything you need to one Quote Request and our team will price it together —
-              no need to enquire about each part separately.
+              Add everything you need to one Quote Request and our team will price it together — no
+              need to enquire about each part separately.
             </p>
             <Link href="/catalogue" className="btn-primary mt-6">
               Start a quote request

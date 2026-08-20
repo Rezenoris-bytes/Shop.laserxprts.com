@@ -24,7 +24,10 @@ export function OfficesMap({ offices }: Props) {
       {/* ── Mobile Header: Dropdown selector + Active Address Details (visible only on mobile/tablet) ── */}
       <div className="lg:hidden p-5 border-b border-ink-line bg-white flex flex-col gap-3.5">
         <div>
-          <label htmlFor="branch-select-mobile" className="block text-xs font-bold text-ink-muted uppercase tracking-wider mb-2">
+          <label
+            htmlFor="branch-select-mobile"
+            className="block text-xs font-bold text-ink-muted uppercase tracking-wider mb-2"
+          >
             Select a location
           </label>
           <div className="relative">
@@ -39,14 +42,23 @@ export function OfficesMap({ offices }: Props) {
             >
               {offices.map((office) => (
                 <option key={office.city} value={office.city}>
-                  {office.city} — {office.type === 'head-office' ? 'Head Office' : office.type === 'branch' ? 'Branch' : 'Service Hub'}
+                  {office.city} —{' '}
+                  {office.type === 'head-office'
+                    ? 'Head Office'
+                    : office.type === 'branch'
+                      ? 'Branch'
+                      : 'Service Hub'}
                 </option>
               ))}
             </select>
             {/* Custom dropdown arrow indicator */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-ink-muted">
-              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+              <svg
+                className="fill-current h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
               </svg>
             </div>
           </div>
@@ -62,11 +74,15 @@ export function OfficesMap({ offices }: Props) {
                 selectedOffice.type === 'head-office'
                   ? 'bg-amber text-ink'
                   : selectedOffice.type === 'branch'
-                  ? 'bg-ink text-white'
-                  : 'bg-ink-wash text-ink-muted',
+                    ? 'bg-ink text-white'
+                    : 'bg-ink-wash text-ink-muted',
               ].join(' ')}
             >
-              {selectedOffice.type === 'head-office' ? 'Head Office' : selectedOffice.type === 'branch' ? 'Branch' : 'Service Hub'}
+              {selectedOffice.type === 'head-office'
+                ? 'Head Office'
+                : selectedOffice.type === 'branch'
+                  ? 'Branch'
+                  : 'Service Hub'}
             </span>
           </div>
           <p className="text-xs leading-relaxed text-ink-muted">{selectedOffice.address}</p>
@@ -78,7 +94,9 @@ export function OfficesMap({ offices }: Props) {
         <div className="hidden lg:flex lg:col-span-4 border-r border-ink-line flex-col bg-white">
           <div className="p-4 border-b border-ink-line bg-ink-wash">
             <h3 className="font-bold text-ink text-sm uppercase tracking-wider">Our Branches</h3>
-            <p className="text-xs text-ink-muted mt-0.5">Select a location to view on Google Maps</p>
+            <p className="text-xs text-ink-muted mt-0.5">
+              Select a location to view on Google Maps
+            </p>
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-ink-line max-h-[450px]">
             {offices.map((office) => {
@@ -103,11 +121,15 @@ export function OfficesMap({ offices }: Props) {
                         office.type === 'head-office'
                           ? 'bg-amber text-ink'
                           : office.type === 'branch'
-                          ? 'bg-ink text-white'
-                          : 'bg-ink-wash text-ink-muted',
+                            ? 'bg-ink text-white'
+                            : 'bg-ink-wash text-ink-muted',
                       ].join(' ')}
                     >
-                      {office.type === 'head-office' ? 'Head Office' : office.type === 'branch' ? 'Branch' : 'Service Hub'}
+                      {office.type === 'head-office'
+                        ? 'Head Office'
+                        : office.type === 'branch'
+                          ? 'Branch'
+                          : 'Service Hub'}
                     </span>
                   </div>
                   <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
@@ -125,20 +147,27 @@ export function OfficesMap({ offices }: Props) {
             // Service Hub placeholder with useful support text
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-ink-wash min-h-[350px]">
               <div className="h-16 w-16 rounded-full bg-amber/10 flex items-center justify-center text-amber mb-4">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                  <path d="m9 12 2 2 4-4"/>
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
                 </svg>
               </div>
               <h4 className="text-base font-bold text-ink">Remote Support & Service Hub</h4>
               <p className="text-sm text-ink-muted max-w-sm mt-2 leading-relaxed">
-                We provide reliable on-site engineering, remote diagnostics, and support for clients across {selectedOffice.city}.
+                We provide reliable on-site engineering, remote diagnostics, and support for clients
+                across {selectedOffice.city}.
               </p>
               <div className="mt-6 flex flex-wrap gap-3 justify-center">
-                <a
-                  href="tel:+918925842285"
-                  className="btn-primary text-xs font-semibold px-4 py-2"
-                >
+                <a href="tel:+918925842285" className="btn-primary text-xs font-semibold px-4 py-2">
                   Call Support
                 </a>
                 <a
@@ -154,9 +183,9 @@ export function OfficesMap({ offices }: Props) {
             <iframe
               title={`Laser Experts India - ${selectedOffice.city} Map`}
               src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                selectedOffice.city === 'Hosur' 
-                  ? 'Laser Experts India LLP Hosur' 
-                  : selectedOffice.address
+                selectedOffice.city === 'Hosur'
+                  ? 'Laser Experts India LLP Hosur'
+                  : selectedOffice.address,
               )}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
               width="100%"
               height="100%"
@@ -180,7 +209,19 @@ export function OfficesMap({ offices }: Props) {
                 className="text-amber font-semibold hover:underline flex items-center gap-1"
               >
                 Directions in Google Maps
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
               </a>
             )}
           </div>

@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi, type AdminCustomerRow } from '@/lib/admin-api';
-import { AdminPageHeader, DataTable, DemoBadge, StatusChip, type Column } from '@/components/admin/data-table';
+import {
+  AdminPageHeader,
+  DataTable,
+  DemoBadge,
+  StatusChip,
+  type Column,
+} from '@/components/admin/data-table';
 import { formatDate } from '@/lib/format';
 
 /**
@@ -63,7 +69,12 @@ export default function CustomersPage() {
           className="field max-w-sm"
         />
       </div>
-      <DataTable columns={columns} rows={rows} rowHref={(row) => `/admin/customers/${row.id}`} isLoading={isLoading} />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowHref={(row) => `/admin/customers/${row.id}`}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

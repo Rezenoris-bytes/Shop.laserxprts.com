@@ -12,12 +12,12 @@ Catalogue, enquiry, and quotation platform for Laser Experts India.
 
 LEI Platform is a technical catalogue and sales platform designed to help users:
 
-* Browse and search products
-* Find suitable parts
-* Submit enquiries
-* Request quotations
-* Manage leads
-* Create and manage quotations
+- Browse and search products
+- Find suitable parts
+- Submit enquiries
+- Request quotations
+- Manage leads
+- Create and manage quotations
 
 The platform is **not an online store**. It does not currently include cart, checkout, or payment functionality.
 
@@ -110,11 +110,11 @@ Environment-specific configuration should be stored in `.env`.
 
 Do not commit:
 
-* Secrets
-* Passwords
-* API keys
-* Production credentials
-* Local environment files
+- Secrets
+- Passwords
+- API keys
+- Production credentials
+- Local environment files
 
 Use `.env.example` as the reference for required variables.
 

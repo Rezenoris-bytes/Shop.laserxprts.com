@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Query } from '@nestjs/common';
-import { PermissionAction, PermissionModule, adminListQuerySchema, type AdminListQuery } from '@lei/shared';
+import {
+  PermissionAction,
+  PermissionModule,
+  adminListQuerySchema,
+  type AdminListQuery,
+} from '@lei/shared';
 import { RequirePermission } from '../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodQuery } from '../common/pipes/zod-validation.pipe';

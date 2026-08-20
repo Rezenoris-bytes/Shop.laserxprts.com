@@ -51,7 +51,8 @@ export function CatalogueFilters({
     push(next);
   };
 
-  const activeCount = activeAttrs.length + ['category', 'brand', 'inStock'].filter((key) => params.get(key)).length;
+  const activeCount =
+    activeAttrs.length + ['category', 'brand', 'inStock'].filter((key) => params.get(key)).length;
 
   // A catalogue-wide view has ~50 attribute groups behind it, because the
   // attribute set is the union of every category's. Rendering them all buries
@@ -95,7 +96,10 @@ export function CatalogueFilters({
       </FilterGroup>
 
       {visibleFacets.map((facet) => (
-        <FilterGroup key={facet.slug} title={`${facet.name}${facet.unit ? ` (${facet.unit})` : ''}`}>
+        <FilterGroup
+          key={facet.slug}
+          title={`${facet.name}${facet.unit ? ` (${facet.unit})` : ''}`}
+        >
           <div className="flex flex-wrap gap-1.5">
             {facet.values.slice(0, 14).map((value) => {
               const active = activeAttrs.includes(`${facet.slug}:${value}`);
@@ -145,7 +149,9 @@ export function CatalogueFilters({
         <select
           id="sort"
           value={params.get('sort') ?? 'relevance'}
-          onChange={(event) => setParam('sort', event.target.value === 'relevance' ? null : event.target.value)}
+          onChange={(event) =>
+            setParam('sort', event.target.value === 'relevance' ? null : event.target.value)
+          }
           className="field text-sm"
         >
           <option value="relevance">Most relevant</option>
@@ -254,7 +260,9 @@ function CategoryAccordion({
                     aria-pressed={child.slug === activeSlug}
                     className={[
                       'flex w-full items-center justify-between gap-2 border-t border-ink-line py-2 text-left text-[13px]',
-                      child.slug === activeSlug ? 'font-medium text-amber-dark' : 'hover:text-amber-dark',
+                      child.slug === activeSlug
+                        ? 'font-medium text-amber-dark'
+                        : 'hover:text-amber-dark',
                     ].join(' ')}
                   >
                     <span>{child.name}</span>

@@ -20,7 +20,10 @@ export class AdminCatalogueService {
     return this.repository.listCategories();
   }
 
-  async createCategory(data: Parameters<AdminCatalogueRepository['createCategory']>[0], actorId: number) {
+  async createCategory(
+    data: Parameters<AdminCatalogueRepository['createCategory']>[0],
+    actorId: number,
+  ) {
     const category = await this.repository.createCategory(data);
     await this.repository.recomputeCategoryCounts();
     await this.audit.record({
@@ -76,7 +79,10 @@ export class AdminCatalogueService {
     return this.repository.listPartBrands();
   }
 
-  async createPartBrand(data: Parameters<AdminCatalogueRepository['createPartBrand']>[0], actorId: number) {
+  async createPartBrand(
+    data: Parameters<AdminCatalogueRepository['createPartBrand']>[0],
+    actorId: number,
+  ) {
     const brand = await this.repository.createPartBrand(data);
     await this.audit.record({
       userId: actorId,
@@ -131,7 +137,10 @@ export class AdminCatalogueService {
     return product;
   }
 
-  async createProduct(data: Parameters<AdminCatalogueRepository['createProduct']>[0], actorId: number) {
+  async createProduct(
+    data: Parameters<AdminCatalogueRepository['createProduct']>[0],
+    actorId: number,
+  ) {
     const product = await this.repository.createProduct(data);
     await this.repository.recomputeCategoryCounts();
     await this.audit.record({
@@ -153,8 +162,20 @@ export class AdminCatalogueService {
     await this.repository.recomputeCategoryCounts();
 
     const diff = this.audit.diff(
-      { name: before.name, isActive: before.isActive, categoryId: before.categoryId, hsnCode: before.hsnCode, gstRate: before.gstRate },
-      { name: product.name, isActive: product.isActive, categoryId: product.categoryId, hsnCode: product.hsnCode, gstRate: product.gstRate },
+      {
+        name: before.name,
+        isActive: before.isActive,
+        categoryId: before.categoryId,
+        hsnCode: before.hsnCode,
+        gstRate: before.gstRate,
+      },
+      {
+        name: product.name,
+        isActive: product.isActive,
+        categoryId: product.categoryId,
+        hsnCode: product.hsnCode,
+        gstRate: product.gstRate,
+      },
     );
     await this.audit.record({
       userId: actorId,
@@ -323,7 +344,10 @@ export class AdminCatalogueService {
 
   // ── Variants ──────────────────────────────────────────────────────────
 
-  async createVariant(data: Parameters<AdminCatalogueRepository['createVariant']>[0], actorId: number) {
+  async createVariant(
+    data: Parameters<AdminCatalogueRepository['createVariant']>[0],
+    actorId: number,
+  ) {
     const variant = await this.repository.createVariant(data);
     await this.repository.recomputeProduct(data.productId);
     await this.audit.record({
@@ -336,8 +360,16 @@ export class AdminCatalogueService {
     return variant;
   }
 
-  async updateVariant(id: number, productId: number, data: Record<string, unknown>, actorId: number) {
-    const { attributes, ...rest } = data as { attributes?: Record<string, string> } & Record<string, unknown>;
+  async updateVariant(
+    id: number,
+    productId: number,
+    data: Record<string, unknown>,
+    actorId: number,
+  ) {
+    const { attributes, ...rest } = data as { attributes?: Record<string, string> } & Record<
+      string,
+      unknown
+    >;
     const variant = await this.repository.updateVariant(id, rest as never);
     if (attributes) await this.repository.writeVariantAttributes(id, attributes);
     await this.repository.recomputeProduct(productId);
@@ -356,10 +388,19 @@ export class AdminCatalogueService {
   async updateInventory(
     variantId: number,
     productId: number,
-    data: { quantity: number; reorderLevel?: number; stockStatus?: string; reason: string; notes?: string },
+    data: {
+      quantity: number;
+      reorderLevel?: number;
+      stockStatus?: string;
+      reason: string;
+      notes?: string;
+    },
     actorId: number,
   ) {
-    const inventory = await this.repository.updateInventory(variantId, { ...data, performedById: actorId });
+    const inventory = await this.repository.updateInventory(variantId, {
+      ...data,
+      performedById: actorId,
+    });
     await this.repository.recomputeProduct(productId);
     await this.audit.record({
       userId: actorId,
@@ -387,7 +428,11 @@ export class AdminCatalogueService {
       action: AuditAction.CREATE,
       entityType: 'ProductCompatibility',
       entityId: String(row.id),
-      newValues: { productId: data.productId, machineModelId: data.machineModelId, isVerified: data.isVerified },
+      newValues: {
+        productId: data.productId,
+        machineModelId: data.machineModelId,
+        isVerified: data.isVerified,
+      },
     });
     return row;
   }
@@ -428,7 +473,12 @@ export class AdminCatalogueService {
     return this.repository.createMachineModel(machineBrandId, name);
   }
 
-  createMachineVariant(machineModelId: number, name: string, laserType?: string, powerWatts?: number) {
+  createMachineVariant(
+    machineModelId: number,
+    name: string,
+    laserType?: string,
+    powerWatts?: number,
+  ) {
     return this.repository.createMachineVariant(machineModelId, name, laserType, powerWatts);
   }
 

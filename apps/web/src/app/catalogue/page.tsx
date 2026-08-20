@@ -44,7 +44,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
   return {
     title: 'Spares & consumables',
-    description: 'Browse laser spares and consumables by category, brand and machine compatibility.',
+    description:
+      'Browse laser spares and consumables by category, brand and machine compatibility.',
     alternates: { canonical: canonical('/catalogue') },
     // Multi-facet combinations generate a very large URL space over nearly
     // identical content. Only the bare listing and single-category views are
@@ -54,7 +55,15 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 function hasMultipleFacets(params: Record<string, string | string[] | undefined>): boolean {
-  const facetKeys = ['brand', 'machineModel', 'machineBrand', 'attr', 'minPrice', 'maxPrice', 'inStock'];
+  const facetKeys = [
+    'brand',
+    'machineModel',
+    'machineBrand',
+    'attr',
+    'minPrice',
+    'maxPrice',
+    'inStock',
+  ];
   return facetKeys.filter((key) => params[key] !== undefined).length > 0;
 }
 
@@ -66,11 +75,7 @@ export default async function CataloguePage({ searchParams }: PageProps) {
     return typeof value === 'string' ? value : undefined;
   };
 
-  const attrParams = Array.isArray(params.attr)
-    ? params.attr
-    : params.attr
-      ? [params.attr]
-      : [];
+  const attrParams = Array.isArray(params.attr) ? params.attr : params.attr ? [params.attr] : [];
 
   const query: Record<string, string | number | undefined> = {
     page: Number(single('page') ?? 1),
@@ -206,7 +211,19 @@ async function fetchProducts(search: URLSearchParams) {
     next: { revalidate: 300 },
   });
   if (!response.ok) {
-    return { data: [], meta: { pagination: { page: 1, perPage: 24, total: 0, totalPages: 1, hasNext: false, hasPrev: false } } };
+    return {
+      data: [],
+      meta: {
+        pagination: {
+          page: 1,
+          perPage: 24,
+          total: 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      },
+    };
   }
   return (await response.json()) as Awaited<ReturnType<typeof api.productsWithMeta>>;
 }

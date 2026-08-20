@@ -12,8 +12,8 @@ export default function NotFound() {
       <p className="font-mono text-sm text-ink-muted">404</p>
       <h1 className="mt-2 text-2xl font-bold">We could not find that page</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-        The part may have been withdrawn, or the address may be mistyped. Try searching for the
-        part number, or browse by machine.
+        The part may have been withdrawn, or the address may be mistyped. Try searching for the part
+        number, or browse by machine.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link href="/catalogue" className="btn-secondary text-sm">

@@ -25,7 +25,10 @@ export default function AuditLogsPage() {
     { header: 'When', render: (row) => formatDateTime(row.createdAt) },
     { header: 'Who', render: (row) => row.user?.name ?? 'System' },
     { header: 'Action', render: (row) => <StatusChip label={row.action} tone="muted" /> },
-    { header: 'Entity', render: (row) => `${row.entityType}${row.entityId ? ` #${row.entityId}` : ''}` },
+    {
+      header: 'Entity',
+      render: (row) => `${row.entityType}${row.entityId ? ` #${row.entityId}` : ''}`,
+    },
     {
       header: 'Changes',
       render: (row) =>
@@ -39,10 +42,15 @@ export default function AuditLogsPage() {
 
   return (
     <PermissionGate module="AUDIT">
-    <div>
-      <AdminPageHeader title="Audit Log" description="Who changed what, and when." />
-      <DataTable columns={columns} rows={rows} isLoading={isLoading} emptyMessage="No audited actions yet." />
-    </div>
+      <div>
+        <AdminPageHeader title="Audit Log" description="Who changed what, and when." />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          isLoading={isLoading}
+          emptyMessage="No audited actions yet."
+        />
+      </div>
     </PermissionGate>
   );
 }

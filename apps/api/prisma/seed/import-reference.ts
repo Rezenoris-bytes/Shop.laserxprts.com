@@ -43,7 +43,9 @@ async function main(): Promise<void> {
     ['media', '06-media.csv', (c) => importer.importMedia(prisma, c, options)],
   ];
 
-  console.log('\nReference catalogue import' + (confirmed ? '' : '  (DRY RUN — pass --yes to apply)'));
+  console.log(
+    '\nReference catalogue import' + (confirmed ? '' : '  (DRY RUN — pass --yes to apply)'),
+  );
   console.log('='.repeat(64));
 
   let totalErrors = 0;

@@ -54,7 +54,7 @@ immutable cache header.
 not. No price reaches the database; `05-variants.csv` has no price column.
 
 **Supplier identity.** The source's own copy names its company, city and
-founding year. Published under LEI's name that would assert LEI *is* that
+founding year. Published under LEI's name that would assert LEI _is_ that
 business, so any sentence naming it is dropped, along with brands and
 specification values that do the same. Removal only: what survives is still
 source text, never a rewrite. This emptied 97 of 150 descriptions, removed 3
@@ -71,11 +71,11 @@ the prose refers to.
 Three fields have no source counterpart. They are identifiers our schema
 requires, not claims about the part:
 
-| Field | Value |
-| --- | --- |
-| `sku` | `REF-<slug>` — LEI's internal stock code; the source publishes none |
-| `variant_name` | `Standard` — each source listing is one sellable item |
-| `part_number` | the source "Model Name/Number" when present, otherwise the sku |
+| Field          | Value                                                               |
+| -------------- | ------------------------------------------------------------------- |
+| `sku`          | `REF-<slug>` — LEI's internal stock code; the source publishes none |
+| `variant_name` | `Standard` — each source listing is one sellable item               |
+| `part_number`  | the source "Model Name/Number" when present, otherwise the sku      |
 
 `stock_status` is `MADE_TO_ORDER` throughout: the source publishes no stock
 figure, and this states availability on request without inventing a shelf count.

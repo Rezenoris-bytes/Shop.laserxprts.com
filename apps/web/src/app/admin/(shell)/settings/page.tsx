@@ -33,45 +33,54 @@ export default function SettingsPage() {
 
   return (
     <PermissionGate module="SETTINGS">
-    <div>
-      <AdminPageHeader title="Settings" description="Company details, quote defaults and notification recipients." />
+      <div>
+        <AdminPageHeader
+          title="Settings"
+          description="Company details, quote defaults and notification recipients."
+        />
 
-      {groups.map((group) => (
-        <section key={group} className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">{group}</h2>
-          <div className="card divide-y divide-ink-line p-0">
-            {settings
-              .filter((s) => s.group === group)
-              .map((setting) => {
-                const isPlaceholder = setting.value.includes('PLACEHOLDER');
-                const value = editing[setting.key] ?? setting.value;
-                return (
-                  <div key={setting.key} className="flex flex-wrap items-center gap-3 p-3">
-                    <div className="w-56 shrink-0">
-                      <p className="font-mono text-xs">{setting.key}</p>
-                      {setting.description && <p className="mt-0.5 text-[11px] text-ink-muted">{setting.description}</p>}
+        {groups.map((group) => (
+          <section key={group} className="mb-6">
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+              {group}
+            </h2>
+            <div className="card divide-y divide-ink-line p-0">
+              {settings
+                .filter((s) => s.group === group)
+                .map((setting) => {
+                  const isPlaceholder = setting.value.includes('PLACEHOLDER');
+                  const value = editing[setting.key] ?? setting.value;
+                  return (
+                    <div key={setting.key} className="flex flex-wrap items-center gap-3 p-3">
+                      <div className="w-56 shrink-0">
+                        <p className="font-mono text-xs">{setting.key}</p>
+                        {setting.description && (
+                          <p className="mt-0.5 text-[11px] text-ink-muted">{setting.description}</p>
+                        )}
+                      </div>
+                      <input
+                        value={value}
+                        onChange={(e) =>
+                          setEditing((current) => ({ ...current, [setting.key]: e.target.value }))
+                        }
+                        disabled={setting.isSecret}
+                        className={`field flex-1 text-sm ${isPlaceholder ? 'border-amber' : ''}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => save(setting.key)}
+                        disabled={setting.isSecret}
+                        className="btn-secondary px-3 py-1.5 text-xs"
+                      >
+                        {saved === setting.key ? 'Saved' : 'Save'}
+                      </button>
                     </div>
-                    <input
-                      value={value}
-                      onChange={(e) => setEditing((current) => ({ ...current, [setting.key]: e.target.value }))}
-                      disabled={setting.isSecret}
-                      className={`field flex-1 text-sm ${isPlaceholder ? 'border-amber' : ''}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => save(setting.key)}
-                      disabled={setting.isSecret}
-                      className="btn-secondary px-3 py-1.5 text-xs"
-                    >
-                      {saved === setting.key ? 'Saved' : 'Save'}
-                    </button>
-                  </div>
-                );
-              })}
-          </div>
-        </section>
-      ))}
-    </div>
+                  );
+                })}
+            </div>
+          </section>
+        ))}
+      </div>
     </PermissionGate>
   );
 }

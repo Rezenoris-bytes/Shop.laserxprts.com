@@ -79,7 +79,14 @@ export function ProductMediaManager({
     const target = index + direction;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target]!, next[index]!];
-    void run(() => adminApi.reorderProductMedia(productId, next.map((row) => row.id)), 'Order saved');
+    void run(
+      () =>
+        adminApi.reorderProductMedia(
+          productId,
+          next.map((row) => row.id),
+        ),
+      'Order saved',
+    );
   };
 
   return (
@@ -163,7 +170,10 @@ export function ProductMediaManager({
                 )}
               </div>
 
-              <p className="mt-1.5 truncate text-[10px] text-ink-muted" title={row.file.originalName}>
+              <p
+                className="mt-1.5 truncate text-[10px] text-ink-muted"
+                title={row.file.originalName}
+              >
                 {row.file.width}×{row.file.height} · {Math.round(row.file.sizeBytes / 1024)}KB
               </p>
 

@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi, type AdminPartBrand } from '@/lib/admin-api';
-import { AdminPageHeader, DataTable, DemoBadge, StatusChip, type Column } from '@/components/admin/data-table';
+import {
+  AdminPageHeader,
+  DataTable,
+  DemoBadge,
+  StatusChip,
+  type Column,
+} from '@/components/admin/data-table';
 import { useAdminAuth } from '@/lib/admin-auth';
 
 export default function PartBrandsPage() {
@@ -12,7 +18,11 @@ export default function PartBrandsPage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
 
-  const load = () => adminApi.partBrands().then(setRows).finally(() => setIsLoading(false));
+  const load = () =>
+    adminApi
+      .partBrands()
+      .then(setRows)
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
     load();
@@ -35,17 +45,33 @@ export default function PartBrandsPage() {
   };
 
   const columns: Column<AdminPartBrand>[] = [
-    { header: 'Name', render: (row) => <span>{row.name} <DemoBadge isSeedData={row.isSeedData} /></span> },
-    { header: 'Slug', render: (row) => <span className="font-mono text-xs text-ink-muted">{row.slug}</span> },
+    {
+      header: 'Name',
+      render: (row) => (
+        <span>
+          {row.name} <DemoBadge isSeedData={row.isSeedData} />
+        </span>
+      ),
+    },
+    {
+      header: 'Slug',
+      render: (row) => <span className="font-mono text-xs text-ink-muted">{row.slug}</span>,
+    },
     {
       header: 'Status',
       render: (row) =>
         canUpdate ? (
           <button type="button" onClick={() => toggleActive(row)}>
-            <StatusChip label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'ok' : 'muted'} />
+            <StatusChip
+              label={row.isActive ? 'Active' : 'Inactive'}
+              tone={row.isActive ? 'ok' : 'muted'}
+            />
           </button>
         ) : (
-          <StatusChip label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'ok' : 'muted'} />
+          <StatusChip
+            label={row.isActive ? 'Active' : 'Inactive'}
+            tone={row.isActive ? 'ok' : 'muted'}
+          />
         ),
     },
   ];
@@ -56,7 +82,11 @@ export default function PartBrandsPage() {
         title="Part Brands"
         action={
           canCreate && (
-            <button type="button" onClick={() => setShowForm((v) => !v)} className="btn-primary text-sm">
+            <button
+              type="button"
+              onClick={() => setShowForm((v) => !v)}
+              className="btn-primary text-sm"
+            >
               {showForm ? 'Cancel' : 'New brand'}
             </button>
           )
@@ -68,7 +98,13 @@ export default function PartBrandsPage() {
             <label htmlFor="name" className="label">
               Name
             </label>
-            <input id="name" required value={name} onChange={(e) => setName(e.target.value)} className="field" />
+            <input
+              id="name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="field"
+            />
           </div>
           <button type="submit" className="btn-primary">
             Create

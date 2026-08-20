@@ -89,7 +89,12 @@ export class AdminCatalogueRepository {
     });
   }
 
-  async createPartBrand(data: { name: string; slug?: string; website?: string; isActive: boolean }) {
+  async createPartBrand(data: {
+    name: string;
+    slug?: string;
+    website?: string;
+    isActive: boolean;
+  }) {
     return this.prisma.raw.partBrand.create({
       data: {
         name: data.name,
@@ -231,7 +236,9 @@ export class AdminCatalogueRepository {
     isActive: boolean;
     attributes?: Record<string, string>;
   }) {
-    const product = await this.prisma.raw.product.findUniqueOrThrow({ where: { id: data.productId } });
+    const product = await this.prisma.raw.product.findUniqueOrThrow({
+      where: { id: data.productId },
+    });
 
     const variant = await this.prisma.raw.productVariant.create({
       data: {
@@ -287,7 +294,10 @@ export class AdminCatalogueRepository {
     return this.prisma.raw.productVariant.update({ where: { id }, data });
   }
 
-  async writeVariantAttributes(variantId: number, attributes: Record<string, string>): Promise<void> {
+  async writeVariantAttributes(
+    variantId: number,
+    attributes: Record<string, string>,
+  ): Promise<void> {
     for (const [slug, raw] of Object.entries(attributes)) {
       const attribute = await this.prisma.raw.attribute.findUnique({ where: { slug } });
       if (!attribute) continue;
@@ -338,7 +348,8 @@ export class AdminCatalogueRepository {
       update: {
         quantity: data.quantity,
         ...(data.reorderLevel !== undefined ? { reorderLevel: data.reorderLevel } : {}),
-        stockStatus: (data.stockStatus ?? this.deriveStatus(data.quantity, current?.reorderLevel ?? 0)) as never,
+        stockStatus: (data.stockStatus ??
+          this.deriveStatus(data.quantity, current?.reorderLevel ?? 0)) as never,
         isManualOverride: isManual,
         lastCountedAt: new Date(),
         updatedById: data.performedById ?? null,
@@ -452,7 +463,12 @@ export class AdminCatalogueRepository {
     });
   }
 
-  async createMachineVariant(machineModelId: number, name: string, laserType?: string, powerWatts?: number) {
+  async createMachineVariant(
+    machineModelId: number,
+    name: string,
+    laserType?: string,
+    powerWatts?: number,
+  ) {
     return this.prisma.raw.machineVariant.create({
       data: { machineModelId, name, laserType: laserType ?? null, powerWatts: powerWatts ?? null },
     });
@@ -565,7 +581,11 @@ export class AdminCatalogueRepository {
     );
   }
 
-  async updateMedia(productId: number, mediaId: number, data: { altText?: string | null; fileId?: number }) {
+  async updateMedia(
+    productId: number,
+    mediaId: number,
+    data: { altText?: string | null; fileId?: number },
+  ) {
     await this.prisma.raw.productMedia.updateMany({ where: { id: mediaId, productId }, data });
   }
 
@@ -629,7 +649,9 @@ export class AdminCatalogueRepository {
       .filter((p): p is number => p !== null);
 
     const hasStock = variants.some(
-      (v) => v.inventory !== null && (v.inventory.quantity > 0 || v.inventory.stockStatus === 'MADE_TO_ORDER'),
+      (v) =>
+        v.inventory !== null &&
+        (v.inventory.quantity > 0 || v.inventory.stockStatus === 'MADE_TO_ORDER'),
     );
 
     await this.prisma.raw.product.update({
@@ -644,12 +666,16 @@ export class AdminCatalogueRepository {
   }
 
   async recomputeCategoryCounts(): Promise<void> {
-    const categories = await this.prisma.raw.category.findMany({ select: { id: true, parentId: true } });
+    const categories = await this.prisma.raw.category.findMany({
+      select: { id: true, parentId: true },
+    });
     const descendantsOf = (rootId: number): number[] => {
       const ids = [rootId];
       let frontier = [rootId];
       while (frontier.length > 0) {
-        const next = categories.filter((c) => c.parentId !== null && frontier.includes(c.parentId)).map((c) => c.id);
+        const next = categories
+          .filter((c) => c.parentId !== null && frontier.includes(c.parentId))
+          .map((c) => c.id);
         ids.push(...next);
         frontier = next;
       }

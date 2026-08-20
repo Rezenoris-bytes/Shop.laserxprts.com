@@ -20,10 +20,20 @@ export class CustomersService {
 
   async update(id: number, data: Record<string, unknown>, actorId: number) {
     const allowed = [
-      'companyName', 'contactName', 'email', 'phone', 'gstin',
-      'stateCode', 'city', 'status', 'isVerified', 'notes',
+      'companyName',
+      'contactName',
+      'email',
+      'phone',
+      'gstin',
+      'stateCode',
+      'city',
+      'status',
+      'isVerified',
+      'notes',
     ];
-    const filtered = Object.fromEntries(Object.entries(data).filter(([key]) => allowed.includes(key)));
+    const filtered = Object.fromEntries(
+      Object.entries(data).filter(([key]) => allowed.includes(key)),
+    );
     const customer = await this.repository.update(id, filtered as never);
     await this.audit.record({
       userId: actorId,

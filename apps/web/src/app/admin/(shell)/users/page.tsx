@@ -9,9 +9,20 @@ import { ApiRequestError } from '@/lib/api';
 
 const DEPARTMENTS = ['SALES', 'SERVICE', 'CATALOGUE', 'CONTENT', 'OPERATIONS'];
 const MODULES = [
-  'CATALOGUE', 'INVENTORY', 'MACHINES', 'SERVICES', 'SERVICE_REQUESTS',
-  'CUSTOMERS', 'ENQUIRIES', 'LEADS', 'QUOTES', 'ORDERS', 'REPORTS',
-  'USERS', 'AUDIT', 'SETTINGS',
+  'CATALOGUE',
+  'INVENTORY',
+  'MACHINES',
+  'SERVICES',
+  'SERVICE_REQUESTS',
+  'CUSTOMERS',
+  'ENQUIRIES',
+  'LEADS',
+  'QUOTES',
+  'ORDERS',
+  'REPORTS',
+  'USERS',
+  'AUDIT',
+  'SETTINGS',
 ];
 
 /**
@@ -34,21 +45,41 @@ export default function UsersPage() {
   const columns: Column<AdminUserRow>[] = [
     { header: 'Name', render: (row) => row.name },
     { header: 'Email', render: (row) => row.email },
-    { header: 'Role', render: (row) => (row.role === 'SUPER_ADMIN' ? 'Super Admin' : row.department) },
-    { header: 'Status', render: (row) => <StatusChip label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'ok' : 'muted'} /> },
-    { header: 'Last login', render: (row) => (row.lastLoginAt ? formatDateTime(row.lastLoginAt) : 'Never') },
+    {
+      header: 'Role',
+      render: (row) => (row.role === 'SUPER_ADMIN' ? 'Super Admin' : row.department),
+    },
+    {
+      header: 'Status',
+      render: (row) => (
+        <StatusChip
+          label={row.isActive ? 'Active' : 'Inactive'}
+          tone={row.isActive ? 'ok' : 'muted'}
+        />
+      ),
+    },
+    {
+      header: 'Last login',
+      render: (row) => (row.lastLoginAt ? formatDateTime(row.lastLoginAt) : 'Never'),
+    },
     {
       header: '',
       render: (row) =>
         row.role !== 'SUPER_ADMIN' && (
           <div className="flex gap-2">
-            <button type="button" onClick={() => setEditingPermissions(row.id)} className="text-xs underline">
+            <button
+              type="button"
+              onClick={() => setEditingPermissions(row.id)}
+              className="text-xs underline"
+            >
               Permissions
             </button>
             <button
               type="button"
               onClick={async () => {
-                await (row.isActive ? adminApi.deactivateUser(row.id) : adminApi.activateUser(row.id));
+                await (row.isActive
+                  ? adminApi.deactivateUser(row.id)
+                  : adminApi.activateUser(row.id));
                 await load();
               }}
               className="text-xs text-bad underline"
@@ -62,52 +93,56 @@ export default function UsersPage() {
 
   return (
     <PermissionGate module="USERS">
-    <div>
-      <AdminPageHeader
-        title="Users & Permissions"
-        action={
-          <button type="button" onClick={() => setShowForm((v) => !v)} className="btn-primary text-sm">
-            {showForm ? 'Cancel' : 'New admin'}
-          </button>
-        }
-      />
-
-      {created && (
-        <div className="mb-6 rounded-card border border-ok/30 bg-green-50 px-4 py-3 text-sm">
-          <p className="font-semibold">Admin created.</p>
-          <p className="mt-1">
-            Temporary password for <span className="font-mono">{created.email}</span>:{' '}
-            <span className="font-mono font-bold">{created.temporaryPassword}</span>
-          </p>
-          <p className="mt-1 text-xs text-ink-muted">
-            Shown once. They must change it on first login.
-          </p>
-        </div>
-      )}
-
-      {showForm && (
-        <NewUserForm
-          onCreated={(email, temporaryPassword) => {
-            setCreated({ email, temporaryPassword });
-            setShowForm(false);
-            load();
-          }}
+      <div>
+        <AdminPageHeader
+          title="Users & Permissions"
+          action={
+            <button
+              type="button"
+              onClick={() => setShowForm((v) => !v)}
+              className="btn-primary text-sm"
+            >
+              {showForm ? 'Cancel' : 'New admin'}
+            </button>
+          }
         />
-      )}
 
-      <DataTable columns={columns} rows={rows} />
+        {created && (
+          <div className="mb-6 rounded-card border border-ok/30 bg-green-50 px-4 py-3 text-sm">
+            <p className="font-semibold">Admin created.</p>
+            <p className="mt-1">
+              Temporary password for <span className="font-mono">{created.email}</span>:{' '}
+              <span className="font-mono font-bold">{created.temporaryPassword}</span>
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              Shown once. They must change it on first login.
+            </p>
+          </div>
+        )}
 
-      {editingPermissions !== null && (
-        <PermissionsEditor
-          user={rows.find((r) => r.id === editingPermissions)!}
-          onClose={() => setEditingPermissions(null)}
-          onSaved={() => {
-            setEditingPermissions(null);
-            load();
-          }}
-        />
-      )}
-    </div>
+        {showForm && (
+          <NewUserForm
+            onCreated={(email, temporaryPassword) => {
+              setCreated({ email, temporaryPassword });
+              setShowForm(false);
+              load();
+            }}
+          />
+        )}
+
+        <DataTable columns={columns} rows={rows} />
+
+        {editingPermissions !== null && (
+          <PermissionsEditor
+            user={rows.find((r) => r.id === editingPermissions)!}
+            onClose={() => setEditingPermissions(null)}
+            onSaved={() => {
+              setEditingPermissions(null);
+              load();
+            }}
+          />
+        )}
+      </div>
     </PermissionGate>
   );
 }
@@ -135,19 +170,37 @@ function NewUserForm({ onCreated }: { onCreated: (email: string, password: strin
         <label htmlFor="uname" className="label">
           Name
         </label>
-        <input id="uname" required value={name} onChange={(e) => setName(e.target.value)} className="field" />
+        <input
+          id="uname"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="field"
+        />
       </div>
       <div>
         <label htmlFor="uemail" className="label">
           Email
         </label>
-        <input id="uemail" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="field" />
+        <input
+          id="uemail"
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="field"
+        />
       </div>
       <div>
         <label htmlFor="udept" className="label">
           Department
         </label>
-        <select id="udept" value={department} onChange={(e) => setDepartment(e.target.value)} className="field">
+        <select
+          id="udept"
+          value={department}
+          onChange={(e) => setDepartment(e.target.value)}
+          className="field"
+        >
           {DEPARTMENTS.map((d) => (
             <option key={d} value={d}>
               {d}
@@ -176,12 +229,20 @@ function PermissionsEditor({
     const map = new Map(user.permissions.map((p) => [p.module, p]));
     return MODULES.map(
       (module) =>
-        map.get(module) ?? { module, canView: false, canCreate: false, canUpdate: false, canDelete: false },
+        map.get(module) ?? {
+          module,
+          canView: false,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+        },
     );
   });
 
   const toggle = (module: string, key: 'canView' | 'canCreate' | 'canUpdate' | 'canDelete') => {
-    setGrants((current) => current.map((g) => (g.module === module ? { ...g, [key]: !g[key] } : g)));
+    setGrants((current) =>
+      current.map((g) => (g.module === module ? { ...g, [key]: !g[key] } : g)),
+    );
   };
 
   const save = async () => {
@@ -212,7 +273,11 @@ function PermissionsEditor({
                 <td className="py-1.5 font-medium">{grant.module}</td>
                 {(['canView', 'canCreate', 'canUpdate', 'canDelete'] as const).map((key) => (
                   <td key={key} className="py-1.5">
-                    <input type="checkbox" checked={grant[key]} onChange={() => toggle(grant.module, key)} />
+                    <input
+                      type="checkbox"
+                      checked={grant[key]}
+                      onChange={() => toggle(grant.module, key)}
+                    />
                   </td>
                 ))}
               </tr>

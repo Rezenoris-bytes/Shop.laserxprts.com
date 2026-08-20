@@ -4,7 +4,13 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import type { AdminEnquiryRow } from '@/lib/api';
-import { AdminPageHeader, DataTable, DemoBadge, StatusChip, type Column } from '@/components/admin/data-table';
+import {
+  AdminPageHeader,
+  DataTable,
+  DemoBadge,
+  StatusChip,
+  type Column,
+} from '@/components/admin/data-table';
 import { formatDateTime } from '@/lib/format';
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'bad' | 'muted'> = {
@@ -57,7 +63,10 @@ export default function EnquiriesPage() {
       header: 'Status',
       render: (row) => <StatusChip label={row.status} tone={STATUS_TONE[row.status] ?? 'muted'} />,
     },
-    { header: 'Assigned', render: (row) => row.assignedTo?.name ?? <span className="text-ink-muted">Unassigned</span> },
+    {
+      header: 'Assigned',
+      render: (row) => row.assignedTo?.name ?? <span className="text-ink-muted">Unassigned</span>,
+    },
     { header: 'Received', render: (row) => formatDateTime(row.createdAt) },
   ];
 
@@ -65,7 +74,9 @@ export default function EnquiriesPage() {
     <div>
       <AdminPageHeader
         title="Enquiries"
-        description={status ? `Filtered: ${status}` : 'Every Quote Request submitted through the storefront.'}
+        description={
+          status ? `Filtered: ${status}` : 'Every Quote Request submitted through the storefront.'
+        }
       />
 
       <div className="mb-4">

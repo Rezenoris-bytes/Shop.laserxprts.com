@@ -87,8 +87,18 @@ export default function ProductDetailPage() {
         onChange={(media) => setProduct((current) => (current ? { ...current, media } : current))}
       />
 
-      <VariantsSection product={product} canUpdate={canUpdate} canUpdateStock={canUpdateStock} onChange={load} />
-      <CompatibilitySection product={product} machines={machines} canUpdate={canUpdate} onChange={load} />
+      <VariantsSection
+        product={product}
+        canUpdate={canUpdate}
+        canUpdateStock={canUpdateStock}
+        onChange={load}
+      />
+      <CompatibilitySection
+        product={product}
+        machines={machines}
+        canUpdate={canUpdate}
+        onChange={load}
+      />
     </div>
   );
 }
@@ -112,7 +122,11 @@ function VariantsSection({
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Variants</h2>
         {canUpdate && (
-          <button type="button" onClick={() => setShowForm((v) => !v)} className="text-xs font-medium underline">
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="text-xs font-medium underline"
+          >
             {showForm ? 'Cancel' : '+ Add variant'}
           </button>
         )}
@@ -133,7 +147,10 @@ function VariantsSection({
           <thead className="border-b border-ink-line bg-ink-wash">
             <tr>
               {['SKU', 'Part number', 'Name', 'Price', 'Stock', 'Status', ''].map((h) => (
-                <th key={h} className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                <th
+                  key={h}
+                  className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-muted"
+                >
                   {h}
                 </th>
               ))}
@@ -145,7 +162,9 @@ function VariantsSection({
                 <td className="px-3 py-2 font-mono text-xs">{variant.sku}</td>
                 <td className="px-3 py-2 font-mono text-xs">{variant.partNumber}</td>
                 <td className="px-3 py-2">{variant.variantName}</td>
-                <td className="px-3 py-2">{variant.price ? `₹${variant.price}` : variant.priceType}</td>
+                <td className="px-3 py-2">
+                  {variant.price ? `₹${variant.price}` : variant.priceType}
+                </td>
                 <td className="px-3 py-2">
                   {editingStock === variant.id ? (
                     <StockEditor
@@ -180,7 +199,10 @@ function VariantsSection({
                   />
                 </td>
                 <td className="px-3 py-2">
-                  <StatusChip label={variant.isActive ? 'Active' : 'Inactive'} tone={variant.isActive ? 'ok' : 'muted'} />
+                  <StatusChip
+                    label={variant.isActive ? 'Active' : 'Inactive'}
+                    tone={variant.isActive ? 'ok' : 'muted'}
+                  />
                 </td>
               </tr>
             ))}
@@ -227,25 +249,49 @@ function AddVariantForm({ productId, onCreated }: { productId: number; onCreated
         <label htmlFor="sku" className="label">
           SKU
         </label>
-        <input id="sku" required value={sku} onChange={(e) => setSku(e.target.value)} className="field w-36" />
+        <input
+          id="sku"
+          required
+          value={sku}
+          onChange={(e) => setSku(e.target.value)}
+          className="field w-36"
+        />
       </div>
       <div>
         <label htmlFor="pn" className="label">
           Part number
         </label>
-        <input id="pn" required value={partNumber} onChange={(e) => setPartNumber(e.target.value)} className="field w-36" />
+        <input
+          id="pn"
+          required
+          value={partNumber}
+          onChange={(e) => setPartNumber(e.target.value)}
+          className="field w-36"
+        />
       </div>
       <div>
         <label htmlFor="vn" className="label">
           Variant name
         </label>
-        <input id="vn" required value={variantName} onChange={(e) => setVariantName(e.target.value)} className="field w-32" />
+        <input
+          id="vn"
+          required
+          value={variantName}
+          onChange={(e) => setVariantName(e.target.value)}
+          className="field w-32"
+        />
       </div>
       <div>
         <label htmlFor="price" className="label">
           Price (blank = on request)
         </label>
-        <input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="field w-28" />
+        <input
+          id="price"
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="field w-28"
+        />
       </div>
       <button type="submit" className="btn-primary">
         Add
@@ -255,7 +301,15 @@ function AddVariantForm({ productId, onCreated }: { productId: number; onCreated
   );
 }
 
-function StockEditor({ variantId, current, onDone }: { variantId: number; current: number; onDone: () => void }) {
+function StockEditor({
+  variantId,
+  current,
+  onDone,
+}: {
+  variantId: number;
+  current: number;
+  onDone: () => void;
+}) {
   const [quantity, setQuantity] = useState(String(current));
 
   const save = async () => {
@@ -320,7 +374,9 @@ function CompatibilitySection({
 
   return (
     <section>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">Machine compatibility</h2>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">
+        Machine compatibility
+      </h2>
 
       {canUpdate && (
         <form onSubmit={add} className="card mb-3 flex flex-wrap items-end gap-3 p-4">
@@ -349,7 +405,13 @@ function CompatibilitySection({
             <label htmlFor="cmodel" className="label">
               Model
             </label>
-            <select id="cmodel" value={modelId} onChange={(e) => setModelId(e.target.value)} disabled={!brandId} className="field w-40">
+            <select
+              id="cmodel"
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+              disabled={!brandId}
+              className="field w-40"
+            >
               <option value="">Select</option>
               {models.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -374,19 +436,29 @@ function CompatibilitySection({
           >
             <span>
               {row.machineBrand.name} {row.machineModel.name}
-              {row.machineVariant && <span className="text-ink-muted"> ({row.machineVariant.name})</span>}
+              {row.machineVariant && (
+                <span className="text-ink-muted"> ({row.machineVariant.name})</span>
+              )}
             </span>
             {row.isVerified ? (
               <span className="text-[11px] text-ok">verified</span>
             ) : (
               canUpdate && (
-                <button type="button" onClick={() => verify(row.id)} className="text-[11px] underline">
+                <button
+                  type="button"
+                  onClick={() => verify(row.id)}
+                  className="text-[11px] underline"
+                >
                   verify
                 </button>
               )
             )}
             {canUpdate && (
-              <button type="button" onClick={() => remove(row.id)} className="text-[11px] text-bad underline">
+              <button
+                type="button"
+                onClick={() => remove(row.id)}
+                className="text-[11px] text-bad underline"
+              >
                 remove
               </button>
             )}

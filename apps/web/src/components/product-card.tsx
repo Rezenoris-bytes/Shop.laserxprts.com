@@ -4,7 +4,6 @@ import { QuoteButton } from '@/components/quote-button';
 import type { ProductCard as ProductCardData } from '@/lib/api';
 import { mediaUrl } from '@/lib/format';
 
-
 /**
  * Where a product lives.
  *
@@ -27,8 +26,6 @@ function productHref(product: ProductCardData): string {
  * customers end up with the wrong diameter.
  */
 export function ProductCardTile({ product }: { product: ProductCardData }) {
-
-
   return (
     <article className="card group flex flex-col overflow-hidden card-hover">
       <Link
@@ -62,9 +59,7 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
               no figure appears anywhere on the storefront. */}
           <p className="text-sm font-semibold text-amber-dark">Price on request</p>
           <p className="mt-0.5 text-[11px] text-ink-muted">
-            {product.variantCount === 1
-              ? '1 option'
-              : `${product.variantCount} options`}
+            {product.variantCount === 1 ? '1 option' : `${product.variantCount} options`}
             {product.hasStock ? ' · in stock' : ' · on request'}
           </p>
 
@@ -82,13 +77,7 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
  * content-addressed path with immutable caching already set, so the optimiser
  * would add a proxy hop and a config coupling to the API origin for no gain.
  */
-function ProductImage({
-  product,
-  className,
-}: {
-  product: ProductCardData;
-  className?: string;
-}) {
+function ProductImage({ product, className }: { product: ProductCardData; className?: string }) {
   if (!product.image) {
     return <PartGlyph name={product.name} />;
   }
@@ -118,7 +107,12 @@ function PartGlyph({ name }: { name: string }) {
   const rotate = seed % 45;
 
   return (
-    <svg viewBox="0 0 120 90" className="h-full w-full" role="img" aria-label="Product image placeholder">
+    <svg
+      viewBox="0 0 120 90"
+      className="h-full w-full"
+      role="img"
+      aria-label="Product image placeholder"
+    >
       <g transform={`rotate(${rotate} 60 45)`} fill="none" stroke="#c3cad3" strokeWidth="1.5">
         {Array.from({ length: rings }).map((_, index) => (
           <circle key={index} cx="60" cy="45" r={10 + index * 8} />

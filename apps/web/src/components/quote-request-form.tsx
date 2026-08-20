@@ -229,8 +229,8 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
           </>
         ) : (
           <p className="mt-4 text-[11px] text-ink-muted">
-            Every item here is quoted individually. We will send pricing, GST and freight in
-            your quotation.
+            Every item here is quoted individually. We will send pricing, GST and freight in your
+            quotation.
           </p>
         )}
       </div>
@@ -434,9 +434,18 @@ function Field({
 function SuccessPanel({ result }: { result: { publicRef: string; itemCount: number } }) {
   return (
     <div className="card mx-auto max-w-lg p-8 text-center">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-green-50" aria-hidden>
+      <div
+        className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-green-50"
+        aria-hidden
+      >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="m5 13 4 4L19 7" stroke="#1d7a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="m5 13 4 4L19 7"
+            stroke="#1d7a4a"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
 

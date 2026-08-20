@@ -28,7 +28,8 @@ export default function NewProductPage() {
     adminApi.partBrands().then(setBrands);
   }, []);
 
-  const set = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
+  const set = (key: keyof typeof form, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -55,14 +56,23 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-xl">
-      <AdminPageHeader title="New product" description="Add variants and compatibility after creating the product." />
+      <AdminPageHeader
+        title="New product"
+        description="Add variants and compatibility after creating the product."
+      />
 
       <form onSubmit={submit} className="card space-y-4 p-5">
         <div>
           <label htmlFor="name" className="label">
             Name
           </label>
-          <input id="name" required value={form.name} onChange={(e) => set('name', e.target.value)} className="field" />
+          <input
+            id="name"
+            required
+            value={form.name}
+            onChange={(e) => set('name', e.target.value)}
+            className="field"
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -90,7 +100,12 @@ export default function NewProductPage() {
             <label htmlFor="brand" className="label">
               Part brand
             </label>
-            <select id="brand" value={form.partBrandId} onChange={(e) => set('partBrandId', e.target.value)} className="field">
+            <select
+              id="brand"
+              value={form.partBrandId}
+              onChange={(e) => set('partBrandId', e.target.value)}
+              className="field"
+            >
               <option value="">None</option>
               {brands.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -105,7 +120,12 @@ export default function NewProductPage() {
           <label htmlFor="type" className="label">
             Product type
           </label>
-          <select id="type" value={form.productType} onChange={(e) => set('productType', e.target.value)} className="field">
+          <select
+            id="type"
+            value={form.productType}
+            onChange={(e) => set('productType', e.target.value)}
+            className="field"
+          >
             {['SPARE_PART', 'CONSUMABLE', 'COMPONENT', 'ACCESSORY', 'KIT'].map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -132,13 +152,24 @@ export default function NewProductPage() {
             <label htmlFor="hsn" className="label">
               HSN code
             </label>
-            <input id="hsn" value={form.hsnCode} onChange={(e) => set('hsnCode', e.target.value)} className="field" />
+            <input
+              id="hsn"
+              value={form.hsnCode}
+              onChange={(e) => set('hsnCode', e.target.value)}
+              className="field"
+            />
           </div>
           <div>
             <label htmlFor="gst" className="label">
               GST rate (%)
             </label>
-            <input id="gst" type="number" value={form.gstRate} onChange={(e) => set('gstRate', e.target.value)} className="field" />
+            <input
+              id="gst"
+              type="number"
+              value={form.gstRate}
+              onChange={(e) => set('gstRate', e.target.value)}
+              className="field"
+            />
           </div>
         </div>
 

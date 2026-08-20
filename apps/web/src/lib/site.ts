@@ -55,7 +55,8 @@ export const offices: Office[] = [
     city: 'Chennai',
     label: 'Branch — Chennai',
     type: 'branch',
-    address: 'Plot No 408, Gandhi Street, Gnanamoorthy Nagar Extension, Ambattur, Pattravakam, Chennai 600053',
+    address:
+      'Plot No 408, Gandhi Street, Gnanamoorthy Nagar Extension, Ambattur, Pattravakam, Chennai 600053',
     lat: 13.1143,
     lng: 80.1548,
     mapsUrl: 'https://maps.google.com/?q=Ambattur+Pattravakam+Chennai+600053',
@@ -65,7 +66,7 @@ export const offices: Office[] = [
     label: 'Branch — Coimbatore',
     type: 'branch',
     address: 'RC Garden, 214/5A, Anjugam Nagar, Chinnavedampatti, Coimbatore, Tamil Nadu 641049',
-    lat: 11.0590,
+    lat: 11.059,
     lng: 76.9558,
     mapsUrl: 'https://maps.google.com/?q=Chinnavedampatti+Coimbatore+641049',
   },
@@ -73,9 +74,10 @@ export const offices: Office[] = [
     city: 'Pune',
     label: 'Branch — Pune',
     type: 'branch',
-    address: 'Building No 8, Flat No 002, AddressOne, Mamurdi, Gahunje, Dehu Road, Maharashtra 412101',
-    lat: 18.6520,
-    lng: 73.7200,
+    address:
+      'Building No 8, Flat No 002, AddressOne, Mamurdi, Gahunje, Dehu Road, Maharashtra 412101',
+    lat: 18.652,
+    lng: 73.72,
     mapsUrl: 'https://maps.google.com/?q=Mamurdi+Gahunje+Dehu+Road+Pune+412101',
   },
   {
@@ -101,7 +103,7 @@ export const offices: Office[] = [
     label: 'Service Hub — Hyderabad',
     type: 'service-hub',
     address: 'Remote services and on-site support for clients in Hyderabad.',
-    lat: 17.3850,
+    lat: 17.385,
     lng: 78.4867,
     mapsUrl: 'https://maps.google.com/?q=Hyderabad',
   },
@@ -126,4 +128,9 @@ export const primaryNav = [
   { label: 'Contact', href: '/contact' },
 ];
 
-export const popularSearches = ['Raytools Nozzle', 'Protective Window', 'Focus Lens', 'Ceramic Ring'];
+export const popularSearches = [
+  'Raytools Nozzle',
+  'Protective Window',
+  'Focus Lens',
+  'Ceramic Ring',
+];

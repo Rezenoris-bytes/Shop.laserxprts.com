@@ -22,7 +22,10 @@ export class UsersService {
    * permission template pre-filled — the template is a starting point the
    * caller can adjust, never the source of truth the guard reads.
    */
-  async create(data: { name: string; email: string; department: AdminDepartment }, actorId: number) {
+  async create(
+    data: { name: string; email: string; department: AdminDepartment },
+    actorId: number,
+  ) {
     const emailNormalized = normalizeEmail(data.email);
     const temporaryPassword = this.passwords
       .generateToken(9)

@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminApi, type AdminProductRow } from '@/lib/admin-api';
-import { AdminPageHeader, DataTable, DemoBadge, StatusChip, type Column } from '@/components/admin/data-table';
+import {
+  AdminPageHeader,
+  DataTable,
+  DemoBadge,
+  StatusChip,
+  type Column,
+} from '@/components/admin/data-table';
 import { useAdminAuth } from '@/lib/admin-auth';
 
 export default function AdminProductsPage() {
@@ -76,7 +82,10 @@ export default function AdminProductsPage() {
             label={row.isActive ? 'Published' : 'Unpublished'}
             tone={row.isActive ? 'ok' : 'muted'}
           />
-          <StatusChip label={row.hasStock ? 'In stock' : 'No stock'} tone={row.hasStock ? 'ok' : 'bad'} />
+          <StatusChip
+            label={row.hasStock ? 'In stock' : 'No stock'}
+            tone={row.hasStock ? 'ok' : 'bad'}
+          />
         </div>
       ),
     },
@@ -125,7 +134,12 @@ export default function AdminProductsPage() {
       </div>
       {error && <p className="mb-3 text-xs text-bad">{error}</p>}
 
-      <DataTable columns={columns} rows={rows} rowHref={(row) => `/admin/products/${row.id}`} isLoading={isLoading} />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowHref={(row) => `/admin/products/${row.id}`}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

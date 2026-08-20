@@ -261,7 +261,11 @@ export class AdminCatalogueController {
   @RequirePermission(CAT, PermissionAction.UPDATE)
   updateVariant(
     @Param('id', ParseIntPipe) id: number,
-    @Body(ZodBody(upsertVariantSchema.partial().extend({ productId: upsertVariantSchema.shape.productId })))
+    @Body(
+      ZodBody(
+        upsertVariantSchema.partial().extend({ productId: upsertVariantSchema.shape.productId }),
+      ),
+    )
     body: Partial<UpsertVariantInput> & { productId: number },
     @CurrentUser('id') actorId: number,
   ) {
@@ -333,7 +337,12 @@ export class AdminCatalogueController {
   @Post('machines/variants')
   @RequirePermission(MACH, PermissionAction.CREATE)
   createMachineVariant(@Body(ZodBody(createMachineVariantSchema)) body: CreateMachineVariantInput) {
-    return this.service.createMachineVariant(body.machineModelId, body.name, body.laserType, body.powerWatts);
+    return this.service.createMachineVariant(
+      body.machineModelId,
+      body.name,
+      body.laserType,
+      body.powerWatts,
+    );
   }
 
   // ── Attributes ────────────────────────────────────────────────────────

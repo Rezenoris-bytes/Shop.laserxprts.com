@@ -46,7 +46,13 @@ export class UsersRepository {
 
   async setPermissions(
     userId: number,
-    permissions: Array<{ module: PermissionModule; canView: boolean; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>,
+    permissions: Array<{
+      module: PermissionModule;
+      canView: boolean;
+      canCreate: boolean;
+      canUpdate: boolean;
+      canDelete: boolean;
+    }>,
   ) {
     await this.prisma.raw.$transaction([
       this.prisma.raw.adminPermission.deleteMany({ where: { userId } }),

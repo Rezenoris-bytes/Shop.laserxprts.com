@@ -42,7 +42,9 @@ export function SiteHeader() {
       <header
         className={[
           'sticky top-0 z-40 shadow-sm transition-all duration-300',
-          scrolled ? 'opacity-0 -translate-y-full pointer-events-none' : 'opacity-100 translate-y-0',
+          scrolled
+            ? 'opacity-0 -translate-y-full pointer-events-none'
+            : 'opacity-100 translate-y-0',
         ].join(' ')}
       >
         {/* Layer 1: Identity bar (hidden on mobile, visible on desktop) */}
@@ -76,7 +78,8 @@ export function SiteHeader() {
                 className="flex items-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
               >
                 <PhoneIcon />
-                <span className="hidden sm:inline">Call </span>{businessPhone}
+                <span className="hidden sm:inline">Call </span>
+                {businessPhone}
               </a>
               <a
                 href={`mailto:${businessEmail}`}
@@ -118,7 +121,9 @@ export function SiteHeader() {
             <div className="ml-auto flex items-center gap-2">
               {/* Always-visible search */}
               <form onSubmit={submit} className="flex items-center gap-2" role="search">
-                <label htmlFor="header-search" className="sr-only">Search parts</label>
+                <label htmlFor="header-search" className="sr-only">
+                  Search parts
+                </label>
                 <input
                   id="header-search"
                   name="q"
@@ -127,7 +132,9 @@ export function SiteHeader() {
                   placeholder="Part number, model or brand"
                   className="field w-44 sm:w-64"
                 />
-                <button type="submit" className="btn-primary px-3 py-2">Search</button>
+                <button type="submit" className="btn-primary px-3 py-2">
+                  Search
+                </button>
               </form>
 
               <button
@@ -155,7 +162,9 @@ export function SiteHeader() {
         aria-hidden={!scrolled}
         className={[
           'fixed inset-x-0 top-0 z-50 bg-ink shadow-lg transition-all duration-300',
-          scrolled ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none',
+          scrolled
+            ? 'translate-y-0 opacity-100'
+            : '-translate-y-full opacity-0 pointer-events-none',
         ].join(' ')}
       >
         <div className="container-lei flex h-16 items-center gap-3">
@@ -190,7 +199,9 @@ export function SiteHeader() {
             role="search"
             className="ml-auto flex min-w-0 flex-1 items-center gap-2 lg:max-w-sm"
           >
-            <label htmlFor="scroll-search" className="sr-only">Search products</label>
+            <label htmlFor="scroll-search" className="sr-only">
+              Search products
+            </label>
             <div className="relative flex-1">
               <input
                 id="scroll-search"
@@ -218,7 +229,9 @@ export function SiteHeader() {
               <PhoneIcon />
               <div className="text-left leading-none">
                 <div>Call {businessPhone}</div>
-                <div className="text-[10px] text-white/60 font-normal">Quick response guaranteed</div>
+                <div className="text-[10px] text-white/60 font-normal">
+                  Quick response guaranteed
+                </div>
               </div>
             </a>
             <a
@@ -263,7 +276,16 @@ function SearchIcon({ className = '' }: { className?: string }) {
 
 function PhoneIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.58 3.44 2 2 0 0 1 3.55 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-.85a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
     </svg>
   );
@@ -271,7 +293,16 @@ function PhoneIcon() {
 
 function MailIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <rect x="2" y="4" width="20" height="16" rx="2" />
       <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
     </svg>
@@ -281,14 +312,28 @@ function MailIcon() {
 function ListIcon({ className = '' }: { className?: string }) {
   return (
     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
-      <path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M4 6h16M4 12h16M4 18h10"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 function PinIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
       <circle cx="12" cy="9" r="2.5" />
     </svg>
@@ -297,7 +342,16 @@ function PinIcon() {
 
 function CardIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <rect x="2" y="5" width="20" height="14" rx="2" />
       <path d="M2 10h20" />
     </svg>
@@ -306,7 +360,16 @@ function CardIcon() {
 
 function ShieldCheckIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden>
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      aria-hidden
+    >
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
       <path d="m9 12 2 2 4-4" />
     </svg>

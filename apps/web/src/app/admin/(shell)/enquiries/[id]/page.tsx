@@ -8,7 +8,15 @@ import { formatDateTime } from '@/lib/format';
 import { AdminPageHeader, DemoBadge } from '@/components/admin/data-table';
 import { useAdminAuth } from '@/lib/admin-auth';
 
-const STATUS_OPTIONS = ['NEW', 'ACKNOWLEDGED', 'IN_PROGRESS', 'QUOTED', 'CLOSED_WON', 'CLOSED_LOST', 'SPAM'];
+const STATUS_OPTIONS = [
+  'NEW',
+  'ACKNOWLEDGED',
+  'IN_PROGRESS',
+  'QUOTED',
+  'CLOSED_WON',
+  'CLOSED_LOST',
+  'SPAM',
+];
 const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 
 export default function EnquiryDetailPage() {
@@ -20,7 +28,8 @@ export default function EnquiryDetailPage() {
   const [enquiry, setEnquiry] = useState<AdminEnquiryDetail | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const load = () => adminApi.enquiry(id).then((data) => setEnquiry(data as unknown as AdminEnquiryDetail));
+  const load = () =>
+    adminApi.enquiry(id).then((data) => setEnquiry(data as unknown as AdminEnquiryDetail));
 
   useEffect(() => {
     load();
@@ -80,14 +89,20 @@ export default function EnquiryDetailPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">{item.productNameSnapshot}</p>
-                      <p className="mt-0.5 font-mono text-xs text-ink-muted">{item.partNumberSnapshot}</p>
+                      <p className="mt-0.5 font-mono text-xs text-ink-muted">
+                        {item.partNumberSnapshot}
+                      </p>
                       {item.customerNote && (
-                        <p className="mt-1 text-xs italic text-ink-muted">&ldquo;{item.customerNote}&rdquo;</p>
+                        <p className="mt-1 text-xs italic text-ink-muted">
+                          &ldquo;{item.customerNote}&rdquo;
+                        </p>
                       )}
                     </div>
                     <div className="text-right text-sm">
                       <p>Qty {item.quantity}</p>
-                      {item.unitPriceSnapshot && <p className="text-ink-muted">₹{item.unitPriceSnapshot}</p>}
+                      {item.unitPriceSnapshot && (
+                        <p className="text-ink-muted">₹{item.unitPriceSnapshot}</p>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -97,7 +112,9 @@ export default function EnquiryDetailPage() {
 
           {enquiry.message && (
             <section className="card p-5">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Message</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+                Message
+              </h2>
               <p className="mt-2 whitespace-pre-line text-sm">{enquiry.message}</p>
             </section>
           )}
@@ -111,7 +128,9 @@ export default function EnquiryDetailPage() {
 
         <div className="space-y-6">
           <section className="card p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Contact</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+              Contact
+            </h2>
             <dl className="mt-3 space-y-2 text-sm">
               <Row label="Name" value={enquiry.contactName} />
               <Row label="Company" value={enquiry.contactCompany ?? '—'} />
@@ -170,12 +189,22 @@ export default function EnquiryDetailPage() {
               </div>
 
               {canUpdate && enquiry.status === 'NEW' && (
-                <button type="button" onClick={acknowledge} disabled={saving} className="btn-secondary w-full text-xs">
+                <button
+                  type="button"
+                  onClick={acknowledge}
+                  disabled={saving}
+                  className="btn-secondary w-full text-xs"
+                >
                   Mark acknowledged
                 </button>
               )}
               {canUpdate && !enquiry.assignedTo && (
-                <button type="button" onClick={assignToMe} disabled={saving} className="btn-secondary w-full text-xs">
+                <button
+                  type="button"
+                  onClick={assignToMe}
+                  disabled={saving}
+                  className="btn-secondary w-full text-xs"
+                >
                   Assign to me
                 </button>
               )}

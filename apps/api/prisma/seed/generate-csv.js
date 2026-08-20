@@ -48,19 +48,40 @@ const write = (name, rows) => {
 const machines = [['brand', 'model', 'variant', 'laser_type', 'power_watts']];
 const machineTree = {
   Raytools: {
-    BM110: [['1.5kW', 'FIBER', 1500], ['3kW', 'FIBER', 3000]],
-    BM111: [['2kW', 'FIBER', 2000], ['4kW', 'FIBER', 4000]],
-    BT240: [['3kW', 'FIBER', 3000], ['6kW', 'FIBER', 6000]],
-    BM114: [['6kW', 'FIBER', 6000], ['12kW', 'FIBER', 12000]],
+    BM110: [
+      ['1.5kW', 'FIBER', 1500],
+      ['3kW', 'FIBER', 3000],
+    ],
+    BM111: [
+      ['2kW', 'FIBER', 2000],
+      ['4kW', 'FIBER', 4000],
+    ],
+    BT240: [
+      ['3kW', 'FIBER', 3000],
+      ['6kW', 'FIBER', 6000],
+    ],
+    BM114: [
+      ['6kW', 'FIBER', 6000],
+      ['12kW', 'FIBER', 12000],
+    ],
   },
   Precitec: {
-    'ProCutter 2.0': [['4kW', 'FIBER', 4000], ['8kW', 'FIBER', 8000]],
-    LightCutter: [['1kW', 'FIBER', 1000], ['2kW', 'FIBER', 2000]],
+    'ProCutter 2.0': [
+      ['4kW', 'FIBER', 4000],
+      ['8kW', 'FIBER', 8000],
+    ],
+    LightCutter: [
+      ['1kW', 'FIBER', 1000],
+      ['2kW', 'FIBER', 2000],
+    ],
     HPSSL: [['3kW', 'FIBER', 3000]],
   },
   WSX: {
     NC30: [['3kW', 'FIBER', 3000]],
-    NC60: [['6kW', 'FIBER', 6000], ['12kW', 'FIBER', 12000]],
+    NC60: [
+      ['6kW', 'FIBER', 6000],
+      ['12kW', 'FIBER', 12000],
+    ],
     KC15: [['1.5kW', 'FIBER', 1500]],
   },
   Ospri: {
@@ -99,13 +120,49 @@ write('02-attributes.csv', [
 // ── 03 categories ───────────────────────────────────────────────────────────
 write('03-categories.csv', [
   ['name', 'slug', 'parent_slug', 'sort_order', 'description'],
-  ['Nozzles', 'nozzles', '', 10, 'Cutting nozzles for fiber laser cutting heads, in single and double layer designs.'],
-  ['Single Layer Nozzles', 'single-layer-nozzles', 'nozzles', 11, 'Single layer nozzles for thin to medium sheet cutting.'],
-  ['Double Layer Nozzles', 'double-layer-nozzles', 'nozzles', 12, 'Double layer nozzles for thicker sections and oxygen cutting.'],
-  ['Protective Windows', 'protective-windows', '', 20, 'Protective lenses that shield the focus optics from spatter.'],
+  [
+    'Nozzles',
+    'nozzles',
+    '',
+    10,
+    'Cutting nozzles for fiber laser cutting heads, in single and double layer designs.',
+  ],
+  [
+    'Single Layer Nozzles',
+    'single-layer-nozzles',
+    'nozzles',
+    11,
+    'Single layer nozzles for thin to medium sheet cutting.',
+  ],
+  [
+    'Double Layer Nozzles',
+    'double-layer-nozzles',
+    'nozzles',
+    12,
+    'Double layer nozzles for thicker sections and oxygen cutting.',
+  ],
+  [
+    'Protective Windows',
+    'protective-windows',
+    '',
+    20,
+    'Protective lenses that shield the focus optics from spatter.',
+  ],
   ['Focus Lenses', 'focus-lenses', '', 30, 'Focusing optics for fiber laser cutting heads.'],
-  ['Ceramic Rings', 'ceramic-rings', '', 40, 'Ceramic holders and insulating rings for laser cutting heads.'],
-  ['Consumable Kits', 'consumable-kits', '', 50, 'Pre-assembled kits of the parts most often replaced together.'],
+  [
+    'Ceramic Rings',
+    'ceramic-rings',
+    '',
+    40,
+    'Ceramic holders and insulating rings for laser cutting heads.',
+  ],
+  [
+    'Consumable Kits',
+    'consumable-kits',
+    '',
+    50,
+    'Pre-assembled kits of the parts most often replaced together.',
+  ],
 ]);
 
 // ── 04 part brands ──────────────────────────────────────────────────────────
@@ -121,19 +178,47 @@ write('04-part-brands.csv', [
 // ── 05 products / 06 variants ───────────────────────────────────────────────
 const products = [
   [
-    'product_key', 'name', 'category_slug', 'part_brand_slug', 'product_type',
-    'hsn_code', 'gst_rate', 'short_description', 'description',
-    'attr:head-series', 'attr:nozzle-type', 'attr:material', 'attr:coating',
-    'attr:wavelength-range', 'attr:max-power', 'attr:sealing-type',
+    'product_key',
+    'name',
+    'category_slug',
+    'part_brand_slug',
+    'product_type',
+    'hsn_code',
+    'gst_rate',
+    'short_description',
+    'description',
+    'attr:head-series',
+    'attr:nozzle-type',
+    'attr:material',
+    'attr:coating',
+    'attr:wavelength-range',
+    'attr:max-power',
+    'attr:sealing-type',
   ],
 ];
 const variants = [
   [
-    'product_key', 'sku', 'part_number', 'variant_name', 'price', 'price_type',
-    'uom', 'pack_size', 'min_order_qty', 'stock_qty', 'reorder_level', 'stock_status',
-    'is_default', 'position',
-    'attr:thread', 'attr:nozzle-height', 'attr:orifice-diameter',
-    'attr:outer-diameter', 'attr:thickness', 'attr:focal-length', 'attr:pack-contents',
+    'product_key',
+    'sku',
+    'part_number',
+    'variant_name',
+    'price',
+    'price_type',
+    'uom',
+    'pack_size',
+    'min_order_qty',
+    'stock_qty',
+    'reorder_level',
+    'stock_status',
+    'is_default',
+    'position',
+    'attr:thread',
+    'attr:nozzle-height',
+    'attr:orifice-diameter',
+    'attr:outer-diameter',
+    'attr:thickness',
+    'attr:focal-length',
+    'attr:pack-contents',
   ],
 ];
 
@@ -145,28 +230,68 @@ const V = (key, row) => variants.push([key, ...row]);
 for (const thread of ['H15', 'H20']) {
   const key = `RT-BM110-SL-${thread}`;
   P(key, [
-    `Raytools Single Layer Nozzle — ${thread}`, 'single-layer-nozzles', 'raytools', 'CONSUMABLE',
-    '84669390', '18',
+    `Raytools Single Layer Nozzle — ${thread}`,
+    'single-layer-nozzles',
+    'raytools',
+    'CONSUMABLE',
+    '84669390',
+    '18',
     `Single layer copper cutting nozzle with ${thread} thread for Raytools BM-series heads.`,
     `Precision-machined single layer nozzle for Raytools BM-series cutting heads with the ${thread} thread standard. Chrome-free electrolytic copper gives consistent beam alignment and predictable wear. Suited to nitrogen and compressed air cutting of mild steel, stainless and aluminium in thin to medium gauges.`,
-    'BM110', 'Single Layer', 'Electrolytic Copper', 'None', '1064-1080', '6000', 'O-Ring',
+    'BM110',
+    'Single Layer',
+    'Electrolytic Copper',
+    'None',
+    '1064-1080',
+    '6000',
+    'O-Ring',
   ]);
 
   // Deliberately spans 0.8 to 10.0 — a text range filter would place "10.0"
   // between "1.0" and "3.0" and return a 10mm nozzle for a 1-3mm search.
   const diameters = [
-    [0.8, 790, 42], [1.0, 850, 118], [1.2, 850, 96], [1.5, 890, 14],
-    [2.0, 940, 0], [2.5, 990, 31], [3.0, 1040, 27], [10.0, 1780, 0],
+    [0.8, 790, 42],
+    [1.0, 850, 118],
+    [1.2, 850, 96],
+    [1.5, 890, 14],
+    [2.0, 940, 0],
+    [2.5, 990, 31],
+    [3.0, 1040, 27],
+    [10.0, 1780, 0],
   ];
   diameters.forEach(([d, price, qty], index) => {
     const code = code3(d);
-    const status = d === 10.0 ? 'MADE_TO_ORDER' : qty === 0 ? 'OUT_OF_STOCK' : qty <= 15 ? 'LOW_STOCK' : 'IN_STOCK';
+    const status =
+      d === 10.0
+        ? 'MADE_TO_ORDER'
+        : qty === 0
+          ? 'OUT_OF_STOCK'
+          : qty <= 15
+            ? 'LOW_STOCK'
+            : 'IN_STOCK';
     V(key, [
-      `NZ-RT-SL-${thread}-${code}`, `D${dp1(d)} ${thread}`, `D${dp1(d)}`, price, 'FIXED',
-      'PIECE', 1, 1, qty, 15, status, index === 1 ? 'true' : 'false', index * 10,
+      `NZ-RT-SL-${thread}-${code}`,
+      `D${dp1(d)} ${thread}`,
+      `D${dp1(d)}`,
+      price,
+      'FIXED',
+      'PIECE',
+      1,
+      1,
+      qty,
+      15,
+      status,
+      index === 1 ? 'true' : 'false',
+      index * 10,
       // nozzle-height deliberately omitted: the thread designation already
       // encodes it, and emitting both would derive two correlated axes.
-      thread, '', dp1(d), 28, '', '', '',
+      thread,
+      '',
+      dp1(d),
+      28,
+      '',
+      '',
+      '',
     ]);
   });
 }
@@ -176,30 +301,55 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'RT-BM110-DL';
   P(key, [
-    'Raytools Double Layer Nozzle', 'double-layer-nozzles', 'raytools', 'CONSUMABLE',
-    '84669390', '18',
+    'Raytools Double Layer Nozzle',
+    'double-layer-nozzles',
+    'raytools',
+    'CONSUMABLE',
+    '84669390',
+    '18',
     'Double layer copper nozzle for Raytools BM-series heads, in H15 and H20 threads.',
     'Double layer nozzle for oxygen-assisted cutting of thicker mild steel on Raytools BM-series heads. The twin-orifice design stabilises the assist gas column at higher standoff, reducing dross on sections above 6 mm. Available across both thread standards and the full diameter range.',
-    'BM110', 'Double Layer', 'Electrolytic Copper', 'None', '1064-1080', '6000', 'O-Ring',
+    'BM110',
+    'Double Layer',
+    'Electrolytic Copper',
+    'None',
+    '1064-1080',
+    '6000',
+    'O-Ring',
   ]);
 
   let position = 0;
   for (const thread of ['H15', 'H20']) {
     // Asymmetric on purpose: 3.5 and 4.0 exist only for H20, so the two-axis
     // selector must handle combinations that do not exist.
-    const diameters = thread === 'H15'
-      ? [1.0, 1.2, 1.5, 2.0, 2.5, 3.0]
-      : [1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
+    const diameters =
+      thread === 'H15' ? [1.0, 1.2, 1.5, 2.0, 2.5, 3.0] : [1.0, 1.2, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
 
     diameters.forEach((d) => {
       const code = code3(d);
       const price = 1180 + Math.round(d * 60);
       const qty = d >= 3.5 ? 6 : 40 + Math.round(d * 10);
       V(key, [
-        `NZ-RT-DL-${thread}-${code}`, `D${dp1(d)} ${thread} DL`, `${thread} / D${dp1(d)}`, price, 'FIXED',
-        'PIECE', 1, 1, qty, 12, qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
-        thread === 'H15' && d === 1.5 ? 'true' : 'false', position,
-        thread, '', dp1(d), 28, '', '', '',
+        `NZ-RT-DL-${thread}-${code}`,
+        `D${dp1(d)} ${thread} DL`,
+        `${thread} / D${dp1(d)}`,
+        price,
+        'FIXED',
+        'PIECE',
+        1,
+        1,
+        qty,
+        12,
+        qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
+        thread === 'H15' && d === 1.5 ? 'true' : 'false',
+        position,
+        thread,
+        '',
+        dp1(d),
+        28,
+        '',
+        '',
+        '',
       ]);
       position += 10;
     });
@@ -211,11 +361,21 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'PC-PROCUTTER-SL';
   P(key, [
-    'Precitec ProCutter Single Layer Nozzle', 'single-layer-nozzles', 'precitec', 'CONSUMABLE',
-    '84669390', '18',
+    'Precitec ProCutter Single Layer Nozzle',
+    'single-layer-nozzles',
+    'precitec',
+    'CONSUMABLE',
+    '84669390',
+    '18',
     'Single layer nozzle for Precitec ProCutter heads, in 12/15/18 mm heights.',
     'Single layer cutting nozzle for Precitec ProCutter 2.0 cutting heads. Supplied across three body heights so standoff can be matched to the cutting programme without changing the head configuration. Machined from chrome-free copper for stable capacitive height sensing.',
-    'ProCutter 2.0', 'Single Layer', 'Copper (chrome-free)', 'None', '1030-1090', '8000', 'Flat Seal',
+    'ProCutter 2.0',
+    'Single Layer',
+    'Copper (chrome-free)',
+    'None',
+    '1030-1090',
+    '8000',
+    'Flat Seal',
   ]);
 
   let position = 0;
@@ -224,11 +384,26 @@ for (const thread of ['H15', 'H20']) {
     diameters.forEach((d) => {
       const code = `${height}-${dp1(d).replace('.', '')}`;
       V(key, [
-        `NZ-PC-SL-${code}`, `M11 H${height} D${dp1(d)}`, `${height}mm / D${dp1(d)}`,
-        1320 + height * 12 + Math.round(d * 40), 'FIXED',
-        'PIECE', 1, 1, 30 + height, 10, 'IN_STOCK',
-        height === 15 && d === 1.4 ? 'true' : 'false', position,
-        'M11', height, dp1(d), 32, '', '', '',
+        `NZ-PC-SL-${code}`,
+        `M11 H${height} D${dp1(d)}`,
+        `${height}mm / D${dp1(d)}`,
+        1320 + height * 12 + Math.round(d * 40),
+        'FIXED',
+        'PIECE',
+        1,
+        1,
+        30 + height,
+        10,
+        'IN_STOCK',
+        height === 15 && d === 1.4 ? 'true' : 'false',
+        position,
+        'M11',
+        height,
+        dp1(d),
+        32,
+        '',
+        '',
+        '',
       ]);
       position += 10;
     });
@@ -239,11 +414,21 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'WSX-NC30-CR-H15';
   P(key, [
-    'WSX NC30 Chrome-Plated Nozzle — H15', 'single-layer-nozzles', 'wsx', 'CONSUMABLE',
-    '84669390', '18',
+    'WSX NC30 Chrome-Plated Nozzle — H15',
+    'single-layer-nozzles',
+    'wsx',
+    'CONSUMABLE',
+    '84669390',
+    '18',
     'Chrome-plated nozzle for WSX NC-series heads, singly or in boxes of 10.',
     'Chrome-plated single layer nozzle for WSX NC-series cutting heads. The plating extends service life in high-duty production compared with bare copper, at the cost of a slightly higher unit price. Larger diameters are supplied in boxes of ten.',
-    'NC30', 'Chrome-Plated', 'Copper', 'Chrome', '1064-1080', '6000', 'O-Ring',
+    'NC30',
+    'Chrome-Plated',
+    'Copper',
+    'Chrome',
+    '1064-1080',
+    '6000',
+    'O-Ring',
   ]);
 
   const rows = [
@@ -255,11 +440,26 @@ for (const thread of ['H15', 'H20']) {
   rows.forEach(([d, price, uom, pack, qty, priceType], index) => {
     const code = code3(d);
     V(key, [
-      `NZ-WSX-CR-H15-${code}`, `D${dp1(d)} H15`, `D${dp1(d)}${uom === 'PACK' ? ' (box of 10)' : ''}`,
-      price, priceType, uom, pack, 1, qty, 6,
+      `NZ-WSX-CR-H15-${code}`,
+      `D${dp1(d)} H15`,
+      `D${dp1(d)}${uom === 'PACK' ? ' (box of 10)' : ''}`,
+      price,
+      priceType,
+      uom,
+      pack,
+      1,
+      qty,
+      6,
       qty === 0 ? 'OUT_OF_STOCK' : qty <= 10 ? 'LOW_STOCK' : 'IN_STOCK',
-      index === 0 ? 'true' : 'false', index * 10,
-      'H15', 15, dp1(d), 28, '', '', uom === 'PACK' ? '10 nozzles per box' : '',
+      index === 0 ? 'true' : 'false',
+      index * 10,
+      'H15',
+      15,
+      dp1(d),
+      28,
+      '',
+      '',
+      uom === 'PACK' ? '10 nozzles per box' : '',
     ]);
   });
 }
@@ -268,16 +468,43 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'OS-CT-SPECIALIST';
   P(key, [
-    'Ospri Ceramic-Tipped Nozzle — Specialist', 'single-layer-nozzles', 'ospri', 'SPARE_PART',
-    '84669390', '18',
+    'Ospri Ceramic-Tipped Nozzle — Specialist',
+    'single-layer-nozzles',
+    'ospri',
+    'SPARE_PART',
+    '84669390',
+    '18',
     'Ceramic-tipped nozzle for reflective material cutting on Ospri LC-series heads.',
     'Specialist ceramic-tipped nozzle for cutting highly reflective materials such as copper and brass on Ospri LC-series heads. The ceramic tip resists back-reflection damage that shortens the life of a conventional copper nozzle on these materials.',
-    'LC30', 'Ceramic-Tipped', 'Copper / Ceramic', 'None', '1064-1080', '5000', 'O-Ring',
+    'LC30',
+    'Ceramic-Tipped',
+    'Copper / Ceramic',
+    'None',
+    '1064-1080',
+    '5000',
+    'O-Ring',
   ]);
   V(key, [
-    'NZ-OS-CT-STD', 'OS-CT-1.5', 'Standard', 4850, 'FIXED',
-    'PIECE', 1, 1, 9, 4, 'LOW_STOCK', 'true', 0,
-    'M14', 16, 1.5, 30, '', '', '',
+    'NZ-OS-CT-STD',
+    'OS-CT-1.5',
+    'Standard',
+    4850,
+    'FIXED',
+    'PIECE',
+    1,
+    1,
+    9,
+    4,
+    'LOW_STOCK',
+    'true',
+    0,
+    'M14',
+    16,
+    1.5,
+    30,
+    '',
+    '',
+    '',
   ]);
 }
 
@@ -288,11 +515,21 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'RT-PW-D279';
   P(key, [
-    'Raytools Protective Window — D27.9', 'protective-windows', 'raytools', 'CONSUMABLE',
-    '90019000', '18',
+    'Raytools Protective Window — D27.9',
+    'protective-windows',
+    'raytools',
+    'CONSUMABLE',
+    '90019000',
+    '18',
     'Fused silica protective window, 27.9 mm diameter, for Raytools BM-series heads.',
     'Fused silica protective window with an anti-reflective coating on both faces. Protects the focus lens from spatter and fume. Supplied in the thicknesses used across the Raytools BM-series range.',
-    'BM110', '', 'Fused Silica', 'AR Coated', '1064-1080', '6000', '',
+    'BM110',
+    '',
+    'Fused Silica',
+    'AR Coated',
+    '1064-1080',
+    '6000',
+    '',
   ]);
   [
     ['D27.9 T4.1', 4.1, 420, 210],
@@ -300,9 +537,26 @@ for (const thread of ['H15', 'H20']) {
     ['D27.9 T2.0', 2.0, 395, 88],
   ].forEach(([partNumber, thickness, price, qty], index) => {
     V(key, [
-      `PW-RT-279-${String(thickness).replace('.', '')}`, partNumber, `T${thickness}`, price, 'FIXED',
-      'PIECE', 1, 1, qty, 40, 'IN_STOCK', index === 0 ? 'true' : 'false', index * 10,
-      '', '', '', 27.9, thickness, '', '',
+      `PW-RT-279-${String(thickness).replace('.', '')}`,
+      partNumber,
+      `T${thickness}`,
+      price,
+      'FIXED',
+      'PIECE',
+      1,
+      1,
+      qty,
+      40,
+      'IN_STOCK',
+      index === 0 ? 'true' : 'false',
+      index * 10,
+      '',
+      '',
+      '',
+      27.9,
+      thickness,
+      '',
+      '',
     ]);
   });
 }
@@ -310,18 +564,48 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'RT-FL-D30';
   P(key, [
-    'Raytools Focus Lens — D30', 'focus-lenses', 'raytools', 'COMPONENT',
-    '90021900', '18',
+    'Raytools Focus Lens — D30',
+    'focus-lenses',
+    'raytools',
+    'COMPONENT',
+    '90021900',
+    '18',
     'Fused silica focusing lens, 30 mm diameter, in 100/125/150 mm focal lengths.',
     'Plano-convex fused silica focusing lens for Raytools BM-series cutting heads. Anti-reflective coated for 1064-1080 nm. Focal length selection determines kerf width and the practical thickness range of the head.',
-    'BM110', '', 'Fused Silica', 'AR Coated', '1064-1080', '6000', '',
+    'BM110',
+    '',
+    'Fused Silica',
+    'AR Coated',
+    '1064-1080',
+    '6000',
+    '',
   ]);
-  [[100, 1250, 34], [125, 1320, 21], [150, 1390, 12]].forEach(([focal, price, qty], index) => {
+  [
+    [100, 1250, 34],
+    [125, 1320, 21],
+    [150, 1390, 12],
+  ].forEach(([focal, price, qty], index) => {
     V(key, [
-      `FL-RT-D30-F${focal}`, `D30 F${focal}`, `F${focal}`, price, 'FIXED',
-      'PIECE', 1, 1, qty, 10, qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
-      index === 0 ? 'true' : 'false', index * 10,
-      '', '', '', 30, '', focal, '',
+      `FL-RT-D30-F${focal}`,
+      `D30 F${focal}`,
+      `F${focal}`,
+      price,
+      'FIXED',
+      'PIECE',
+      1,
+      1,
+      qty,
+      10,
+      qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
+      index === 0 ? 'true' : 'false',
+      index * 10,
+      '',
+      '',
+      '',
+      30,
+      '',
+      focal,
+      '',
     ]);
   });
 }
@@ -329,11 +613,21 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'RT-CR-M11';
   P(key, [
-    'Raytools Ceramic Ring — M11', 'ceramic-rings', 'raytools', 'SPARE_PART',
-    '69091200', '18',
+    'Raytools Ceramic Ring — M11',
+    'ceramic-rings',
+    'raytools',
+    'SPARE_PART',
+    '69091200',
+    '18',
     'Insulating ceramic holder for Raytools BM-series cutting heads.',
     'Insulating ceramic ring that carries the nozzle and provides the capacitive height-sensing reference. A cracked or contaminated ring is the most common cause of unstable height tracking.',
-    'BM110', '', 'Ceramic', 'None', '', '6000', '',
+    'BM110',
+    '',
+    'Ceramic',
+    'None',
+    '',
+    '6000',
+    '',
   ]);
   // Two variants sharing an OEM part number — proves part_number is not unique.
   [
@@ -341,9 +635,26 @@ for (const thread of ['H15', 'H20']) {
     ['M11 H15', 'CR-RT-M11-HD', 'Heavy Duty', 260, 76],
   ].forEach(([partNumber, sku, name, price, qty], index) => {
     V(key, [
-      sku, partNumber, name, price, 'FIXED',
-      'PIECE', 1, 1, qty, 30, 'IN_STOCK', index === 0 ? 'true' : 'false', index * 10,
-      'M11', 15, '', 32, '', '', '',
+      sku,
+      partNumber,
+      name,
+      price,
+      'FIXED',
+      'PIECE',
+      1,
+      1,
+      qty,
+      30,
+      'IN_STOCK',
+      index === 0 ? 'true' : 'false',
+      index * 10,
+      'M11',
+      15,
+      '',
+      32,
+      '',
+      '',
+      '',
     ]);
   });
 }
@@ -351,21 +662,61 @@ for (const thread of ['H15', 'H20']) {
 {
   const key = 'LEI-KIT-BM110';
   P(key, [
-    'Consumable Kit — Raytools BM110', 'consumable-kits', 'lei-select', 'KIT',
-    '84669390', '18',
+    'Consumable Kit — Raytools BM110',
+    'consumable-kits',
+    'lei-select',
+    'KIT',
+    '84669390',
+    '18',
     'The parts most often replaced together on a Raytools BM110 head.',
     'A single kit covering the consumables replaced together during routine BM110 maintenance: nozzles, protective windows and a ceramic ring. Ordering as a kit avoids the common situation of a machine standing idle because one of the three was missed.',
-    'BM110', '', 'Mixed', '', '1064-1080', '6000', '',
+    'BM110',
+    '',
+    'Mixed',
+    '',
+    '1064-1080',
+    '6000',
+    '',
   ]);
   [
-    ['KIT-BM110-STD', 'KIT-BM110', 'Standard Kit', 2450, 26, '5 nozzles, 3 windows, 1 ceramic ring'],
-    ['KIT-BM110-PRO', 'KIT-BM110-P', 'Extended Kit', 4680, 11, '10 nozzles, 6 windows, 2 ceramic rings'],
+    [
+      'KIT-BM110-STD',
+      'KIT-BM110',
+      'Standard Kit',
+      2450,
+      26,
+      '5 nozzles, 3 windows, 1 ceramic ring',
+    ],
+    [
+      'KIT-BM110-PRO',
+      'KIT-BM110-P',
+      'Extended Kit',
+      4680,
+      11,
+      '10 nozzles, 6 windows, 2 ceramic rings',
+    ],
   ].forEach(([sku, partNumber, name, price, qty, contents], index) => {
     V(key, [
-      sku, partNumber, name, price, 'FIXED',
-      'SET', 1, 1, qty, 8, qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
-      index === 0 ? 'true' : 'false', index * 10,
-      '', '', '', '', '', '', contents,
+      sku,
+      partNumber,
+      name,
+      price,
+      'FIXED',
+      'SET',
+      1,
+      1,
+      qty,
+      8,
+      qty <= 12 ? 'LOW_STOCK' : 'IN_STOCK',
+      index === 0 ? 'true' : 'false',
+      index * 10,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      contents,
     ]);
   });
 }
@@ -393,7 +744,12 @@ addCompat('RT-BM110-SL-H20', '', 'Raytools', ['BT240', 'BM114'], 'H20 thread hea
 for (const sku of ['NZ-RT-DL-H15-010', 'NZ-RT-DL-H15-015', 'NZ-RT-DL-H15-020']) {
   addCompat('RT-BM110-DL', sku, 'Raytools', ['BM110', 'BM111'], 'H15 thread only');
 }
-for (const sku of ['NZ-RT-DL-H20-010', 'NZ-RT-DL-H20-020', 'NZ-RT-DL-H20-035', 'NZ-RT-DL-H20-040']) {
+for (const sku of [
+  'NZ-RT-DL-H20-010',
+  'NZ-RT-DL-H20-020',
+  'NZ-RT-DL-H20-035',
+  'NZ-RT-DL-H20-040',
+]) {
   addCompat('RT-BM110-DL', sku, 'Raytools', ['BT240', 'BM114'], 'H20 thread only');
 }
 

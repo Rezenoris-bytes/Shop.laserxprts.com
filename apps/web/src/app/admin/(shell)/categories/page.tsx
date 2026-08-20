@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi, type AdminCategory } from '@/lib/admin-api';
-import { AdminPageHeader, DataTable, DemoBadge, StatusChip, type Column } from '@/components/admin/data-table';
+import {
+  AdminPageHeader,
+  DataTable,
+  DemoBadge,
+  StatusChip,
+  type Column,
+} from '@/components/admin/data-table';
 import { useAdminAuth } from '@/lib/admin-auth';
 
 export default function CategoriesPage() {
@@ -14,7 +20,11 @@ export default function CategoriesPage() {
   const [parentId, setParentId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const load = () => adminApi.categories().then(setRows).finally(() => setIsLoading(false));
+  const load = () =>
+    adminApi
+      .categories()
+      .then(setRows)
+      .finally(() => setIsLoading(false));
 
   useEffect(() => {
     load();
@@ -58,21 +68,26 @@ export default function CategoriesPage() {
         </span>
       ),
     },
-    { header: 'Slug', render: (row) => <span className="font-mono text-xs text-ink-muted">{row.slug}</span> },
+    {
+      header: 'Slug',
+      render: (row) => <span className="font-mono text-xs text-ink-muted">{row.slug}</span>,
+    },
     { header: 'Products', render: (row) => row.productCount },
     {
       header: 'Status',
       render: (row) =>
         canUpdate ? (
-          <button
-            type="button"
-            onClick={() => toggleActive(row)}
-            className="cursor-pointer"
-          >
-            <StatusChip label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'ok' : 'muted'} />
+          <button type="button" onClick={() => toggleActive(row)} className="cursor-pointer">
+            <StatusChip
+              label={row.isActive ? 'Active' : 'Inactive'}
+              tone={row.isActive ? 'ok' : 'muted'}
+            />
           </button>
         ) : (
-          <StatusChip label={row.isActive ? 'Active' : 'Inactive'} tone={row.isActive ? 'ok' : 'muted'} />
+          <StatusChip
+            label={row.isActive ? 'Active' : 'Inactive'}
+            tone={row.isActive ? 'ok' : 'muted'}
+          />
         ),
     },
   ];
@@ -83,7 +98,11 @@ export default function CategoriesPage() {
         title="Categories"
         action={
           canCreate && (
-            <button type="button" onClick={() => setShowForm((v) => !v)} className="btn-primary text-sm">
+            <button
+              type="button"
+              onClick={() => setShowForm((v) => !v)}
+              className="btn-primary text-sm"
+            >
               {showForm ? 'Cancel' : 'New category'}
             </button>
           )
@@ -96,13 +115,24 @@ export default function CategoriesPage() {
             <label htmlFor="name" className="label">
               Name
             </label>
-            <input id="name" required value={name} onChange={(e) => setName(e.target.value)} className="field" />
+            <input
+              id="name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="field"
+            />
           </div>
           <div>
             <label htmlFor="parent" className="label">
               Parent (optional)
             </label>
-            <select id="parent" value={parentId} onChange={(e) => setParentId(e.target.value)} className="field">
+            <select
+              id="parent"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              className="field"
+            >
               <option value="">None (top level)</option>
               {rows
                 .filter((r) => !r.parentId)

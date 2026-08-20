@@ -85,11 +85,18 @@ async function bootstrap(): Promise<void> {
     prefix: '/uploads/',
     decorateReply: false,
     index: false,
+    // Filenames are the SHA-256 of the bytes, so a URL can never point at
+    // different content and is safe to cache for a year. Set through the
+    // plugin's own options rather than the setHeaders hook, which is what the
+    // plugin documents for cache headers.
+    maxAge: 31536000000,
+    immutable: true,
     // Never execute anything from the upload directory, whatever its extension.
+    // `header`, not `setHeader`: @fastify/static v10 hands the hook a
+    // FastifyReply where v8 passed the raw ServerResponse.
     setHeaders: (reply) => {
-      reply.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      reply.setHeader('X-Content-Type-Options', 'nosniff');
-      reply.setHeader('Content-Disposition', 'inline');
+      reply.header('X-Content-Type-Options', 'nosniff');
+      reply.header('Content-Disposition', 'inline');
     },
   });
 

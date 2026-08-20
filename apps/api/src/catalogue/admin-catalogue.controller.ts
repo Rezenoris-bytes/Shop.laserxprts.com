@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,7 +9,9 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
+import type { FastifyRequest } from 'fastify';
 import {
   PermissionAction,
   PermissionModule,
@@ -21,6 +24,7 @@ import {
   upsertCategorySchema,
   upsertCompatibilitySchema,
   upsertPartBrandSchema,
+  reorderMediaSchema,
   upsertProductSchema,
   upsertVariantSchema,
   type AdminListQuery,
@@ -32,6 +36,7 @@ import {
   type UpsertCategoryInput,
   type UpsertCompatibilityInput,
   type UpsertPartBrandInput,
+  type ReorderMediaInput,
   type UpsertProductInput,
   type UpsertVariantInput,
 } from '@lei/shared';
@@ -148,6 +153,97 @@ export class AdminCatalogueController {
   @RequirePermission(CAT, PermissionAction.DELETE)
   deleteProduct(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.service.deleteProduct(id, actorId);
+  }
+
+  // ── Product media ──────────────────────────────────────────────────────
+
+  @Get('products/:id/media')
+  @RequirePermission(CAT, PermissionAction.VIEW)
+  listProductMedia(@Param('id', ParseIntPipe) id: number) {
+    return this.service.listProductMedia(id);
+  }
+
+  /**
+   * Multipart upload of one or more images.
+   *
+   * The files are buffered here rather than streamed to disk because the
+   * service checksums the bytes to deduplicate — it needs the whole file
+   * before it can decide where (or whether) to write it. The per-file and
+   * per-request ceilings are enforced by the multipart plugin in main.ts.
+   */
+  @Post('products/:id/media')
+  @RequirePermission(CAT, PermissionAction.UPDATE)
+  async uploadProductMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() request: FastifyRequest,
+    @CurrentUser('id') actorId: number,
+  ) {
+    const uploads = await this.collectUploads(request);
+    return this.service.addProductMedia(id, uploads, actorId);
+  }
+
+  @Patch('products/:id/media/order')
+  @RequirePermission(CAT, PermissionAction.UPDATE)
+  reorderProductMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(ZodBody(reorderMediaSchema)) body: ReorderMediaInput,
+    @CurrentUser('id') actorId: number,
+  ) {
+    return this.service.reorderProductMedia(id, body.mediaIds, actorId);
+  }
+
+  @Patch('products/:id/media/:mediaId/primary')
+  @RequirePermission(CAT, PermissionAction.UPDATE)
+  setPrimaryProductMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('mediaId', ParseIntPipe) mediaId: number,
+    @CurrentUser('id') actorId: number,
+  ) {
+    return this.service.setPrimaryProductMedia(id, mediaId, actorId);
+  }
+
+  @Post('products/:id/media/:mediaId/replace')
+  @RequirePermission(CAT, PermissionAction.UPDATE)
+  async replaceProductMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('mediaId', ParseIntPipe) mediaId: number,
+    @Req() request: FastifyRequest,
+    @CurrentUser('id') actorId: number,
+  ) {
+    const uploads = await this.collectUploads(request);
+    const first = uploads[0];
+    if (!first) throw new BadRequestException('No replacement image was uploaded');
+    return this.service.replaceProductMedia(id, mediaId, first, actorId);
+  }
+
+  @Delete('products/:id/media/:mediaId')
+  @RequirePermission(CAT, PermissionAction.DELETE)
+  deleteProductMedia(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('mediaId', ParseIntPipe) mediaId: number,
+    @CurrentUser('id') actorId: number,
+  ) {
+    return this.service.deleteProductMedia(id, mediaId, actorId);
+  }
+
+  /** Drains a multipart request into buffers. */
+  private async collectUploads(
+    request: FastifyRequest,
+  ): Promise<Array<{ buffer: Buffer; filename: string }>> {
+    if (!request.isMultipart()) {
+      throw new BadRequestException('Expected a multipart/form-data upload');
+    }
+
+    const uploads: Array<{ buffer: Buffer; filename: string }> = [];
+    try {
+      for await (const part of request.files()) {
+        uploads.push({ buffer: await part.toBuffer(), filename: part.filename });
+      }
+    } catch (error) {
+      // Thrown when a part exceeds the configured fileSize limit.
+      throw new BadRequestException((error as Error).message);
+    }
+    return uploads;
   }
 
   // ── Variants ──────────────────────────────────────────────────────────

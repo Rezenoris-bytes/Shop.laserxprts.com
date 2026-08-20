@@ -142,6 +142,15 @@ export class AdminCatalogueRepository {
     return { items, total };
   }
 
+  /** Just the category slug, for cache invalidation after a write. */
+  async findProductCategorySlug(id: number): Promise<string | null> {
+    const product = await this.prisma.client.product.findUnique({
+      where: { id },
+      select: { category: { select: { slug: true } } },
+    });
+    return product?.category?.slug ?? null;
+  }
+
   async findProduct(id: number) {
     return this.prisma.client.product.findUnique({
       where: { id },
@@ -475,6 +484,118 @@ export class AdminCatalogueRepository {
         sortOrder: data.sortOrder,
       },
     });
+  }
+
+  // ── Product media ──────────────────────────────────────────────────────
+
+  async findProductMedia(productId: number) {
+    return this.prisma.raw.productMedia.findMany({
+      where: { productId },
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      include: { file: true },
+    });
+  }
+
+  async findMedia(productId: number, mediaId: number) {
+    return this.prisma.raw.productMedia.findFirst({
+      where: { id: mediaId, productId },
+      include: { file: true },
+    });
+  }
+
+  /**
+   * Appends an image to a product.
+   *
+   * The first image a product ever gets becomes its primary automatically —
+   * a product with artwork but no primary renders the placeholder everywhere,
+   * which looks like a bug rather than a setting nobody chose.
+   */
+  async attachMedia(productId: number, fileId: number, altText: string | null) {
+    const existing = await this.prisma.raw.productMedia.findFirst({
+      where: { productId, fileId },
+    });
+    if (existing) return existing;
+
+    const [count, last] = await Promise.all([
+      this.prisma.raw.productMedia.count({ where: { productId } }),
+      this.prisma.raw.productMedia.findFirst({
+        where: { productId },
+        orderBy: { sortOrder: 'desc' },
+        select: { sortOrder: true },
+      }),
+    ]);
+
+    return this.prisma.raw.productMedia.create({
+      data: {
+        productId,
+        fileId,
+        type: 'IMAGE',
+        altText,
+        sortOrder: (last?.sortOrder ?? -10) + 10,
+        isPrimary: count === 0,
+      },
+    });
+  }
+
+  /** Exactly one primary per product, enforced in a transaction. */
+  async setPrimaryMedia(productId: number, mediaId: number): Promise<void> {
+    await this.prisma.raw.$transaction([
+      this.prisma.raw.productMedia.updateMany({
+        where: { productId },
+        data: { isPrimary: false },
+      }),
+      this.prisma.raw.productMedia.update({
+        where: { id: mediaId },
+        data: { isPrimary: true },
+      }),
+    ]);
+  }
+
+  /** Rewrites sortOrder from the given id sequence. */
+  async reorderMedia(productId: number, mediaIds: number[]): Promise<void> {
+    await this.prisma.raw.$transaction(
+      mediaIds.map((id, index) =>
+        this.prisma.raw.productMedia.updateMany({
+          // Scoped by productId as well as id so a crafted payload cannot
+          // reorder another product's gallery.
+          where: { id, productId },
+          data: { sortOrder: index * 10 },
+        }),
+      ),
+    );
+  }
+
+  async updateMedia(productId: number, mediaId: number, data: { altText?: string | null; fileId?: number }) {
+    await this.prisma.raw.productMedia.updateMany({ where: { id: mediaId, productId }, data });
+  }
+
+  /**
+   * Detaches an image, returning the file id so the caller can reap it if no
+   * other product still uses it.
+   *
+   * If the primary is removed the next image takes over, so a product with
+   * images always has one.
+   */
+  async detachMedia(productId: number, mediaId: number): Promise<number | null> {
+    const row = await this.prisma.raw.productMedia.findFirst({ where: { id: mediaId, productId } });
+    if (!row) return null;
+
+    await this.prisma.raw.productMedia.delete({ where: { id: mediaId } });
+
+    if (row.isPrimary) {
+      const next = await this.prisma.raw.productMedia.findFirst({
+        where: { productId },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      });
+      if (next) {
+        await this.prisma.raw.productMedia.update({
+          where: { id: next.id },
+          data: { isPrimary: true },
+        });
+      }
+    }
+
+    return row.fileId;
   }
 
   // ── Derived recompute (shared logic mirrors the importer) ───────────────

@@ -17,7 +17,6 @@ import {
 export function SiteHeader() {
   const router = useRouter();
   const { count, open } = useQuoteRequest();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   // Detect scroll past the identity bar (~60 px)
@@ -32,7 +31,6 @@ export function SiteHeader() {
     const input = event.currentTarget.querySelector('input[type="search"]') as HTMLInputElement;
     const trimmed = (input?.value ?? '').trim();
     if (!trimmed) return;
-    setMenuOpen(false);
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
@@ -145,48 +143,9 @@ export function SiteHeader() {
                   </span>
                 )}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setMenuOpen((v) => !v)}
-                aria-expanded={menuOpen}
-                aria-controls="mobile-nav"
-                aria-label="Toggle navigation"
-                className="grid h-11 w-11 place-items-center rounded-md hover:bg-ink-wash lg:hidden"
-              >
-                <MenuIcon />
-              </button>
             </div>
           </div>
         </div>
-
-        {/* Mobile nav */}
-        {menuOpen && (
-          <nav id="mobile-nav" aria-label="Mobile" className="border-t border-ink-line bg-white lg:hidden">
-            <ul className="container-lei py-2">
-              {primaryNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="block rounded-md px-2 py-3 text-sm font-medium hover:bg-ink-wash"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-              <li className="mt-2 border-t border-ink-line pt-2">
-                <a
-                  href={`tel:${businessPhone.replace(/\s/g, '')}`}
-                  className="flex items-center gap-2 rounded-md px-2 py-3 text-sm font-medium hover:bg-ink-wash"
-                >
-                  <PhoneIcon />
-                  {businessPhone}
-                </a>
-              </li>
-            </ul>
-          </nav>
-        )}
       </header>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -285,36 +244,7 @@ export function SiteHeader() {
               </span>
             )}
           </button>
-
-          {/* Mobile menu toggle */}
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Toggle navigation"
-            className="grid h-10 w-10 place-items-center rounded-md hover:bg-white/10 lg:hidden"
-          >
-            <MenuIcon className="text-white" />
-          </button>
         </div>
-
-        {/* Compact mobile dropdown */}
-        {menuOpen && (
-          <nav className="border-t border-white/10 bg-ink lg:hidden">
-            <ul className="container-lei py-1">
-              {primaryNav.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="block rounded-md px-2 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
       </div>
     </>
   );
@@ -356,13 +286,6 @@ function ListIcon({ className = '' }: { className?: string }) {
   );
 }
 
-function MenuIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
-      <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function PinIcon() {
   return (

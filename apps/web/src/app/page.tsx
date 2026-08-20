@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { api } from '@/lib/api';
+import { api, type HomePayload } from '@/lib/api';
 import { canonical, popularSearches } from '@/lib/site';
 import { ProductCardTile } from '@/components/product-card';
 import { mediaUrl } from '@/lib/format';
@@ -21,7 +21,19 @@ export const metadata = {
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const [home, machines] = await Promise.all([api.home(), api.machineTree()]);
+  /*
+    Fail soft when the API is unreachable.
+
+    The web app is prerendered before the API is necessarily running — that is
+    exactly the case in CI, where `next build` has no backend to call and the
+    build previously died on ECONNREFUSED. Rendering an empty shell keeps the
+    build honest, and ISR plus the admin's on-demand revalidation fill the page
+    in as soon as the API answers.
+  */
+  const [home, machines] = await Promise.all([
+    api.home().catch(() => ({ categories: [], featured: [], topProducts: [] }) as HomePayload),
+    api.machineTree().catch(() => []),
+  ]);
 
   return (
     <>

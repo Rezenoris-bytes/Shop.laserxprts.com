@@ -318,12 +318,12 @@ enum ImportType {
 // ============================================================================
 
 model User {
-  id     Int              @id @default(autoincrement())
-  name   String           @db.VarChar(120)
-  email  String           @unique @db.VarChar(190)
+  id              Int              @id @default(autoincrement())
+  name            String           @db.VarChar(120)
+  email           String           @unique @db.VarChar(190)
   /// Lowercased/trimmed match key so login lookups use an index.
-  emailNormalized String  @unique @map("email_normalized") @db.VarChar(190)
-  passwordHash    String  @map("password_hash") @db.VarChar(255)
+  emailNormalized String           @unique @map("email_normalized") @db.VarChar(190)
+  passwordHash    String           @map("password_hash") @db.VarChar(255)
   role            UserRole
   department      AdminDepartment?
   phone           String?          @db.VarChar(20)
@@ -499,13 +499,13 @@ model File {
   createdAt      DateTime    @default(now()) @map("created_at") @db.DateTime(3)
   deletedAt      DateTime?   @map("deleted_at") @db.DateTime(3)
 
-  uploadedBy      User?                      @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  derivatives     FileDerivative[]
-  productMedia    ProductMedia[]
-  quoteRevisions  QuoteRevision[]            @relation("QuoteRevisionPdf")
-  enquiryAttach   EnquiryAttachment[]
-  requestAttach   ServiceRequestAttachment[]
-  importJobs      ImportJob[]
+  uploadedBy     User?                      @relation("FileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  derivatives    FileDerivative[]
+  productMedia   ProductMedia[]
+  quoteRevisions QuoteRevision[]            @relation("QuoteRevisionPdf")
+  enquiryAttach  EnquiryAttachment[]
+  requestAttach  ServiceRequestAttachment[]
+  importJobs     ImportJob[]
 
   @@index([context, createdAt])
   @@index([checksumSha256])
@@ -643,9 +643,9 @@ model PartBrand {
 /// What groups variants together is decided entirely by the `product_key`
 /// column in the import CSV. This schema encodes no rule about it.
 model Product {
-  id          Int         @id @default(autoincrement())
-  categoryId  Int         @map("category_id")
-  partBrandId Int?        @map("part_brand_id")
+  id          Int  @id @default(autoincrement())
+  categoryId  Int  @map("category_id")
+  partBrandId Int? @map("part_brand_id")
 
   name             String      @db.VarChar(255)
   slug             String      @unique @db.VarChar(190)
@@ -828,7 +828,7 @@ model AttributeValue {
   productId   Int? @map("product_id")
   variantId   Int? @map("variant_id")
 
-  valueString String?  @map("value_string") @db.VarChar(255)
+  valueString  String?  @map("value_string") @db.VarChar(255)
   /// Populated for numeric attributes so range filters compare numbers.
   /// Without this, filtering diameter 1.0-3.0 as text returns the 10mm nozzle,
   /// because "10.0" sorts between "1.0" and "3.0".
@@ -1250,7 +1250,7 @@ model Quote {
   customerId  Int    @map("customer_id")
   enquiryId   Int?   @map("enquiry_id")
 
-  currentRevisionId Int? @unique @map("current_revision_id")
+  currentRevisionId  Int? @unique @map("current_revision_id")
   /// Which revision the customer actually agreed to. Absent from the source
   /// documents — without it, acceptance is unrecorded unless an order exists,
   /// so a quote accepted but not yet fulfilled loses that fact entirely.
@@ -1441,9 +1441,9 @@ model ServiceRequest {
   contactPhone   String? @map("contact_phone") @db.VarChar(20)
   contactCompany String? @map("contact_company") @db.VarChar(200)
 
-  machineBrandId   Int? @map("machine_brand_id")
-  machineModelId   Int? @map("machine_model_id")
-  machineVariantId Int? @map("machine_variant_id")
+  machineBrandId     Int?    @map("machine_brand_id")
+  machineModelId     Int?    @map("machine_model_id")
+  machineVariantId   Int?    @map("machine_variant_id")
   /// Fallback ONLY when machineVariantId is NULL. When a variant is selected
   /// the referenced variant is authoritative.
   laserTypeFallback  String? @map("laser_type_fallback") @db.VarChar(50)

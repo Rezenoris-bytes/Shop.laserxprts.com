@@ -13,7 +13,12 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function CompatibilityPage() {
-  const [machines, categories] = await Promise.all([api.machineTree(), api.categories()]);
+  // Fail soft when the API is unreachable — see the homepage for why the
+  // build must survive a backend that is not running yet.
+  const [machines, categories] = await Promise.all([
+    api.machineTree().catch(() => []),
+    api.categories().catch(() => []),
+  ]);
 
   return (
     <div className="container-lei max-w-3xl py-12">

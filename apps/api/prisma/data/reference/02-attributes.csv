@@ -1,0 +1,213 @@
+name,slug,data_type,default_scope,unit,is_filterable,sort_order
+Material,material,STRING,PRODUCT,,false,10
+Brand,brand,STRING,PRODUCT,,false,20
+Usage/Application,usage-application,STRING,PRODUCT,,false,30
+Laser Type,laser-type,STRING,PRODUCT,,true,40
+Color,color,STRING,PRODUCT,,false,50
+Country of Origin,country-of-origin,STRING,PRODUCT,,true,60
+Application,application,STRING,PRODUCT,,true,70
+Focal Length,focal-length,STRING,PRODUCT,,true,80
+Diameter,diameter,STRING,PRODUCT,,true,90
+Lens Type,lens-type,STRING,PRODUCT,,true,100
+Laser Wavelength,laser-wavelength,STRING,PRODUCT,,true,110
+Shape,shape,STRING,PRODUCT,,true,120
+Power Handling,power-handling,STRING,PRODUCT,,true,130
+Coating,coating,STRING,PRODUCT,,true,140
+Type,type,STRING,PRODUCT,,true,150
+Packaging Type,packaging-type,STRING,PRODUCT,,true,160
+Marking Speed Capacity,marking-speed-capacity,STRING,PRODUCT,,true,170
+Nozzle Diameter,nozzle-diameter,STRING,PRODUCT,,true,180
+Size,size,STRING,PRODUCT,,true,190
+Model Name/Number,model-name-number,STRING,PRODUCT,,true,200
+Design Method,design-method,STRING,PRODUCT,,true,210
+Height,height,STRING,PRODUCT,,true,220
+Marking Depth,marking-depth,STRING,PRODUCT,,true,230
+Corrosion Resistance,corrosion-resistance,STRING,PRODUCT,,true,240
+Marking Speed,marking-speed,STRING,PRODUCT,,true,250
+Thickness,thickness,STRING,PRODUCT,,true,260
+Assist Gas,assist-gas,STRING,PRODUCT,,true,270
+Mount Type,mount-type,STRING,PRODUCT,,true,280
+Outer Diameter,outer-diameter,STRING,PRODUCT,,true,290
+Max Laser Power,max-laser-power,STRING,PRODUCT,,true,300
+Cooling Method,cooling-method,STRING,PRODUCT,,true,310
+Nozzle Type,nozzle-type,STRING,PRODUCT,,true,320
+Ring Type,ring-type,STRING,PRODUCT,,true,330
+Process Type,process-type,STRING,PRODUCT,,true,340
+Laser Power,laser-power,STRING,PRODUCT,,true,350
+Uses,uses,STRING,PRODUCT,,true,360
+Inner Diameter,inner-diameter,STRING,PRODUCT,,true,370
+Collimation Lens,collimation-lens,STRING,PRODUCT,,true,380
+Surface Finish,surface-finish,STRING,PRODUCT,,true,390
+Pack Size,pack-size,STRING,PRODUCT,,true,400
+Offering Laser,offering-laser,STRING,PRODUCT,,true,410
+Ceramic Material,ceramic-material,STRING,PRODUCT,,true,420
+Usage,usage,STRING,PRODUCT,,true,430
+Monitoring,monitoring,STRING,PRODUCT,,true,440
+Surface Finishing,surface-finishing,STRING,PRODUCT,,true,450
+Thread Size,thread-size,STRING,PRODUCT,,true,460
+Valve Size,valve-size,STRING,PRODUCT,,true,470
+Mounting Type,mounting-type,STRING,PRODUCT,,true,480
+Part Type,part-type,STRING,PRODUCT,,true,490
+Wall Thickness,wall-thickness,STRING,PRODUCT,,true,500
+Ring Height,ring-height,STRING,PRODUCT,,true,510
+Max Service Temp,max-service-temp,STRING,PRODUCT,,true,520
+Finish,finish,STRING,PRODUCT,,true,530
+Hardness,hardness,STRING,PRODUCT,,true,540
+Copper Grade,copper-grade,STRING,PRODUCT,,true,550
+Tip Type,tip-type,STRING,PRODUCT,,true,560
+Sterile,sterile,STRING,PRODUCT,,true,570
+Bud Color,bud-color,STRING,PRODUCT,,true,580
+Packing Type,packing-type,STRING,PRODUCT,,true,590
+Voltage,voltage,STRING,PRODUCT,,true,600
+Automation Grade,automation-grade,STRING,PRODUCT,,true,610
+Feature,feature,STRING,PRODUCT,,true,620
+Parts,parts,STRING,PRODUCT,,false,630
+Leak Proof,leak-proof,STRING,PRODUCT,,false,640
+Features,features,STRING,PRODUCT,,false,650
+Finishing Type,finishing-type,STRING,PRODUCT,,false,660
+Weight,weight,STRING,PRODUCT,,false,670
+Stick Material,stick-material,STRING,PRODUCT,,false,680
+Stick Length,stick-length,STRING,PRODUCT,,false,690
+Mounting Interface,mounting-interface,STRING,PRODUCT,,false,700
+Frame Material,frame-material,STRING,PRODUCT,,false,710
+Light Source Type,light-source-type,STRING,PRODUCT,,false,720
+Support Laser Power,support-laser-power,STRING,PRODUCT,,false,730
+Max Cutting Thickness,max-cutting-thickness,STRING,PRODUCT,,false,740
+Job Work Basis,job-work-basis,STRING,PRODUCT,,false,750
+Usage Industry,usage-industry,STRING,PRODUCT,,false,760
+Service Location,service-location,STRING,PRODUCT,,false,770
+Frequency,frequency,STRING,PRODUCT,,false,780
+Temperature,temperature,STRING,PRODUCT,,false,790
+Power,power,STRING,PRODUCT,,false,800
+Part Number,part-number,STRING,PRODUCT,,false,810
+Aperture,aperture,STRING,PRODUCT,,false,820
+Form,form,STRING,PRODUCT,,false,830
+Pack Volume,pack-volume,STRING,PRODUCT,,false,840
+Tissue Type,tissue-type,STRING,PRODUCT,,false,850
+Tissue Material,tissue-material,STRING,PRODUCT,,false,860
+Country Of Origin,country-of-origin-2,STRING,PRODUCT,,false,870
+Gender,gender,STRING,PRODUCT,,false,880
+Is It Reusable,is-it-reusable,STRING,PRODUCT,,false,890
+Head Material,head-material,STRING,PRODUCT,,false,900
+Total Length,total-length,STRING,PRODUCT,,false,910
+Handle Material,handle-material,STRING,PRODUCT,,false,920
+Output Power,output-power,STRING,PRODUCT,,false,930
+Cable Conductor,cable-conductor,STRING,PRODUCT,,false,940
+Insulation Material,insulation-material,STRING,PRODUCT,,false,950
+Waterproof,waterproof,STRING,PRODUCT,,false,960
+Bore Size,bore-size,STRING,PRODUCT,,false,970
+Connection Type,connection-type,STRING,PRODUCT,,false,980
+Rubber Material,rubber-material,STRING,PRODUCT,,false,990
+Series No.,series-no,STRING,PRODUCT,,false,1000
+Anode Dissipation,anode-dissipation,STRING,PRODUCT,,false,1010
+Anode Voltage,anode-voltage,STRING,PRODUCT,,false,1020
+Available Interfaces,available-interfaces,STRING,PRODUCT,,false,1030
+Cooling,cooling,STRING,PRODUCT,,false,1040
+Filter Media,filter-media,STRING,PRODUCT,,false,1050
+Construction,construction,STRING,PRODUCT,,false,1060
+Medium Material,medium-material,STRING,PRODUCT,,false,1070
+Efficiency,efficiency,STRING,PRODUCT,,false,1080
+Filter Class,filter-class,STRING,PRODUCT,,false,1090
+Filtration Grade,filtration-grade,STRING,PRODUCT,,false,1100
+Location,location,STRING,PRODUCT,,false,1110
+Production Capacity,production-capacity,STRING,PRODUCT,,false,1120
+Series,series,STRING,PRODUCT,,false,1130
+Power/Resolution,power-resolution,STRING,PRODUCT,,false,1140
+Media,media,STRING,PRODUCT,,false,1150
+Protection Use,protection-use,STRING,PRODUCT,,false,1160
+Fit Type,fit-type,STRING,PRODUCT,,false,1170
+Inner Size,inner-size,STRING,PRODUCT,,false,1180
+Finish Type,finish-type,STRING,PRODUCT,,false,1190
+Beam Emission Shape,beam-emission-shape,STRING,PRODUCT,,false,1200
+AR Coated,ar-coated,STRING,PRODUCT,,false,1210
+Service Material,service-material,STRING,PRODUCT,,false,1220
+Machine Type,machine-type,STRING,PRODUCT,,false,1230
+Operation Type,operation-type,STRING,PRODUCT,,false,1240
+Max Sheet Size,max-sheet-size,STRING,PRODUCT,,false,1250
+Application Industry,application-industry,STRING,PRODUCT,,false,1260
+Material Supply,material-supply,STRING,PRODUCT,,false,1270
+File Format,file-format,STRING,PRODUCT,,false,1280
+Pipe Material,pipe-material,STRING,PRODUCT,,false,1290
+Max Pipe Diameter,max-pipe-diameter,STRING,PRODUCT,,false,1300
+Pipe Shape,pipe-shape,STRING,PRODUCT,,false,1310
+Cutting Type,cutting-type,STRING,PRODUCT,,false,1320
+Pipe Length Handling,pipe-length-handling,STRING,PRODUCT,,false,1330
+Compressor Type,compressor-type,STRING,PRODUCT,,false,1340
+Cooling Capacity,cooling-capacity,STRING,PRODUCT,,false,1350
+Deep Filtration,deep-filtration,STRING,PRODUCT,,false,1360
+Pressure,pressure,STRING,PRODUCT,,false,1370
+Max Flow Rate,max-flow-rate,STRING,PRODUCT,,false,1380
+Number Of Stages,number-of-stages,STRING,PRODUCT,,false,1390
+Mounting,mounting,STRING,PRODUCT,,false,1400
+Mirror Type,mirror-type,STRING,PRODUCT,,false,1410
+Reflectivity,reflectivity,STRING,PRODUCT,,false,1420
+Working Temperature,working-temperature,STRING,PRODUCT,,false,1430
+Frame Type,frame-type,STRING,PRODUCT,,false,1440
+Lens Material,lens-material,STRING,PRODUCT,,false,1450
+Base Solvent,base-solvent,STRING,PRODUCT,,false,1460
+Formulation Type,formulation-type,STRING,PRODUCT,,false,1470
+Grade Standard,grade-standard,STRING,PRODUCT,,false,1480
+Pattern,pattern,STRING,PRODUCT,,false,1490
+Use,use,STRING,PRODUCT,,false,1500
+Packaging Size,packaging-size,STRING,PRODUCT,,false,1510
+Sheet Size,sheet-size,STRING,PRODUCT,,false,1520
+BY-Nozzle double,by-nozzle-double,STRING,PRODUCT,,false,1530
+BY-Nozzle HD,by-nozzle-hd,STRING,PRODUCT,,false,1540
+Torch model,torch-model,STRING,PRODUCT,,false,1550
+Current rating,current-rating,STRING,PRODUCT,,false,1560
+Nozzle bore,nozzle-bore,STRING,PRODUCT,,false,1570
+Consumable Type,consumable-type,STRING,PRODUCT,,false,1580
+Torch Type,torch-type,STRING,PRODUCT,,false,1590
+Vehicle Model,vehicle-model,STRING,PRODUCT,,false,1600
+Size(inch),size-inch,STRING,PRODUCT,,false,1610
+Length,length,STRING,PRODUCT,,false,1620
+Valve,valve,STRING,PRODUCT,,false,1630
+Quantity Per Pack,quantity-per-pack,STRING,PRODUCT,,false,1640
+Pitch Series,pitch-series,STRING,PRODUCT,,false,1650
+Structure,structure,STRING,PRODUCT,,false,1660
+Outer Measurement,outer-measurement,STRING,PRODUCT,,false,1670
+Anti-Fog,anti-fog,STRING,PRODUCT,,false,1680
+Head Shape,head-shape,STRING,PRODUCT,,false,1690
+Sterility,sterility,STRING,PRODUCT,,false,1700
+Tip Material,tip-material,STRING,PRODUCT,,false,1710
+Phone Brand,phone-brand,STRING,PRODUCT,,false,1720
+Center Wavelength,center-wavelength,STRING,PRODUCT,,false,1730
+Modulation Type,modulation-type,STRING,PRODUCT,,false,1740
+Motor Voltage,motor-voltage,STRING,PRODUCT,,false,1750
+Motor Current,motor-current,STRING,PRODUCT,,false,1760
+Control Method,control-method,STRING,PRODUCT,,false,1770
+Feedback Type,feedback-type,STRING,PRODUCT,,false,1780
+Input Control Signal,input-control-signal,STRING,PRODUCT,,false,1790
+Protection Features,protection-features,STRING,PRODUCT,,false,1800
+Braking Type,braking-type,STRING,PRODUCT,,false,1810
+Brand Name,brand-name,STRING,PRODUCT,,false,1820
+RF Interface,rf-interface,STRING,PRODUCT,,false,1830
+Impedance,impedance,STRING,PRODUCT,,false,1840
+Maximum Frequency,maximum-frequency,STRING,PRODUCT,,false,1850
+Pin Type,pin-type,STRING,PRODUCT,,false,1860
+Mounting Style,mounting-style,STRING,PRODUCT,,false,1870
+Power Rating,power-rating,STRING,PRODUCT,,false,1880
+Control Interface,control-interface,STRING,PRODUCT,,false,1890
+Power Supply,power-supply,STRING,PRODUCT,,false,1900
+Cooling Type,cooling-type,STRING,PRODUCT,,false,1910
+Communication,communication,STRING,PRODUCT,,false,1920
+Tool Type,tool-type,STRING,PRODUCT,,false,1930
+Compatible Power,compatible-power,STRING,PRODUCT,,false,1940
+Compatible Brand,compatible-brand,STRING,PRODUCT,,false,1950
+Nozzle Outlet Size,nozzle-outlet-size,STRING,PRODUCT,,false,1960
+Gas Type,gas-type,STRING,PRODUCT,,false,1970
+Body Material,body-material,STRING,PRODUCT,,false,1980
+Capacity,capacity,STRING,PRODUCT,,false,1990
+Max Sheet Thickness,max-sheet-thickness,STRING,PRODUCT,,false,2000
+Max Bending Length,max-bending-length,STRING,PRODUCT,,false,2010
+Bending Accuracy,bending-accuracy,STRING,PRODUCT,,false,2020
+Bending Type,bending-type,STRING,PRODUCT,,false,2030
+Material Grade,material-grade,STRING,PRODUCT,,false,2040
+Supported Format,supported-format,STRING,PRODUCT,,false,2050
+Industry Served,industry-served,STRING,PRODUCT,,false,2060
+Service Mode,service-mode,STRING,PRODUCT,,false,2070
+Aperture Range,aperture-range,STRING,PRODUCT,,false,2080
+Focus,focus,STRING,PRODUCT,,false,2090
+Cleaner Type,cleaner-type,STRING,PRODUCT,,false,2100
+Lens Type Compatibility,lens-type-compatibility,STRING,PRODUCT,,false,2110
+Volume,volume,STRING,PRODUCT,,false,2120

@@ -482,3 +482,9 @@ export const updateSettingSchema = z.object({
   value: z.string().max(20000),
 });
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;
+
+/** Full gallery order for one product, first entry first. */
+export const reorderMediaSchema = z.object({
+  mediaIds: z.array(z.number().int().positive()).min(1).max(50),
+});
+export type ReorderMediaInput = z.infer<typeof reorderMediaSchema>;

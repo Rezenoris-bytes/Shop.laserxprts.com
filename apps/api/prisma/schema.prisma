@@ -310,6 +310,7 @@ enum ImportType {
   VARIANTS
   COMPATIBILITY
   INVENTORY
+  MEDIA
 }
 
 // ============================================================================

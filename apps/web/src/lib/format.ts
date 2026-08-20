@@ -31,3 +31,15 @@ export function formatDateTime(value: string | Date): string {
     timeZone: 'Asia/Kolkata',
   }).format(new Date(value));
 }
+
+/**
+ * Public URL for a stored file.
+ *
+ * The API serves its storage root at /uploads, and `path` is the location
+ * within it ("products/<sha256>.jpg"). Filenames are the SHA-256 of the bytes,
+ * so a URL always denotes the same image and is cached immutably.
+ */
+export function mediaUrl(path: string): string {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  return `${base.replace(/\/$/, '')}/uploads/${path.replace(/^\//, '')}`;
+}

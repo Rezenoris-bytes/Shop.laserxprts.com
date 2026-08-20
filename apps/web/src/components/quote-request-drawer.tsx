@@ -84,7 +84,7 @@ export function QuoteRequestDrawer() {
                     {line.resolved ? (
                       <>
                         <Link
-                          href={`/products/${line.resolved.product.slug}`}
+                          href={rowHref(line.resolved.product)}
                           onClick={close}
                           className="block text-sm font-semibold leading-snug hover:text-amber-dark"
                         >
@@ -166,4 +166,11 @@ function EmptyState() {
       </Link>
     </div>
   );
+}
+
+/** A product's row on its category listing — products have no page of their own. */
+function rowHref(product: { slug: string; category: { slug: string } | null }): string {
+  return product.category
+    ? `/catalogue?category=${product.category.slug}#${product.slug}`
+    : `/catalogue#${product.slug}`;
 }

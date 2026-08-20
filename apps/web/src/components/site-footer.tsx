@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { siteName, siteTagline } from '@/lib/site';
+import { siteName, siteTagline, businessPhone } from '@/lib/site';
 
 
 export function SiteFooter() {
@@ -25,8 +25,8 @@ export function SiteFooter() {
 
           {/* Right: callback form */}
           <div className="flex w-full max-w-sm flex-col items-start gap-3 lg:items-end lg:text-right">
-            <a href="tel:+918925842285" className="text-2xl font-black tracking-tight text-amber transition-colors hover:text-amber-dark sm:text-3xl">
-              +91 89258 42285
+            <a href={`tel:${businessPhone.replace(/\s/g, '')}`} className="text-2xl font-black tracking-tight text-amber transition-colors hover:text-amber-dark sm:text-3xl">
+              {businessPhone}
             </a>
             <div className="w-full space-y-3">
               <div className="flex flex-col gap-3 sm:flex-row">

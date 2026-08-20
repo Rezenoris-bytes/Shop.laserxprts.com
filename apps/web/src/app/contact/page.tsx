@@ -145,7 +145,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
       </section>
 
       {/* ── Our Locations Map Section ──────────────────────────────── */}
-      <section className="bg-white border-t border-ink-line py-14">
+      <section className="bg-white py-14">
         <div className="container-lei text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber">
             Nationwide presence
@@ -169,6 +169,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
 
 /* ── Icons ──────────────────────────────────────────────────────────── */
 
+// (icons remain the same)
 function PhoneIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -177,6 +178,7 @@ function PhoneIcon() {
   );
 }
 
+// (icons remain the same)
 function MailIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -186,6 +188,7 @@ function MailIcon() {
   );
 }
 
+// (icons remain the same)
 function PinIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>

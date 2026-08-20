@@ -189,6 +189,56 @@ async function adminRequest<T>(
   return payload as T;
 }
 
+/**
+ * Multipart upload with the same auth and refresh behaviour as adminFetch.
+ *
+ * FormData carries its own multipart boundary, so Content-Type must be left
+ * for the browser to set — naming it here produces a boundary-less header the
+ * server cannot parse.
+ */
+export async function adminUpload<T>(
+  path: string,
+  form: FormData,
+  method: 'POST' | 'PATCH' = 'POST',
+): Promise<T> {
+  const attempt = async (token: string | null): Promise<Response> => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+    return fetch(`${base}/api/v1${path}`, {
+      method,
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
+  };
+
+  let response = await attempt(currentToken);
+
+  if (response.status === 401 && currentToken !== null) {
+    try {
+      const refreshed = await api.refresh();
+      currentToken = refreshed.accessToken;
+      response = await attempt(currentToken);
+    } catch {
+      currentToken = null;
+      onUnauthorized?.();
+    }
+  }
+
+  const text = await response.text();
+  const payload: unknown = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    const error = (payload as { error?: { code: string; message: string } })?.error;
+    throw new ApiRequestError(
+      response.status,
+      error?.code ?? 'INTERNAL_ERROR',
+      error?.message ?? `Upload failed with status ${response.status}`,
+    );
+  }
+
+  return (payload as { data: T }).data;
+}
+
 export function adminFetch<T>(
   path: string,
   options: Omit<RequestInit, 'body'> & { body?: unknown } = {},

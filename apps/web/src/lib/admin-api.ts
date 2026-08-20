@@ -1,4 +1,4 @@
-import { adminFetch, adminFetchEnveloped } from './admin-auth';
+import { adminFetch, adminFetchEnveloped, adminUpload } from './admin-auth';
 import type { AdminEnquiryDetail, AdminEnquiryRow, ListMeta } from './api';
 
 export type { AdminEnquiryRow };
@@ -63,6 +63,24 @@ export interface AdminProductRow {
   _count: { variants: number };
 }
 
+export interface AdminProductMedia {
+  id: number;
+  fileId: number;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  file: {
+    id: number;
+    storedName: string;
+    path: string;
+    mimeType: string;
+    sizeBytes: number;
+    width: number | null;
+    height: number | null;
+    originalName: string;
+  };
+}
+
 export interface AdminProductDetail {
   id: number;
   categoryId: number;
@@ -76,6 +94,9 @@ export interface AdminProductDetail {
   gstRate: string | null;
   isFeatured: boolean;
   isActive: boolean;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  media: AdminProductMedia[];
   variants: Array<{
     id: number;
     sku: string;
@@ -215,6 +236,42 @@ export const adminApi = {
   updateProduct: (id: number, body: Record<string, unknown>) =>
     adminFetch<AdminProductDetail>(`/admin/products/${id}`, { method: 'PATCH', body }),
   deleteProduct: (id: number) => adminFetch(`/admin/products/${id}`, { method: 'DELETE' }),
+
+  // ── Product media ───────────────────────────────────────────────────
+  productMedia: (id: number) => adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media`),
+
+  uploadProductMedia: (id: number, files: File[]) => {
+    const form = new FormData();
+    for (const file of files) form.append('files', file);
+    return adminUpload<{
+      added: number;
+      failures: Array<{ filename: string; message: string }>;
+      media: AdminProductMedia[];
+    }>(`/admin/products/${id}/media`, form);
+  },
+
+  setPrimaryProductMedia: (id: number, mediaId: number) =>
+    adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media/${mediaId}/primary`, {
+      method: 'PATCH',
+    }),
+
+  reorderProductMedia: (id: number, mediaIds: number[]) =>
+    adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media/order`, {
+      method: 'PATCH',
+      body: { mediaIds },
+    }),
+
+  replaceProductMedia: (id: number, mediaId: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return adminUpload<AdminProductMedia[]>(
+      `/admin/products/${id}/media/${mediaId}/replace`,
+      form,
+    );
+  },
+
+  deleteProductMedia: (id: number, mediaId: number) =>
+    adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media/${mediaId}`, { method: 'DELETE' }),
 
   // Variants
   createVariant: (body: Record<string, unknown>) =>

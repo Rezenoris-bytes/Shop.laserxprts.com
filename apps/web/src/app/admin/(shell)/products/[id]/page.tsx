@@ -2,8 +2,16 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { adminApi, type AdminMachineBrand, type AdminProductDetail } from '@/lib/admin-api';
+import {
+  adminApi,
+  type AdminCategory,
+  type AdminMachineBrand,
+  type AdminPartBrand,
+  type AdminProductDetail,
+} from '@/lib/admin-api';
 import { AdminPageHeader, StatusChip } from '@/components/admin/data-table';
+import { ProductDetailsForm } from '@/components/admin/product-details-form';
+import { ProductMediaManager } from '@/components/admin/product-media-manager';
 import { useAdminAuth } from '@/lib/admin-auth';
 
 export default function ProductDetailPage() {
@@ -13,16 +21,21 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<AdminProductDetail | null>(null);
   const [machines, setMachines] = useState<AdminMachineBrand[]>([]);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [brands, setBrands] = useState<AdminPartBrand[]>([]);
 
   const load = () => adminApi.product(id).then(setProduct);
 
   useEffect(() => {
     load();
     adminApi.machines().then(setMachines);
+    adminApi.categories().then(setCategories);
+    adminApi.partBrands().then(setBrands);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const canUpdate = auth.hasPermission('CATALOGUE', 'update');
+  const canDelete = auth.hasPermission('CATALOGUE', 'delete');
   const canUpdateStock = auth.hasPermission('INVENTORY', 'update');
 
   if (!product) return <p className="text-sm text-ink-muted">Loading…</p>;
@@ -40,18 +53,39 @@ export default function ProductDetailPage() {
         action={
           canUpdate && (
             <button type="button" onClick={toggleActive} className="btn-secondary text-sm">
-              {product.isActive ? 'Deactivate' : 'Activate'}
+              {product.isActive ? 'Unpublish' : 'Publish'}
             </button>
           )
         }
       />
 
       <div className="mb-6 flex flex-wrap gap-2">
-        <StatusChip label={product.isActive ? 'Active' : 'Inactive'} tone={product.isActive ? 'ok' : 'muted'} />
+        <StatusChip
+          label={product.isActive ? 'Published' : 'Unpublished'}
+          tone={product.isActive ? 'ok' : 'muted'}
+        />
         <StatusChip label={product.productType} tone="muted" />
         {product.hsnCode && <StatusChip label={`HSN ${product.hsnCode}`} tone="muted" />}
         {product.gstRate && <StatusChip label={`GST ${product.gstRate}%`} tone="muted" />}
       </div>
+
+      <ProductDetailsForm
+        product={product}
+        categories={categories}
+        brands={brands}
+        canUpdate={canUpdate}
+        onSaved={load}
+      />
+
+      <ProductMediaManager
+        productId={product.id}
+        media={product.media ?? []}
+        canUpdate={canUpdate}
+        canDelete={canDelete}
+        // The manager returns the fresh gallery, so the page updates without a
+        // second round trip for the whole product.
+        onChange={(media) => setProduct((current) => (current ? { ...current, media } : current))}
+      />
 
       <VariantsSection product={product} canUpdate={canUpdate} canUpdateStock={canUpdateStock} onChange={load} />
       <CompatibilitySection product={product} machines={machines} canUpdate={canUpdate} onChange={load} />

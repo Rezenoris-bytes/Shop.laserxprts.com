@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQuoteRequest } from '@/lib/quote-request';
@@ -51,12 +52,6 @@ export function SiteHeader() {
           <div className="container-lei flex flex-wrap items-center justify-between gap-y-2 py-2.5">
             {/* Logo + company info */}
             <Link href="/" className="flex items-center gap-3">
-              <span
-                aria-hidden
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-amber text-sm font-black text-ink"
-              >
-                LEI
-              </span>
               <div>
                 <p className="text-sm font-bold leading-tight text-white">{siteName}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-white/60">
@@ -98,7 +93,18 @@ export function SiteHeader() {
 
         {/* Layer 2: Nav bar */}
         <div className="border-b border-ink-line bg-white/95 backdrop-blur">
-          <div className="container-lei flex h-14 items-center gap-4">
+          <div className="container-lei flex h-16 items-center gap-4">
+            {/* Logo in white bar */}
+            <Link href="/" className="shrink-0" aria-label="Home">
+              <Image
+                src="/laser_expert_logo.png"
+                alt="Laser Experts India"
+                width={180}
+                height={56}
+                className="h-14 w-auto object-contain"
+              />
+            </Link>
+
             <nav aria-label="Primary" className="hidden flex-1 items-center gap-1 lg:flex">
               {primaryNav.map((item) => (
                 <Link
@@ -196,9 +202,14 @@ export function SiteHeader() {
         <div className="container-lei flex h-16 items-center gap-3">
           {/* Hamburger + logo link */}
           <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Home">
-            <span className="grid h-9 w-9 place-items-center rounded bg-amber text-xs font-black text-ink">
-              LEI
-            </span>
+            <Image
+              src="/laser_expert_logo.png"
+              alt="Laser Experts India"
+              width={36}
+              height={36}
+              className="h-9 w-auto shrink-0 object-contain"
+              priority
+            />
           </Link>
 
           {/* Nav links — desktop */}

@@ -145,7 +145,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
       </section>
 
       {/* ── Our Locations Map Section ──────────────────────────────── */}
-      <section className="bg-ink-wash border-t border-ink-line py-14">
+      <section className="bg-white border-t border-ink-line py-14">
         <div className="container-lei text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber">
             Nationwide presence

@@ -9,7 +9,15 @@ interface Props {
 
 export function OfficesMap({ offices }: Props) {
   // Default to Hosur (Head Office)
-  const [selectedOffice, setSelectedOffice] = useState<Office>(offices[0]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(offices[0]?.city ?? null);
+
+  // Keyed by city rather than held as an object: the parent renders from
+  // site config, and holding a copy of the office would keep showing stale
+  // details after that config changes.
+  const selectedOffice = offices.find((office) => office.city === selectedCity) ?? offices[0];
+  if (!selectedOffice) return null;
+
+  const setSelectedOffice = (office: Office) => setSelectedCity(office.city);
 
   return (
     <div className="rounded-card border border-ink-line bg-white overflow-hidden shadow-sm">

@@ -10,6 +10,7 @@ import { AuditModule } from './audit/audit.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { SettingsModule } from './settings/settings.module';
+import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
 import { CatalogueModule } from './catalogue/catalogue.module';
 import { SalesModule } from './sales/sales.module';
@@ -37,6 +38,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     AuditModule,
     NotificationsModule,
     SettingsModule,
+    FilesModule,
     JwtModule.register({}),
     AuthModule,
     CatalogueModule,

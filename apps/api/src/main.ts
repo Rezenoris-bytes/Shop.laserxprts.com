@@ -4,6 +4,9 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
+import fastifyStatic from '@fastify/static';
+import fastifyMultipart from '@fastify/multipart';
+import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
@@ -59,6 +62,36 @@ async function bootstrap(): Promise<void> {
         done(null, payload);
       });
   }
+
+  // ── Uploads ───────────────────────────────────────────────────────────
+  // Admin image uploads only. The global bodyLimit stays small — this raises
+  // the ceiling for multipart parts alone, so a large JSON payload is still
+  // refused everywhere else.
+  await app.register(fastifyMultipart, {
+    limits: {
+      fileSize: 8 * 1024 * 1024,
+      files: 12,
+      fields: 20,
+    },
+  });
+
+  // ── Product images ────────────────────────────────────────────────────
+  // Served straight off disk under /uploads. These are content-addressed —
+  // the filename is the SHA-256 of the bytes — so a given URL can never point
+  // at different content and is safe to cache indefinitely. Registered before
+  // the global prefix is set so the path stays /uploads, not /api/v1/uploads.
+  await app.register(fastifyStatic, {
+    root: resolve(config.storageRoot),
+    prefix: '/uploads/',
+    decorateReply: false,
+    index: false,
+    // Never execute anything from the upload directory, whatever its extension.
+    setHeaders: (reply) => {
+      reply.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      reply.setHeader('X-Content-Type-Options', 'nosniff');
+      reply.setHeader('Content-Disposition', 'inline');
+    },
+  });
 
   // ── CORS: explicit allowlist, never a wildcard ────────────────────────
   app.enableCors({

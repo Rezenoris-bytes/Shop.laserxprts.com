@@ -21,11 +21,13 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "db:seed": "ts-node --transpile-only prisma/seed/index.ts",
-    "db:purge-seed": "ts-node --transpile-only prisma/seed/purge.ts"
+    "db:purge-seed": "ts-node --transpile-only prisma/seed/purge.ts",
+    "db:import-reference": "ts-node --transpile-only prisma/seed/import-reference.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.1",
     "@fastify/helmet": "^12.0.1",
+    "@fastify/multipart": "^10.1.1",
     "@fastify/static": "^8.0.3",
     "@lei/shared": "*",
     "@nestjs/common": "^11.0.1",
@@ -39,6 +41,7 @@
     "ioredis": "^5.4.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sharp": "^0.35.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {

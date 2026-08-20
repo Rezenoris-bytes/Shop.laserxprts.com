@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-white text-ink antialiased;
+  }
+
+  /*
+   * Visible focus is a WCAG requirement and the default outline is the thing
+   * most often removed by accident. Replaced, never deleted.
+   */
+  :focus-visible {
+    @apply outline-none ring-2 ring-amber ring-offset-2;
+  }
+}
+
+@layer components {
+  .container-lei {
+    @apply mx-auto w-full max-w-container px-4 sm:px-6 lg:px-8;
+  }
+
+  /*
+   * Black on amber is ~10:1. White on amber is ~1.8:1 and fails AA badly, so
+   * the accent button always carries dark text.
+   */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-amber px-5 py-2.5
+           text-sm font-semibold text-ink transition-colors hover:bg-amber-dark
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-ink-line
+           bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors
+           hover:bg-ink-wash disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-ink px-5 py-2.5
+           text-sm font-semibold text-white transition-colors hover:bg-ink-soft
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .field {
+    @apply w-full rounded-md border border-ink-line bg-white px-3 py-2 text-sm
+           placeholder:text-ink-muted focus:border-amber;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+
+  .card {
+    @apply rounded-card border border-ink-line bg-white;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}

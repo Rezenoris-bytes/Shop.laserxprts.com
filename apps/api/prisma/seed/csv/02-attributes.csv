@@ -1,0 +1,15 @@
+name,slug,data_type,default_scope,unit,is_filterable,sort_order
+Head / Series,head-series,STRING,PRODUCT,,true,10
+Nozzle Type,nozzle-type,STRING,PRODUCT,,true,20
+Material,material,STRING,PRODUCT,,true,30
+Coating,coating,STRING,PRODUCT,,true,40
+Thread,thread,STRING,VARIANT,,true,50
+Nozzle Height,nozzle-height,DECIMAL,VARIANT,mm,true,60
+Orifice Diameter,orifice-diameter,DECIMAL,VARIANT,mm,true,70
+Outer Diameter,outer-diameter,DECIMAL,VARIANT,mm,true,80
+Thickness,thickness,DECIMAL,VARIANT,mm,true,90
+Focal Length,focal-length,DECIMAL,VARIANT,mm,true,100
+Wavelength Range,wavelength-range,STRING,PRODUCT,nm,true,110
+Max Power,max-power,INTEGER,PRODUCT,W,true,120
+Sealing Type,sealing-type,STRING,PRODUCT,,false,130
+Pack Contents,pack-contents,STRING,VARIANT,,false,140

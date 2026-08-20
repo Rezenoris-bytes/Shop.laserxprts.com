@@ -95,7 +95,7 @@ export const api = {
       ...(typeof window === 'undefined' ? { next: { revalidate: 300 } } : {}),
     });
     if (!response.ok) throw new ApiRequestError(response.status, 'INTERNAL_ERROR', 'Failed to load products');
-    return (await response.json()) as { data: ProductCard[]; meta: ListMeta };
+    return (await response.json()) as { data: ProductListing[]; meta: ListMeta };
   },
 
   product: (slug: string) =>
@@ -183,10 +183,36 @@ export interface ProductCard {
   priceTo: number | null;
   hasStock: boolean;
   variantCount: number;
+  /** The variant a card-level quote request is raised against. */
+  defaultVariant: { id: number; minOrderQty: number } | null;
   isSeedData: boolean;
   category: { name: string; slug: string } | null;
   brand: { name: string; slug: string } | null;
-  image: { storedName: string; alt: string | null } | null;
+  image: { storedName: string; path: string; alt: string | null } | null;
+  /** Product-level specifications, ordered, for the listing row's spec table. */
+  specs: Array<{ name: string; slug: string; value: string; unit: string | null }>;
+}
+
+/**
+ * A catalogue row.
+ *
+ * Products have no page of their own, so a row carries everything a product
+ * page used to. A superset of ProductCard, which the homepage, search and
+ * related strips still use in its cheaper form.
+ */
+export interface ProductListing extends ProductCard {
+  description: string | null;
+  images: Array<{
+    id: number;
+    alt: string | null;
+    isPrimary: boolean;
+    storedName: string;
+    path: string;
+    width: number | null;
+    height: number | null;
+  }>;
+  axes: Array<{ slug: string; name: string; unit: string | null; values: string[] }>;
+  variants: ProductVariantView[];
 }
 
 export interface CategoryNode {
@@ -196,6 +222,10 @@ export interface CategoryNode {
   parentId: number | null;
   description: string | null;
   productCount: number;
+  /** Up to five product links for the sidebar's expanded panel. */
+  products: Array<{ name: string; slug: string }>;
+  /** Taken from the first product in the category; categories have no artwork. */
+  image: { storedName: string; path: string } | null;
   children: CategoryNode[];
 }
 
@@ -253,7 +283,15 @@ export interface ProductDetail {
   };
   category: { id: number; name: string; slug: string; parent: { name: string; slug: string } | null } | null;
   brand: { id: number; name: string; slug: string } | null;
-  images: Array<{ id: number; alt: string | null; isPrimary: boolean; storedName: string }>;
+  images: Array<{
+    id: number;
+    alt: string | null;
+    isPrimary: boolean;
+    storedName: string;
+    path: string;
+    width: number | null;
+    height: number | null;
+  }>;
   specs: Array<{ name: string; slug: string; value: string; unit: string | null }>;
   axes: Array<{ slug: string; name: string; unit: string | null; values: string[] }>;
   variants: ProductVariantView[];
@@ -308,7 +346,13 @@ export interface ResolvedBasketItem {
   packSize: number;
   minOrderQty: number;
   stockStatus: string;
-  product: { id: number; name: string; slug: string; image: string | null };
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    category: { name: string; slug: string } | null;
+    image: string | null;
+  };
 }
 
 export interface ResolvedBasket {

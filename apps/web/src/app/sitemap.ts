@@ -19,10 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const [categories, products] = await Promise.all([
-      api.categories(),
-      api.products({ perPage: 100 }),
-    ]);
+    const categories = await api.categories();
 
     const flat: MetadataRoute.Sitemap = [];
     const walk = (nodes: Awaited<ReturnType<typeof api.categories>>) => {
@@ -37,15 +34,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
     walk(categories);
 
-    return [
-      ...staticRoutes,
-      ...flat,
-      ...products.map((product) => ({
-        url: canonical(`/products/${product.slug}`),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      })),
-    ];
+    // Products have no URL of their own — each one is a row on its category
+    // page, reachable by anchor. Listing anchors here would submit the same
+    // page many times over under URLs that are not separate documents.
+    return [...staticRoutes, ...flat];
   } catch {
     // A sitemap that 500s is worse than a small one.
     return staticRoutes;

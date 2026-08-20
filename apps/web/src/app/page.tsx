@@ -1,8 +1,10 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 import { api } from '@/lib/api';
 import { canonical, popularSearches } from '@/lib/site';
 import { ProductCardTile } from '@/components/product-card';
+import { mediaUrl } from '@/lib/format';
 import { CompatibilityFinder } from '@/components/compatibility-finder';
 
 export const metadata = {
@@ -26,17 +28,39 @@ export default async function HomePage() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-ink text-white">
         {/*
-          The background uses a subtle radial gradient so the left text area is
-          pure black for readability, fading slightly towards the right where
-          the image sits.
+          The photograph bleeds off the right edge rather than sitting in a
+          box, so the hero reads as one image with the copy laid over it.
+          Hidden below lg: at that width there is no "right side" to fill, and
+          a full-bleed photo behind the search control costs legibility exactly
+          where the hero has to work hardest.
         */}
-        <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_left,_var(--tw-gradient-stops))] from-ink via-ink/95 to-ink/50" />
+        <div className="absolute inset-y-0 right-0 z-0 hidden w-[52%] lg:block">
+          <Image
+            src="/hero-packing.png"
+            alt=""
+            fill
+            // The hero image is the page's LCP element, so it is fetched
+            // eagerly rather than lazily like everything below the fold.
+            priority
+            sizes="52vw"
+            className="object-cover object-center"
+          />
+        </div>
+
+        {/*
+          A horizontal fade, not the radial one this replaced: with a photo
+          actually present, the left column has to be solid black for the copy
+          to hold up, and the right has to be clear enough to see the parts
+          being packed. A radial fade left the far edge at 50% black, which
+          muddied the photograph without helping the text.
+        */}
+        <div className="absolute inset-0 z-[1] bg-gradient-to-r from-ink from-40% via-ink/60 via-60% to-transparent" />
 
         <div className="relative z-10 container-lei">
           <div className="flex flex-col lg:flex-row lg:items-center">
             
             {/* ── Content ── */}
-            <div className="w-full py-8 lg:py-10 max-w-2xl">
+            <div className="w-full py-8 lg:py-10 max-w-2xl lg:max-w-[52%]">
               <h1 className="text-3xl font-black leading-[1.05] tracking-tight uppercase sm:text-4xl lg:text-5xl">
                 The Right Parts,<br/>
                 <span className="text-amber">The Right Performance.</span>
@@ -84,8 +108,21 @@ export default async function HomePage() {
             <Link
               key={category.id}
               href={`/catalogue?category=${category.slug}`}
-              className="card p-4 text-center transition-shadow hover:shadow-md"
+              className="card group p-4 text-center card-hover"
             >
+              <div className="relative mx-auto mb-3 aspect-square w-full overflow-hidden rounded bg-white">
+                {category.image ? (
+                  <Image
+                    src={mediaUrl(category.image.path)}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 45vw, 180px"
+                    className="object-contain p-1 card-zoom"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-ink-wash" />
+                )}
+              </div>
               <p className="text-sm font-semibold leading-snug">{category.name}</p>
               <p className="mt-1 text-[11px] text-ink-muted">
                 {category.productCount} {category.productCount === 1 ? 'product' : 'products'}
@@ -113,8 +150,28 @@ export default async function HomePage() {
 
       {/* ── Bulk enquiry ─────────────────────────────────────────────── */}
       <section className="container-lei pb-16">
-        <div className="rounded-card bg-ink px-6 py-10 text-white sm:px-10">
-          <div className="max-w-xl">
+        <div className="relative overflow-hidden rounded-card bg-ink px-6 py-10 text-white sm:px-10 lg:flex lg:min-h-[340px] lg:items-center">
+          {/*
+            The photograph is the message here — a quote request sheet beside
+            the parts it lists — so it runs the full width of the band rather
+            than sitting off to one side.
+
+            object-left on small screens is deliberate: a narrow band crops this
+            2.5:1 frame hard, and anchoring left keeps the copy over the shadowed
+            wood instead of over the clipboard.
+          */}
+          <Image
+            src="/bulk-quote-request.png"
+            alt=""
+            fill
+            sizes="(max-width: 1280px) 100vw, 1200px"
+            className="object-cover object-left lg:object-center"
+          />
+
+          {/* Solid through the copy, clearing towards the parts on the right. */}
+          <div className="absolute inset-0 bg-gradient-to-r from-ink from-20% via-ink/70 via-55% to-ink/10" />
+
+          <div className="relative max-w-xl">
             <h2 className="text-2xl font-bold">
               Need bulk quantities?
               <span className="block text-amber">Get special pricing.</span>

@@ -2,6 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import type { ProductDetail, ProductVariantView } from '@/lib/api';
+
+/**
+ * Only the two fields the selector actually reads. Typed structurally so the
+ * same component serves a catalogue row and any future surface, rather than
+ * demanding a whole ProductDetail that no longer exists on the listing path.
+ */
+type SelectableProduct = Pick<ProductDetail, 'axes' | 'variants'>;
 import { useQuoteRequest } from '@/lib/quote-request';
 
 import { stockLabel, stockToneClass } from '@/lib/stock';
@@ -22,7 +29,7 @@ import { stockLabel, stockToneClass } from '@/lib/stock';
  * so this path is exercised. Hiding them would make the range look smaller
  * than it is; disabling shows what is available for another thread.
  */
-export function VariantSelector({ product }: { product: ProductDetail }) {
+export function VariantSelector({ product }: { product: SelectableProduct }) {
   const { add } = useQuoteRequest();
 
   const initial = product.variants.find((variant) => variant.isDefault) ?? product.variants[0];

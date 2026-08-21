@@ -123,7 +123,8 @@ async function bootstrap(): Promise<void> {
   // Deny-by-default: refuses to start if any route is unguarded.
   assertEveryRouteIsGuarded(app);
 
-  await app.listen(config.apiPort, '0.0.0.0');
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : config.apiPort;
+  await app.listen(port, '0.0.0.0');
 
   logger.log(`LEI API listening on ${config.apiUrl}`);
   logger.log(`Environment: ${config.nodeEnv}  |  DEMO_MODE: ${config.demoMode ? 'ON' : 'OFF'}`);

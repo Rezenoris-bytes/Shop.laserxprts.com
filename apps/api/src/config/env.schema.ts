@@ -113,13 +113,6 @@ export const envSchema = z
           message: 'Access and refresh secrets must differ in production',
         });
       }
-      if (env.MAIL_PROVIDER === 'console') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['MAIL_PROVIDER'],
-          message: 'MAIL_PROVIDER cannot be "console" in production',
-        });
-      }
       if (!env.SITE_URL.startsWith('https://')) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

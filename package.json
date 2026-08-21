@@ -15,7 +15,7 @@
     "dev": "npm run dev --workspaces --if-present",
     "dev:api": "npm run dev -w @lei/api",
     "dev:web": "npm run dev -w @lei/web",
-    "build": "npm run build -w @lei/shared && npm run build -w @lei/api && npm run build -w @lei/web",
+    "build": "npm run build -w @lei/shared && npm run db:generate -w @lei/api && npm run build -w @lei/api && npm run build -w @lei/web",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

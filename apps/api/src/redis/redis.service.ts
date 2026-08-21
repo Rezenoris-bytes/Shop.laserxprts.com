@@ -27,7 +27,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly config: AppConfigService) {}
 
   onModuleInit(): void {
-    this.client = new Redis(this.config.redisUrl, {
+    const url = this.config.redisUrl;
+
+    if (!url) {
+      this.logger.warn(
+        'REDIS_URL is not set — Redis is disabled. Rate limiting will fail open and ' +
+          'token-reuse detection is inactive. Set REDIS_URL in production.',
+      );
+      return;
+    }
+
+    this.client = new Redis(url, {
       maxRetriesPerRequest: 2,
       enableOfflineQueue: false,
       lazyConnect: true,

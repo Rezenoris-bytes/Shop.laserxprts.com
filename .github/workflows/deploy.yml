@@ -1,0 +1,119 @@
+name: Deploy to Hostinger
+
+# Runs on every push to main, and can be triggered manually from GitHub's
+# Actions tab (workflow_dispatch) for re-deployments without a code change.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only one deployment may run at a time. A new push while a deploy is running
+# waits rather than cancels, so migrations always complete.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # ── Step 1: API ─────────────────────────────────────────────────────────────
+  # Deploys the NestJS backend to crm.laserxprts.com via SSH.
+  # DB migrations run here before the web build so the schema is always
+  # up to date before new frontend code goes live.
+  deploy-api:
+    name: Deploy API → crm.laserxprts.com
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Deploy and migrate via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # Hostinger Business uses port 65002, not 22.
+          port: 65002
+          timeout: 300s
+          script: |
+            set -euo pipefail
+
+            # ── Clone on first run, pull on subsequent runs ──────────────
+            REPO_DIR="$HOME/lei-platform"
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              echo "First deploy: cloning repository..."
+              git clone ${{ secrets.GIT_REPO_URL }} "$REPO_DIR"
+            fi
+
+            cd "$REPO_DIR"
+
+            echo "Pulling latest code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # ── Write .env on first deploy ───────────────────────────────
+            # On subsequent deploys the file is left as-is unless you
+            # manually delete it and re-run. This avoids overwriting any
+            # runtime changes made on the server.
+            if [ ! -f .env ]; then
+              echo "Writing production .env (first deploy)..."
+              printf '%s' "$PRODUCTION_ENV" > .env
+            fi
+
+            # ── Install and build ────────────────────────────────────────
+            echo "Installing dependencies..."
+            npm ci --prefer-offline
+
+            echo "Generating Prisma client..."
+            npm run db:generate -w @lei/api
+
+            echo "Building shared types..."
+            npm run build -w @lei/shared
+
+            echo "Building API..."
+            npm run build -w @lei/api
+
+            # ── Migrate database ─────────────────────────────────────────
+            # prisma migrate deploy is safe to run on every deployment:
+            # it only applies migrations that have not been applied yet.
+            echo "Running database migrations..."
+            npm run db:migrate:deploy -w @lei/api
+
+            echo "✅ API build and migration complete."
+        env:
+          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+
+  # ── Step 2: Web ─────────────────────────────────────────────────────────────
+  # Deploys the Next.js frontend to shop.laserxprts.com via SSH.
+  # Runs after the API job so the database is always migrated before
+  # new frontend code starts serving requests.
+  deploy-web:
+    name: Deploy Web → shop.laserxprts.com
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    needs: deploy-api
+
+    steps:
+      - name: Build Next.js via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 65002
+          timeout: 300s
+          script: |
+            set -euo pipefail
+
+            cd "$HOME/lei-platform"
+
+            echo "Building Next.js frontend..."
+            npm run build -w @lei/web
+
+            echo "✅ Web build complete."

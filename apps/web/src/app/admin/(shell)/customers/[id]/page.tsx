@@ -39,14 +39,19 @@ export default function CustomerDetailPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           <section className="card p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Enquiries</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+              Enquiries
+            </h2>
             {customer.enquiries.length === 0 ? (
               <p className="mt-2 text-sm text-ink-muted">None yet.</p>
             ) : (
               <ul className="mt-3 divide-y divide-ink-line">
                 {customer.enquiries.map((enquiry) => (
                   <li key={enquiry.id} className="flex items-center justify-between py-2 text-sm">
-                    <a href={`/admin/enquiries/${enquiry.id}`} className="font-mono text-xs underline">
+                    <a
+                      href={`/admin/enquiries/${enquiry.id}`}
+                      className="font-mono text-xs underline"
+                    >
                       {enquiry.publicRef}
                     </a>
                     <span className="text-ink-muted">{formatDateTime(enquiry.createdAt)}</span>
@@ -83,7 +88,10 @@ export default function CustomerDetailPage() {
           <Row label="GSTIN" value={customer.gstin ?? '—'} />
           <Row label="State code" value={customer.stateCode ?? '—'} />
           <Row label="Status" value={customer.status} />
-          <Row label="Verified" value={customer.isVerified ? 'Yes' : 'No — auto-created from a public form'} />
+          <Row
+            label="Verified"
+            value={customer.isVerified ? 'Yes' : 'No — auto-created from a public form'}
+          />
           {customer.notes && (
             <div className="pt-2">
               <p className="text-ink-muted">Notes</p>

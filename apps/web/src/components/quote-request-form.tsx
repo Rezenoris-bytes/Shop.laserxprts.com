@@ -52,6 +52,13 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
     return price === null || price === undefined ? sum : sum + price * line.quantity;
   }, 0);
 
+  // With nothing in the basket carrying a price, an "indicative total" of zero
+  // is not an indication — it is a quoted price of nothing. Show the total only
+  // when at least one line actually has a figure behind it.
+  const hasPricedLine = resolved.some(
+    (line) => line.resolved?.priceType === 'FIXED' && line.resolved.price !== null,
+  );
+
   const set = (key: keyof typeof values, value: string | boolean) =>
     setValues((current) => ({ ...current, [key]: value }));
 
@@ -152,7 +159,7 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/products/${line.resolved.product.slug}`}
+                      href={rowHref(line.resolved.product)}
                       className="text-sm font-semibold hover:text-amber-dark"
                     >
                       {line.resolved.product.name}
@@ -210,13 +217,22 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
           ))}
         </ul>
 
-        <div className="mt-4 flex items-baseline justify-between">
-          <span className="text-sm text-ink-muted">Indicative total</span>
-          <span className="text-lg font-bold">{formatInr(estimate)}</span>
-        </div>
-        <p className="mt-1 text-[11px] text-ink-muted">
-          Excluding GST and freight. Your quotation will confirm final pricing.
-        </p>
+        {hasPricedLine ? (
+          <>
+            <div className="mt-4 flex items-baseline justify-between">
+              <span className="text-sm text-ink-muted">Indicative total</span>
+              <span className="text-lg font-bold">{formatInr(estimate)}</span>
+            </div>
+            <p className="mt-1 text-[11px] text-ink-muted">
+              Excluding GST and freight. Your quotation will confirm final pricing.
+            </p>
+          </>
+        ) : (
+          <p className="mt-4 text-[11px] text-ink-muted">
+            Every item here is quoted individually. We will send pricing, GST and freight in your
+            quotation.
+          </p>
+        )}
       </div>
 
       <div className="card h-fit p-5">
@@ -418,9 +434,18 @@ function Field({
 function SuccessPanel({ result }: { result: { publicRef: string; itemCount: number } }) {
   return (
     <div className="card mx-auto max-w-lg p-8 text-center">
-      <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-green-50" aria-hidden>
+      <div
+        className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-green-50"
+        aria-hidden
+      >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="m5 13 4 4L19 7" stroke="#1d7a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="m5 13 4 4L19 7"
+            stroke="#1d7a4a"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
 
@@ -450,4 +475,11 @@ function SuccessPanel({ result }: { result: { publicRef: string; itemCount: numb
       </div>
     </div>
   );
+}
+
+/** A product's row on its category listing — products have no page of their own. */
+function rowHref(product: { slug: string; category: { slug: string } | null }): string {
+  return product.category
+    ? `/catalogue?category=${product.category.slug}#${product.slug}`
+    : `/catalogue#${product.slug}`;
 }

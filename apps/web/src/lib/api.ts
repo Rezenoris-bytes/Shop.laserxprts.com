@@ -94,8 +94,9 @@ export const api = {
     const response = await fetch(`${base()}/api/v1/products?${toQuery(query)}`, {
       ...(typeof window === 'undefined' ? { next: { revalidate: 300 } } : {}),
     });
-    if (!response.ok) throw new ApiRequestError(response.status, 'INTERNAL_ERROR', 'Failed to load products');
-    return (await response.json()) as { data: ProductCard[]; meta: ListMeta };
+    if (!response.ok)
+      throw new ApiRequestError(response.status, 'INTERNAL_ERROR', 'Failed to load products');
+    return (await response.json()) as { data: ProductListing[]; meta: ListMeta };
   },
 
   product: (slug: string) =>
@@ -117,7 +118,10 @@ export const api = {
       { cache: 'no-store' },
     );
     if (!response.ok) throw new ApiRequestError(response.status, 'INTERNAL_ERROR', 'Search failed');
-    return (await response.json()) as { data: ProductCard[]; meta: ListMeta & { matchType: string } };
+    return (await response.json()) as {
+      data: ProductCard[];
+      meta: ListMeta & { matchType: string };
+    };
   },
 
   /** Basket rehydration. Prices always come from here, never from storage. */
@@ -183,10 +187,36 @@ export interface ProductCard {
   priceTo: number | null;
   hasStock: boolean;
   variantCount: number;
+  /** The variant a card-level quote request is raised against. */
+  defaultVariant: { id: number; minOrderQty: number } | null;
   isSeedData: boolean;
   category: { name: string; slug: string } | null;
   brand: { name: string; slug: string } | null;
-  image: { storedName: string; alt: string | null } | null;
+  image: { storedName: string; path: string; alt: string | null } | null;
+  /** Product-level specifications, ordered, for the listing row's spec table. */
+  specs: Array<{ name: string; slug: string; value: string; unit: string | null }>;
+}
+
+/**
+ * A catalogue row.
+ *
+ * Products have no page of their own, so a row carries everything a product
+ * page used to. A superset of ProductCard, which the homepage, search and
+ * related strips still use in its cheaper form.
+ */
+export interface ProductListing extends ProductCard {
+  description: string | null;
+  images: Array<{
+    id: number;
+    alt: string | null;
+    isPrimary: boolean;
+    storedName: string;
+    path: string;
+    width: number | null;
+    height: number | null;
+  }>;
+  axes: Array<{ slug: string; name: string; unit: string | null; values: string[] }>;
+  variants: ProductVariantView[];
 }
 
 export interface CategoryNode {
@@ -196,6 +226,10 @@ export interface CategoryNode {
   parentId: number | null;
   description: string | null;
   productCount: number;
+  /** Up to five product links for the sidebar's expanded panel. */
+  products: Array<{ name: string; slug: string }>;
+  /** Taken from the first product in the category; categories have no artwork. */
+  image: { storedName: string; path: string } | null;
   children: CategoryNode[];
 }
 
@@ -251,9 +285,22 @@ export interface ProductDetail {
     ogDescription: string | null;
     indexable: boolean;
   };
-  category: { id: number; name: string; slug: string; parent: { name: string; slug: string } | null } | null;
+  category: {
+    id: number;
+    name: string;
+    slug: string;
+    parent: { name: string; slug: string } | null;
+  } | null;
   brand: { id: number; name: string; slug: string } | null;
-  images: Array<{ id: number; alt: string | null; isPrimary: boolean; storedName: string }>;
+  images: Array<{
+    id: number;
+    alt: string | null;
+    isPrimary: boolean;
+    storedName: string;
+    path: string;
+    width: number | null;
+    height: number | null;
+  }>;
   specs: Array<{ name: string; slug: string; value: string; unit: string | null }>;
   axes: Array<{ slug: string; name: string; unit: string | null; values: string[] }>;
   variants: ProductVariantView[];
@@ -287,7 +334,12 @@ export interface MachineBrandNode {
     id: number;
     name: string;
     slug: string;
-    variants: Array<{ id: number; name: string; laserType: string | null; powerWatts: number | null }>;
+    variants: Array<{
+      id: number;
+      name: string;
+      laserType: string | null;
+      powerWatts: number | null;
+    }>;
   }>;
 }
 
@@ -308,7 +360,13 @@ export interface ResolvedBasketItem {
   packSize: number;
   minOrderQty: number;
   stockStatus: string;
-  product: { id: number; name: string; slug: string; image: string | null };
+  product: {
+    id: number;
+    name: string;
+    slug: string;
+    category: { name: string; slug: string } | null;
+    image: string | null;
+  };
 }
 
 export interface ResolvedBasket {
@@ -354,7 +412,12 @@ export interface AdminEnquiryDetail extends AdminEnquiryRow {
     unitPriceSnapshot: string | null;
     quantity: number;
     customerNote: string | null;
-    variant: { id: number; sku: string; partNumber: string; product: { name: string; slug: string } } | null;
+    variant: {
+      id: number;
+      sku: string;
+      partNumber: string;
+      product: { name: string; slug: string };
+    } | null;
   }>;
   customer: { id: number; companyName: string | null; contactName: string; status: string } | null;
 }

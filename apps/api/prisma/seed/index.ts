@@ -274,7 +274,10 @@ async function seedUsers() {
     // SUPER_ADMIN needs no permission rows — the guard short-circuits on role.
     if (account.department) {
       await prisma.adminPermission.createMany({
-        data: expandTemplate(account.department).map((row) => ({ ...row, userId: user.id })) as never,
+        data: expandTemplate(account.department).map((row) => ({
+          ...row,
+          userId: user.id,
+        })) as never,
       });
     }
 

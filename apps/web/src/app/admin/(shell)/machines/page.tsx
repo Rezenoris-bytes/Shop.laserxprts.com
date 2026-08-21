@@ -48,7 +48,12 @@ export default function MachinesPage() {
             <label htmlFor="brand" className="label">
               New machine brand
             </label>
-            <input id="brand" value={newBrand} onChange={(e) => setNewBrand(e.target.value)} className="field" />
+            <input
+              id="brand"
+              value={newBrand}
+              onChange={(e) => setNewBrand(e.target.value)}
+              className="field"
+            />
           </div>
           <button type="submit" className="btn-primary">
             Add brand
@@ -62,10 +67,15 @@ export default function MachinesPage() {
             <h2 className="text-sm font-bold">{brand.name}</h2>
             <ul className="mt-2 flex flex-wrap gap-2">
               {brand.models.map((model) => (
-                <li key={model.id} className="rounded-md border border-ink-line px-2.5 py-1 text-xs">
+                <li
+                  key={model.id}
+                  className="rounded-md border border-ink-line px-2.5 py-1 text-xs"
+                >
                   {model.name}
                   {model.variants.length > 0 && (
-                    <span className="ml-1 text-ink-muted">({model.variants.map((v) => v.name).join(', ')})</span>
+                    <span className="ml-1 text-ink-muted">
+                      ({model.variants.map((v) => v.name).join(', ')})
+                    </span>
                   )}
                 </li>
               ))}
@@ -75,10 +85,16 @@ export default function MachinesPage() {
                 <input
                   placeholder="New model name"
                   value={newModel[brand.id] ?? ''}
-                  onChange={(e) => setNewModel((current) => ({ ...current, [brand.id]: e.target.value }))}
+                  onChange={(e) =>
+                    setNewModel((current) => ({ ...current, [brand.id]: e.target.value }))
+                  }
                   className="field h-8 max-w-xs py-1 text-xs"
                 />
-                <button type="button" onClick={() => addModel(brand.id)} className="btn-secondary px-3 py-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => addModel(brand.id)}
+                  className="btn-secondary px-3 py-1 text-xs"
+                >
                   Add model
                 </button>
               </div>

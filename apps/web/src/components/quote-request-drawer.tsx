@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import { useQuoteRequest } from '@/lib/quote-request';
 
-
 /**
  * Quote Request drawer.
  *
@@ -38,12 +37,13 @@ export function QuoteRequestDrawer() {
 
   if (!isOpen) return null;
 
-
-
-
-
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Quote request">
+    <div
+      className="fixed inset-0 z-50 flex justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Quote request"
+    >
       <button
         type="button"
         aria-label="Close quote request"
@@ -58,7 +58,9 @@ export function QuoteRequestDrawer() {
         <div className="flex items-center justify-between border-b border-ink-line px-5 py-4">
           <h2 className="text-base font-bold">
             Quote Request
-            {count > 0 && <span className="ml-2 text-sm font-normal text-ink-muted">{count} item(s)</span>}
+            {count > 0 && (
+              <span className="ml-2 text-sm font-normal text-ink-muted">{count} item(s)</span>
+            )}
           </h2>
           <button
             ref={closeRef}
@@ -68,7 +70,12 @@ export function QuoteRequestDrawer() {
             className="grid h-9 w-9 place-items-center rounded-md hover:bg-ink-wash"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
@@ -84,7 +91,7 @@ export function QuoteRequestDrawer() {
                     {line.resolved ? (
                       <>
                         <Link
-                          href={`/products/${line.resolved.product.slug}`}
+                          href={rowHref(line.resolved.product)}
                           onClick={close}
                           className="block text-sm font-semibold leading-snug hover:text-amber-dark"
                         >
@@ -93,7 +100,6 @@ export function QuoteRequestDrawer() {
                         <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
                           {line.resolved.partNumber} · {line.resolved.name}
                         </p>
-
                       </>
                     ) : (
                       /* Resolved to nothing: deactivated or withdrawn since it
@@ -135,13 +141,12 @@ export function QuoteRequestDrawer() {
           {isLoading && <p className="mt-3 text-xs text-ink-muted">Checking availability…</p>}
         </div>
 
-            <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
-              Our team will confirm pricing with your quotation.
-            </p>
-            <Link href="/quote-request" onClick={close} className="btn-primary mt-3 w-full">
-              Review and submit
-            </Link>
-
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-muted">
+          Our team will confirm pricing with your quotation.
+        </p>
+        <Link href="/quote-request" onClick={close} className="btn-primary mt-3 w-full">
+          Review and submit
+        </Link>
       </div>
     </div>
   );
@@ -166,4 +171,11 @@ function EmptyState() {
       </Link>
     </div>
   );
+}
+
+/** A product's row on its category listing — products have no page of their own. */
+function rowHref(product: { slug: string; category: { slug: string } | null }): string {
+  return product.category
+    ? `/catalogue?category=${product.category.slug}#${product.slug}`
+    : `/catalogue#${product.slug}`;
 }

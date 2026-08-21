@@ -1,4 +1,4 @@
-import { adminFetch, adminFetchEnveloped } from './admin-auth';
+import { adminFetch, adminFetchEnveloped, adminUpload } from './admin-auth';
 import type { AdminEnquiryDetail, AdminEnquiryRow, ListMeta } from './api';
 
 export type { AdminEnquiryRow };
@@ -63,6 +63,24 @@ export interface AdminProductRow {
   _count: { variants: number };
 }
 
+export interface AdminProductMedia {
+  id: number;
+  fileId: number;
+  altText: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  file: {
+    id: number;
+    storedName: string;
+    path: string;
+    mimeType: string;
+    sizeBytes: number;
+    width: number | null;
+    height: number | null;
+    originalName: string;
+  };
+}
+
 export interface AdminProductDetail {
   id: number;
   categoryId: number;
@@ -76,6 +94,9 @@ export interface AdminProductDetail {
   gstRate: string | null;
   isFeatured: boolean;
   isActive: boolean;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  media: AdminProductMedia[];
   variants: Array<{
     id: number;
     sku: string;
@@ -107,7 +128,12 @@ export interface AdminMachineBrand {
   models: Array<{
     id: number;
     name: string;
-    variants: Array<{ id: number; name: string; laserType: string | null; powerWatts: number | null }>;
+    variants: Array<{
+      id: number;
+      name: string;
+      laserType: string | null;
+      powerWatts: number | null;
+    }>;
   }>;
 }
 
@@ -143,7 +169,13 @@ export interface AdminUserRow {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
-  permissions: Array<{ module: string; canView: boolean; canCreate: boolean; canUpdate: boolean; canDelete: boolean }>;
+  permissions: Array<{
+    module: string;
+    canView: boolean;
+    canCreate: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+  }>;
 }
 
 export interface AuditLogRow {
@@ -170,17 +202,23 @@ export const adminApi = {
 
   // Enquiries
   enquiries: (query: Record<string, string | number | undefined> = {}) =>
-    adminFetchEnveloped<AdminEnquiryRow[]>(`/admin/enquiries?${toQuery(query)}`) as unknown as Promise<{
+    adminFetchEnveloped<AdminEnquiryRow[]>(
+      `/admin/enquiries?${toQuery(query)}`,
+    ) as unknown as Promise<{
       data: AdminEnquiryRow[];
       meta: ListMeta;
     }>,
   enquiry: (id: number) => adminFetch<AdminEnquiryDetail>(`/admin/enquiries/${id}`),
-  updateEnquiry: (id: number, body: { status?: string; priority?: string; assignedToId?: number | null }) =>
-    adminFetch(`/admin/enquiries/${id}`, { method: 'PATCH', body }),
+  updateEnquiry: (
+    id: number,
+    body: { status?: string; priority?: string; assignedToId?: number | null },
+  ) => adminFetch(`/admin/enquiries/${id}`, { method: 'PATCH', body }),
 
   // Customers
   customers: (query: Record<string, string | number | undefined> = {}) =>
-    adminFetchEnveloped<AdminCustomerRow[]>(`/admin/customers?${toQuery(query)}`) as unknown as Promise<{
+    adminFetchEnveloped<AdminCustomerRow[]>(
+      `/admin/customers?${toQuery(query)}`,
+    ) as unknown as Promise<{
       data: AdminCustomerRow[];
       meta: ListMeta;
     }>,
@@ -205,7 +243,9 @@ export const adminApi = {
 
   // Products
   products: (query: Record<string, string | number | undefined> = {}) =>
-    adminFetchEnveloped<AdminProductRow[]>(`/admin/products?${toQuery(query)}`) as unknown as Promise<{
+    adminFetchEnveloped<AdminProductRow[]>(
+      `/admin/products?${toQuery(query)}`,
+    ) as unknown as Promise<{
       data: AdminProductRow[];
       meta: ListMeta;
     }>,
@@ -215,6 +255,39 @@ export const adminApi = {
   updateProduct: (id: number, body: Record<string, unknown>) =>
     adminFetch<AdminProductDetail>(`/admin/products/${id}`, { method: 'PATCH', body }),
   deleteProduct: (id: number) => adminFetch(`/admin/products/${id}`, { method: 'DELETE' }),
+
+  // ── Product media ───────────────────────────────────────────────────
+  productMedia: (id: number) => adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media`),
+
+  uploadProductMedia: (id: number, files: File[]) => {
+    const form = new FormData();
+    for (const file of files) form.append('files', file);
+    return adminUpload<{
+      added: number;
+      failures: Array<{ filename: string; message: string }>;
+      media: AdminProductMedia[];
+    }>(`/admin/products/${id}/media`, form);
+  },
+
+  setPrimaryProductMedia: (id: number, mediaId: number) =>
+    adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media/${mediaId}/primary`, {
+      method: 'PATCH',
+    }),
+
+  reorderProductMedia: (id: number, mediaIds: number[]) =>
+    adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media/order`, {
+      method: 'PATCH',
+      body: { mediaIds },
+    }),
+
+  replaceProductMedia: (id: number, mediaId: number, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return adminUpload<AdminProductMedia[]>(`/admin/products/${id}/media/${mediaId}/replace`, form);
+  },
+
+  deleteProductMedia: (id: number, mediaId: number) =>
+    adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media/${mediaId}`, { method: 'DELETE' }),
 
   // Variants
   createVariant: (body: Record<string, unknown>) =>
@@ -228,8 +301,10 @@ export const adminApi = {
   // Compatibility
   createCompatibility: (body: Record<string, unknown>) =>
     adminFetch('/admin/compatibility', { method: 'POST', body }),
-  verifyCompatibility: (id: number) => adminFetch(`/admin/compatibility/${id}/verify`, { method: 'PATCH' }),
-  deleteCompatibility: (id: number) => adminFetch(`/admin/compatibility/${id}`, { method: 'DELETE' }),
+  verifyCompatibility: (id: number) =>
+    adminFetch(`/admin/compatibility/${id}/verify`, { method: 'PATCH' }),
+  deleteCompatibility: (id: number) =>
+    adminFetch(`/admin/compatibility/${id}`, { method: 'DELETE' }),
 
   // Machines
   machines: () => adminFetch<AdminMachineBrand[]>('/admin/machines'),
@@ -237,7 +312,12 @@ export const adminApi = {
     adminFetch('/admin/machines/brands', { method: 'POST', body: { name } }),
   createMachineModel: (machineBrandId: number, name: string) =>
     adminFetch('/admin/machines/models', { method: 'POST', body: { machineBrandId, name } }),
-  createMachineVariant: (machineModelId: number, name: string, laserType?: string, powerWatts?: number) =>
+  createMachineVariant: (
+    machineModelId: number,
+    name: string,
+    laserType?: string,
+    powerWatts?: number,
+  ) =>
     adminFetch('/admin/machines/variants', {
       method: 'POST',
       body: { machineModelId, name, laserType, powerWatts },
@@ -262,7 +342,9 @@ export const adminApi = {
 
   // Audit
   auditLogs: (query: Record<string, string | number | undefined> = {}) =>
-    adminFetchEnveloped<AuditLogRow[]>(`/admin/audit-logs?${toQuery(query)}`) as unknown as Promise<{
+    adminFetchEnveloped<AuditLogRow[]>(
+      `/admin/audit-logs?${toQuery(query)}`,
+    ) as unknown as Promise<{
       data: AuditLogRow[];
       meta: { pagination: { page: number; perPage: number; total: number } };
     }>,

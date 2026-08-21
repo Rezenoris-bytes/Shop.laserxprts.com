@@ -1,6 +1,21 @@
+import Image from 'next/image';
 import Link from 'next/link';
+import { QuoteButton } from '@/components/quote-button';
 import type { ProductCard as ProductCardData } from '@/lib/api';
+import { mediaUrl } from '@/lib/format';
 
+/**
+ * Where a product lives.
+ *
+ * Products have no page of their own — each is a row on its category listing,
+ * addressed by anchor. The category is always included: it keeps the row on the
+ * first page of results, which is what makes the anchor resolve.
+ */
+function productHref(product: ProductCardData): string {
+  return product.category
+    ? `/catalogue?category=${product.category.slug}#${product.slug}`
+    : `/catalogue#${product.slug}`;
+}
 
 /**
  * Product card.
@@ -11,15 +26,13 @@ import type { ProductCard as ProductCardData } from '@/lib/api';
  * customers end up with the wrong diameter.
  */
 export function ProductCardTile({ product }: { product: ProductCardData }) {
-
-
   return (
-    <article className="card group flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+    <article className="card group flex flex-col overflow-hidden card-hover">
       <Link
-        href={`/products/${product.slug}`}
-        className="flex aspect-[4/3] items-center justify-center bg-ink-wash"
+        href={productHref(product)}
+        className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-white"
       >
-        <PartGlyph name={product.name} />
+        <ProductImage product={product} className="object-contain p-2 card-zoom" />
       </Link>
 
       <div className="flex flex-1 flex-col p-4">
@@ -30,7 +43,7 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
         )}
 
         <h3 className="mt-1 text-sm font-semibold leading-snug">
-          <Link href={`/products/${product.slug}`} className="hover:text-amber-dark">
+          <Link href={productHref(product)} className="hover:text-amber-dark">
             {product.name}
           </Link>
         </h3>
@@ -42,21 +55,15 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
         )}
 
         <div className="mt-auto pt-3">
-          <p className="text-sm font-semibold text-amber-dark">Get Quote</p>
+          {/* Same wording as the catalogue rows — LEI quotes per customer, so
+              no figure appears anywhere on the storefront. */}
+          <p className="text-sm font-semibold text-amber-dark">Price on request</p>
           <p className="mt-0.5 text-[11px] text-ink-muted">
-            {product.variantCount === 1
-              ? '1 option'
-              : `${product.variantCount} options`}
+            {product.variantCount === 1 ? '1 option' : `${product.variantCount} options`}
             {product.hasStock ? ' · in stock' : ' · on request'}
           </p>
 
-          <Link
-            href={`/products/${product.slug}`}
-            className="btn-secondary mt-3 w-full text-xs"
-            aria-label={`View options for ${product.name}`}
-          >
-            View options
-          </Link>
+          <QuoteButton product={product} />
         </div>
       </div>
     </article>
@@ -64,12 +71,35 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
 }
 
 /**
- * Placeholder artwork.
+ * A product's primary photograph, falling back to the glyph.
  *
- * Real product photography is a dependency LEI has not supplied yet. Rather
- * than shipping a grey box or a stock photo of the wrong part, each card gets a
- * deterministic geometric glyph — clearly not a photograph, so nobody mistakes
- * it for the actual part.
+ * Plain <img> rather than next/image: these are served from our own API off a
+ * content-addressed path with immutable caching already set, so the optimiser
+ * would add a proxy hop and a config coupling to the API origin for no gain.
+ */
+function ProductImage({ product, className }: { product: ProductCardData; className?: string }) {
+  if (!product.image) {
+    return <PartGlyph name={product.name} />;
+  }
+
+  return (
+    <Image
+      src={mediaUrl(product.image.path)}
+      alt={product.image.alt ?? product.name}
+      fill
+      // Listing thumbnails are never displayed larger than a card column, so
+      // the optimiser is told that rather than serving the 1000px original.
+      sizes="(max-width: 640px) 100vw, 220px"
+      className={className}
+    />
+  );
+}
+
+/**
+ * Placeholder artwork, for products with no photograph on file.
+ *
+ * A deterministic geometric glyph — clearly not a photograph, so nobody
+ * mistakes it for the actual part.
  */
 function PartGlyph({ name }: { name: string }) {
   const seed = [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0);
@@ -77,7 +107,12 @@ function PartGlyph({ name }: { name: string }) {
   const rotate = seed % 45;
 
   return (
-    <svg viewBox="0 0 120 90" className="h-full w-full" role="img" aria-label="Product image placeholder">
+    <svg
+      viewBox="0 0 120 90"
+      className="h-full w-full"
+      role="img"
+      aria-label="Product image placeholder"
+    >
       <g transform={`rotate(${rotate} 60 45)`} fill="none" stroke="#c3cad3" strokeWidth="1.5">
         {Array.from({ length: rings }).map((_, index) => (
           <circle key={index} cx="60" cy="45" r={10 + index * 8} />

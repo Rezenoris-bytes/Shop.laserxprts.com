@@ -60,6 +60,58 @@
     @apply rounded-card border border-ink-line bg-white;
   }
 
+  /*
+    Card hover/focus lift, written as plain CSS rather than @apply-ed Tailwind
+    variants: the transform utilities compose through --tw-* custom properties,
+    and driving those from a component class proved unreliable here. Explicit
+    declarations have no such moving parts.
+
+    focus-within is included alongside hover because the whole card is one link
+    target — a keyboard user tabbing to it should get the same affordance.
+  */
+  .card-hover {
+    transition:
+      transform 200ms ease-out,
+      box-shadow 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+
+  .card-hover:hover,
+  .card-hover:focus-within {
+    transform: translateY(-4px);
+    border-color: rgba(245, 179, 1, 0.6);
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  /* The artwork eases in slightly behind the lift. Needs overflow-hidden on the
+     wrapper to crop the scale. */
+  .card-zoom {
+    transition: transform 300ms ease-out;
+  }
+
+  .card-hover:hover .card-zoom,
+  .card-hover:focus-within .card-zoom {
+    transform: scale(1.06);
+  }
+
+  /* Movement removed for anyone who asked the OS for less of it; the border and
+     shadow stay, so the affordance survives. */
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover,
+    .card-zoom {
+      transition: none;
+    }
+
+    .card-hover:hover,
+    .card-hover:focus-within,
+    .card-hover:hover .card-zoom,
+    .card-hover:focus-within .card-zoom {
+      transform: none;
+    }
+  }
+
   .chip {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }

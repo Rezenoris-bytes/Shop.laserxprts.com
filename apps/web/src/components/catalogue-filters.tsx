@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { CategoryNode, Facet } from '@/lib/api';
 
@@ -49,20 +51,17 @@ export function CatalogueFilters({
     push(next);
   };
 
-  const activeCount = activeAttrs.length + ['category', 'brand', 'inStock'].filter((key) => params.get(key)).length;
+  const activeCount =
+    activeAttrs.length + ['category', 'brand', 'inStock'].filter((key) => params.get(key)).length;
 
-  const flatCategories: Array<{ slug: string; label: string; count: number }> = [];
-  const walk = (nodes: CategoryNode[], depth = 0) => {
-    for (const node of nodes) {
-      flatCategories.push({
-        slug: node.slug,
-        label: `${'  '.repeat(depth)}${node.name}`,
-        count: node.productCount,
-      });
-      if (node.children.length) walk(node.children, depth + 1);
-    }
-  };
-  walk(categories);
+  // A catalogue-wide view has ~50 attribute groups behind it, because the
+  // attribute set is the union of every category's. Rendering them all buries
+  // sort and availability under a mile of chips nobody scrolls. Narrowing to a
+  // category cuts it to a handful, so the rest stay one click away instead.
+  const FACET_LIMIT = 8;
+  const [showAllFacets, setShowAllFacets] = useState(false);
+  const visibleFacets = showAllFacets ? facets : facets.slice(0, FACET_LIMIT);
+  const hiddenFacetCount = facets.length - visibleFacets.length;
 
   return (
     <div className="space-y-6">
@@ -77,27 +76,11 @@ export function CatalogueFilters({
       )}
 
       <FilterGroup title="Category">
-        <ul className="space-y-1">
-          {flatCategories.map((category) => {
-            const active = params.get('category') === category.slug;
-            return (
-              <li key={category.slug}>
-                <button
-                  type="button"
-                  onClick={() => setParam('category', active ? null : category.slug)}
-                  aria-pressed={active}
-                  className={[
-                    'flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm',
-                    active ? 'bg-ink text-white' : 'hover:bg-ink-wash',
-                  ].join(' ')}
-                >
-                  <span dangerouslySetInnerHTML={{ __html: category.label }} />
-                  <span className={active ? 'text-white/60' : 'text-ink-muted'}>{category.count}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <CategoryAccordion
+          categories={categories}
+          activeSlug={params.get('category')}
+          onSelect={(slug) => setParam('category', slug)}
+        />
       </FilterGroup>
 
       <FilterGroup title="Availability">
@@ -112,8 +95,11 @@ export function CatalogueFilters({
         </label>
       </FilterGroup>
 
-      {facets.map((facet) => (
-        <FilterGroup key={facet.slug} title={`${facet.name}${facet.unit ? ` (${facet.unit})` : ''}`}>
+      {visibleFacets.map((facet) => (
+        <FilterGroup
+          key={facet.slug}
+          title={`${facet.name}${facet.unit ? ` (${facet.unit})` : ''}`}
+        >
           <div className="flex flex-wrap gap-1.5">
             {facet.values.slice(0, 14).map((value) => {
               const active = activeAttrs.includes(`${facet.slug}:${value}`);
@@ -136,6 +122,26 @@ export function CatalogueFilters({
         </FilterGroup>
       ))}
 
+      {hiddenFacetCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAllFacets(true)}
+          className="text-xs font-medium text-amber-dark underline"
+        >
+          Show {hiddenFacetCount} more filters
+        </button>
+      )}
+
+      {showAllFacets && facets.length > FACET_LIMIT && (
+        <button
+          type="button"
+          onClick={() => setShowAllFacets(false)}
+          className="text-xs font-medium text-ink-muted underline hover:text-ink"
+        >
+          Show fewer filters
+        </button>
+      )}
+
       <FilterGroup title="Sort">
         <label htmlFor="sort" className="sr-only">
           Sort products
@@ -143,7 +149,9 @@ export function CatalogueFilters({
         <select
           id="sort"
           value={params.get('sort') ?? 'relevance'}
-          onChange={(event) => setParam('sort', event.target.value === 'relevance' ? null : event.target.value)}
+          onChange={(event) =>
+            setParam('sort', event.target.value === 'relevance' ? null : event.target.value)
+          }
           className="field text-sm"
         >
           <option value="relevance">Most relevant</option>
@@ -163,5 +171,144 @@ function FilterGroup({ title, children }: { title: string; children: React.React
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">{title}</h2>
       {children}
     </section>
+  );
+}
+
+/**
+ * Category accordion.
+ *
+ * One collapsible panel per top-level category, showing its product count and,
+ * when open, a preview of what is inside. The preview is the point: a count
+ * alone tells a customer how many nozzles exist, not whether the one they need
+ * is among them, so they open the category to find out and pay a page load for
+ * the answer.
+ *
+ * The header selects the category as a filter — that is what this control is
+ * for — while the chevron expands the preview without changing the results, so
+ * looking is free and filtering is deliberate.
+ */
+function CategoryAccordion({
+  categories,
+  activeSlug,
+  onSelect,
+}: {
+  categories: CategoryNode[];
+  activeSlug: string | null;
+  onSelect: (slug: string | null) => void;
+}) {
+  // The tree arrives over the network and is ISR-cached for an hour, so a
+  // payload written before `products` existed can outlive the deploy that
+  // added it. TypeScript cannot see across that boundary — without these
+  // fallbacks a stale cache entry takes the whole catalogue page down with it.
+  const childrenOf = (node: CategoryNode) => node.children ?? [];
+  const productsOf = (node: CategoryNode) => node.products ?? [];
+
+  const containsActive = (node: CategoryNode): boolean =>
+    node.slug === activeSlug || childrenOf(node).some(containsActive);
+
+  // Null means "nothing opened by hand" — fall back to whichever panel holds
+  // the active filter, so arriving on /catalogue?category=… lands with the
+  // relevant panel already open.
+  const [openedSlug, setOpenedSlug] = useState<string | null>(null);
+
+  return (
+    <ul className="space-y-2">
+      {categories.map((category) => {
+        const active = category.slug === activeSlug;
+        const open = openedSlug === null ? containsActive(category) : openedSlug === category.slug;
+
+        return (
+          <li
+            key={category.slug}
+            className={[
+              'overflow-hidden rounded border',
+              open ? 'border-ink-line bg-ink-wash' : 'border-ink-line bg-white',
+            ].join(' ')}
+          >
+            <div className="flex items-stretch">
+              <button
+                type="button"
+                onClick={() => onSelect(active ? null : category.slug)}
+                aria-pressed={active}
+                className={[
+                  'flex-1 px-3 py-2.5 text-left text-sm font-medium',
+                  active ? 'text-amber-dark' : 'hover:text-amber-dark',
+                ].join(' ')}
+              >
+                {category.name}{' '}
+                <span className="font-normal text-ink-muted">({category.productCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOpenedSlug(open ? '' : category.slug)}
+                aria-expanded={open}
+                aria-label={`${open ? 'Collapse' : 'Expand'} ${category.name}`}
+                className="px-3 text-ink-muted hover:text-ink"
+              >
+                <Chevron open={open} />
+              </button>
+            </div>
+
+            {open && (
+              <div className="px-3 pb-2.5">
+                {childrenOf(category).map((child) => (
+                  <button
+                    key={child.slug}
+                    type="button"
+                    onClick={() => onSelect(child.slug === activeSlug ? null : child.slug)}
+                    aria-pressed={child.slug === activeSlug}
+                    className={[
+                      'flex w-full items-center justify-between gap-2 border-t border-ink-line py-2 text-left text-[13px]',
+                      child.slug === activeSlug
+                        ? 'font-medium text-amber-dark'
+                        : 'hover:text-amber-dark',
+                    ].join(' ')}
+                  >
+                    <span>{child.name}</span>
+                    <span className="text-ink-muted">({child.productCount})</span>
+                  </button>
+                ))}
+
+                {productsOf(category).map((product) => (
+                  <Link
+                    key={product.slug}
+                    href={`/catalogue?category=${category.slug}#${product.slug}`}
+                    className="block border-t border-ink-line py-2 text-[13px] leading-snug text-ink-muted hover:text-amber-dark"
+                  >
+                    {product.name}
+                  </Link>
+                ))}
+
+                {category.productCount > productsOf(category).length && (
+                  <button
+                    type="button"
+                    onClick={() => onSelect(category.slug)}
+                    className="mt-1 border-t border-ink-line pt-2 text-[13px] font-medium text-amber-dark underline"
+                  >
+                    View more
+                  </button>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      aria-hidden
+    >
+      <path d="M5 8l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

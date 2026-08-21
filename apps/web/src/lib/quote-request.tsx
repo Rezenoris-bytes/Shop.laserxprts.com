@@ -76,7 +76,8 @@ function read(): StoredLine[] {
     // does not understand. Discarding beats crashing on their first page.
     if (parsed.v !== SCHEMA_VERSION || !Array.isArray(parsed.items)) return [];
     return parsed.items.filter(
-      (item) => Number.isInteger(item.variantId) && Number.isInteger(item.quantity) && item.quantity > 0,
+      (item) =>
+        Number.isInteger(item.variantId) && Number.isInteger(item.quantity) && item.quantity > 0,
     );
   } catch {
     return [];

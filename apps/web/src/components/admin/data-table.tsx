@@ -33,7 +33,10 @@ export function DataTable<T extends { id: number }>({
     return (
       <div className="overflow-hidden rounded-md border border-ink-line">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-11 animate-pulse border-b border-ink-line bg-ink-wash/50 last:border-0" />
+          <div
+            key={i}
+            className="h-11 animate-pulse border-b border-ink-line bg-ink-wash/50 last:border-0"
+          />
         ))}
       </div>
     );
@@ -53,7 +56,10 @@ export function DataTable<T extends { id: number }>({
         <thead className="border-b border-ink-line bg-ink-wash">
           <tr>
             {columns.map((column) => (
-              <th key={column.header} className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+              <th
+                key={column.header}
+                className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink-muted"
+              >
                 {column.header}
               </th>
             ))}
@@ -63,14 +69,20 @@ export function DataTable<T extends { id: number }>({
           {rows.map((row) => {
             const href = rowHref?.(row);
             const cells = columns.map((column) => (
-              <td key={column.header} className={`px-3 py-2.5 align-middle ${column.className ?? ''}`}>
+              <td
+                key={column.header}
+                className={`px-3 py-2.5 align-middle ${column.className ?? ''}`}
+              >
                 {column.render(row)}
               </td>
             ));
             return href ? (
               <tr key={row.id} className="transition-colors hover:bg-ink-wash/60">
                 {columns.map((column, index) => (
-                  <td key={column.header} className={`px-3 py-2.5 align-middle ${column.className ?? ''}`}>
+                  <td
+                    key={column.header}
+                    className={`px-3 py-2.5 align-middle ${column.className ?? ''}`}
+                  >
                     {index === 0 ? (
                       <Link href={href} className="block">
                         {column.render(row)}
@@ -103,7 +115,13 @@ export function DemoBadge({ isSeedData }: { isSeedData: boolean }) {
   );
 }
 
-export function StatusChip({ label, tone }: { label: string; tone: 'ok' | 'warn' | 'bad' | 'muted' }) {
+export function StatusChip({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: 'ok' | 'warn' | 'bad' | 'muted';
+}) {
   const classes = {
     ok: 'bg-green-50 text-ok',
     warn: 'bg-amber-wash text-warn',

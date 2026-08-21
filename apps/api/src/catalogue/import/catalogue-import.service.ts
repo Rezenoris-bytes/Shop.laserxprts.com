@@ -163,22 +163,25 @@ export class CatalogueImportService {
           continue;
         }
 
-        await db.attribute.upsert({
-          where: { slug },
-          update: {},
-          create: {
-            name: this.required(row, 'name'),
-            slug,
-            dataType: (row.values.data_type || 'STRING') as AttributeDataType,
-            // Advisory only — never constrains where a value may be written.
-            defaultScope: (row.values.default_scope || 'VARIANT') as AttributeScope,
-            unit: row.values.unit || null,
-            isFilterable: asBoolean(row.values.is_filterable, true),
-            sortOrder: asInt(row.values.sort_order, 0),
-            isSeedData: options.isSeedData,
-          },
-        });
-        result.created += 1;
+        const data = {
+          name: this.required(row, 'name'),
+          dataType: (row.values.data_type || 'STRING') as AttributeDataType,
+          // Advisory only — never constrains where a value may be written.
+          defaultScope: (row.values.default_scope || 'VARIANT') as AttributeScope,
+          unit: row.values.unit || null,
+          isFilterable: asBoolean(row.values.is_filterable, true),
+          sortOrder: asInt(row.values.sort_order, 0),
+          isSeedData: options.isSeedData,
+        };
+
+        const existing = await db.attribute.findUnique({ where: { slug } });
+        if (existing) {
+          await db.attribute.update({ where: { id: existing.id }, data });
+          result.updated += 1;
+        } else {
+          await db.attribute.create({ data: { ...data, slug } });
+          result.created += 1;
+        }
       } catch (error) {
         result.errors.push({
           file: 'attributes',
@@ -224,23 +227,29 @@ export class CatalogueImportService {
           parentId = parent.id;
         }
 
-        await db.category.upsert({
-          where: { slug },
-          update: {},
-          create: {
-            name,
-            slug,
-            parentId,
-            description: row.values.description || null,
-            sortOrder: asInt(row.values.sort_order, 0),
-            // No site-name suffix: the frontend title template appends it,
-            // and storing it here rendered it twice.
-            metaTitle: name,
-            metaDescription: row.values.description?.slice(0, 300) || null,
-            isSeedData: options.isSeedData,
-          },
-        });
-        result.created += 1;
+        const data = {
+          name,
+          parentId,
+          description: row.values.description || null,
+          sortOrder: asInt(row.values.sort_order, 0),
+          // No site-name suffix: the frontend title template appends it,
+          // and storing it here rendered it twice.
+          metaTitle: name,
+          metaDescription: row.values.description?.slice(0, 300) || null,
+          isSeedData: options.isSeedData,
+        };
+
+        // Re-importing a corrected file must actually correct the row. An
+        // upsert with an empty `update` silently ignores every re-import,
+        // which reads as success and leaves the old value in place.
+        const existing = await db.category.findUnique({ where: { slug } });
+        if (existing) {
+          await db.category.update({ where: { id: existing.id }, data });
+          result.updated += 1;
+        } else {
+          await db.category.create({ data: { ...data, slug } });
+          result.created += 1;
+        }
       } catch (error) {
         result.errors.push({
           file: 'categories',
@@ -271,17 +280,20 @@ export class CatalogueImportService {
           result.created += 1;
           continue;
         }
-        await db.partBrand.upsert({
-          where: { slug },
-          update: {},
-          create: {
-            name,
-            slug,
-            website: row.values.website || null,
-            isSeedData: options.isSeedData,
-          },
-        });
-        result.created += 1;
+        const data = {
+          name,
+          website: row.values.website || null,
+          isSeedData: options.isSeedData,
+        };
+
+        const existing = await db.partBrand.findUnique({ where: { slug } });
+        if (existing) {
+          await db.partBrand.update({ where: { id: existing.id }, data });
+          result.updated += 1;
+        } else {
+          await db.partBrand.create({ data: { ...data, slug } });
+          result.created += 1;
+        }
       } catch (error) {
         result.errors.push({
           file: 'part-brands',
@@ -486,6 +498,101 @@ export class CatalogueImportService {
         else result.created += 1;
       } catch (error) {
         result.errors.push({ file: 'variants', line: row.line, message: (error as Error).message });
+      }
+    }
+
+    return result;
+  }
+
+  // ── Media ─────────────────────────────────────────────────────────────
+
+  /**
+   * Product images.
+   *
+   * The bytes are expected to be on disk under STORAGE_ROOT already; this pass
+   * only records them and links them to products. Keeping the download outside
+   * the importer means a re-run costs no network traffic and cannot be left
+   * half-done by a flaky connection.
+   *
+   * Files are deduplicated on checksum_sha256. Reference catalogues reuse the
+   * same brand banner across dozens of listings, and storing one row per use
+   * would multiply both the disk footprint and the work of replacing an image.
+   */
+  async importMedia(
+    db: PrismaClient,
+    content: string,
+    options: ImportOptions,
+  ): Promise<ImportResult> {
+    const result = this.emptyResult();
+    const parsed = parseCsv(content);
+    const missing = requireHeaders(parsed, ['product_key', 'stored_name', 'checksum_sha256']);
+    if (missing.length) {
+      result.errors.push({
+        file: 'media',
+        line: 1,
+        message: `Missing columns: ${missing.join(', ')}`,
+      });
+      return result;
+    }
+
+    for (const row of parsed.rows) {
+      try {
+        const productKey = this.required(row, 'product_key');
+        const productId = this.productKeyToId.get(productKey);
+        if (!productId) {
+          throw new Error(`Unknown product_key "${productKey}" — import products first`);
+        }
+
+        const storedName = this.required(row, 'stored_name');
+        const checksum = this.required(row, 'checksum_sha256');
+
+        if (options.dryRun) {
+          result.created += 1;
+          continue;
+        }
+
+        const existingFile = await db.file.findFirst({ where: { checksumSha256: checksum } });
+        const file =
+          existingFile ??
+          (await db.file.create({
+            data: {
+              originalName: row.values.original_name || storedName,
+              storedName,
+              path: row.values.path || `products/${storedName}`,
+              mimeType: row.values.mime_type || 'image/jpeg',
+              extension: row.values.extension || 'jpg',
+              sizeBytes: asInt(row.values.size_bytes, 0),
+              checksumSha256: checksum,
+              context: 'PRODUCT',
+              width: asInt(row.values.width, 0) || null,
+              height: asInt(row.values.height, 0) || null,
+              isPublic: true,
+            },
+          }));
+
+        const isPrimary = asBoolean(row.values.is_primary);
+        const existing = await db.productMedia.findFirst({
+          where: { productId, fileId: file.id },
+        });
+
+        const data = {
+          productId,
+          fileId: file.id,
+          type: 'IMAGE' as const,
+          altText: row.values.alt_text || null,
+          sortOrder: asInt(row.values.sort_order, 0),
+          isPrimary,
+        };
+
+        if (existing) {
+          await db.productMedia.update({ where: { id: existing.id }, data });
+          result.updated += 1;
+        } else {
+          await db.productMedia.create({ data });
+          result.created += 1;
+        }
+      } catch (error) {
+        result.errors.push({ file: 'media', line: row.line, message: (error as Error).message });
       }
     }
 

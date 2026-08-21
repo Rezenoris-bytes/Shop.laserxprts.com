@@ -140,7 +140,13 @@ export class AuditService {
   }
 
   /** SUPER_ADMIN audit log viewer — thin passthrough to keep repositories out of controllers. */
-  list(params: { skip: number; take: number; entityType?: string; entityId?: string; userId?: number }) {
+  list(params: {
+    skip: number;
+    take: number;
+    entityType?: string;
+    entityId?: string;
+    userId?: number;
+  }) {
     return this.repository.list(params);
   }
 

@@ -46,5 +46,5 @@ Thumbs.db
 .cache/
 
 # local-only directories
-files/
+/files/
 .claude/

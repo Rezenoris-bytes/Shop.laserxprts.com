@@ -418,7 +418,12 @@ export type CreateMachineVariantInput = z.infer<typeof createMachineVariantSchem
 
 export const createAttributeSchema = z.object({
   name: z.string().trim().min(1).max(120),
-  slug: z.string().trim().max(190).regex(/^[a-z0-9-]+$/).optional(),
+  slug: z
+    .string()
+    .trim()
+    .max(190)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   dataType: z.enum(['STRING', 'DECIMAL', 'INTEGER', 'BOOLEAN', 'ENUM']).default('STRING'),
   defaultScope: z.enum(['PRODUCT', 'VARIANT']).default('VARIANT'),
   unit: z.string().trim().max(20).optional(),
@@ -462,9 +467,20 @@ export type CreateAdminUserInput = z.infer<typeof createAdminUserSchema>;
 
 export const permissionGrantSchema = z.object({
   module: z.enum([
-    'CATALOGUE', 'INVENTORY', 'MACHINES', 'SERVICES', 'SERVICE_REQUESTS',
-    'CUSTOMERS', 'ENQUIRIES', 'LEADS', 'QUOTES', 'ORDERS', 'REPORTS',
-    'USERS', 'AUDIT', 'SETTINGS',
+    'CATALOGUE',
+    'INVENTORY',
+    'MACHINES',
+    'SERVICES',
+    'SERVICE_REQUESTS',
+    'CUSTOMERS',
+    'ENQUIRIES',
+    'LEADS',
+    'QUOTES',
+    'ORDERS',
+    'REPORTS',
+    'USERS',
+    'AUDIT',
+    'SETTINGS',
   ]),
   canView: z.boolean().default(false),
   canCreate: z.boolean().default(false),
@@ -482,3 +498,9 @@ export const updateSettingSchema = z.object({
   value: z.string().max(20000),
 });
 export type UpdateSettingInput = z.infer<typeof updateSettingSchema>;
+
+/** Full gallery order for one product, first entry first. */
+export const reorderMediaSchema = z.object({
+  mediaIds: z.array(z.number().int().positive()).min(1).max(50),
+});
+export type ReorderMediaInput = z.infer<typeof reorderMediaSchema>;

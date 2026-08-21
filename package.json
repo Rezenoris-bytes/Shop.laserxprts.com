@@ -2,7 +2,7 @@
   "name": "lei-platform",
   "version": "0.1.0",
   "private": true,
-  "description": "Laser Experts India — catalogue, enquiry and quotation platform",
+  "description": "Laser Experts India \u2014 catalogue, enquiry and quotation platform",
   "engines": {
     "node": ">=20.11.0",
     "npm": ">=10.0.0"

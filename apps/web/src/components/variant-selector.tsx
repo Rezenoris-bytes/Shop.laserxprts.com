@@ -2,6 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import type { ProductDetail, ProductVariantView } from '@/lib/api';
+
+/**
+ * Only the two fields the selector actually reads. Typed structurally so the
+ * same component serves a catalogue row and any future surface, rather than
+ * demanding a whole ProductDetail that no longer exists on the listing path.
+ */
+type SelectableProduct = Pick<ProductDetail, 'axes' | 'variants'>;
 import { useQuoteRequest } from '@/lib/quote-request';
 
 import { stockLabel, stockToneClass } from '@/lib/stock';
@@ -22,7 +29,7 @@ import { stockLabel, stockToneClass } from '@/lib/stock';
  * so this path is exercised. Hiding them would make the range look smaller
  * than it is; disabling shows what is available for another thread.
  */
-export function VariantSelector({ product }: { product: ProductDetail }) {
+export function VariantSelector({ product }: { product: SelectableProduct }) {
   const { add } = useQuoteRequest();
 
   const initial = product.variants.find((variant) => variant.isDefault) ?? product.variants[0];
@@ -135,16 +142,26 @@ export function VariantSelector({ product }: { product: ProductDetail }) {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div>
                 <p className="inline-flex items-center gap-1.5 rounded-md bg-amber/10 px-3 py-1 text-sm font-semibold text-amber-dark">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
                   Price on enquiry
                 </p>
                 <p className="mt-0.5 font-mono text-xs text-ink-muted">
                   {selected.partNumber} · SKU {selected.sku}
                 </p>
               </div>
-              {stock && (
-                <span className={`chip ${stockToneClass[stock.tone]}`}>{stock.label}</span>
-              )}
+              {stock && <span className={`chip ${stockToneClass[stock.tone]}`}>{stock.label}</span>}
             </div>
 
             {selected.packSize > 1 && (

@@ -21,6 +21,93 @@ const CARD_SELECT = {
     take: 1,
     select: { altText: true, file: { select: { storedName: true, path: true } } },
   },
+  /// Product-level specs only. The row layout shows a short spec table per
+  /// card, and variant-level values would differ within one row and read as
+  /// contradictions. Capped because the table is truncated for display anyway.
+  attributeValues: {
+    where: { attribute: { showInSpecs: true } },
+    take: 8,
+    select: {
+      valueString: true,
+      attribute: { select: { name: true, slug: true, unit: true, sortOrder: true } },
+    },
+  },
+  /// The variant a quote request from a card is raised against. Cards cannot
+  /// show a selector, so the default is the only sensible target — which is
+  /// why the modal says so plainly whenever a product has more than one.
+  variants: {
+    where: { isActive: true },
+    orderBy: [{ isDefault: 'desc' }, { position: 'asc' }, { id: 'asc' }],
+    take: 1,
+    select: { id: true, minOrderQty: true },
+  },
+  _count: { select: { variants: true } },
+} satisfies Prisma.ProductSelect;
+
+/**
+ * Everything a catalogue row renders.
+ *
+ * Products have no page of their own — a row IS the product — so the listing
+ * carries the full gallery, the whole specification table and the sellable
+ * variants. Kept separate from CARD_SELECT because the homepage, search and
+ * related-product strips still want the cheap shape; loading galleries there
+ * would pay for images nobody scrolls to.
+ */
+const LISTING_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  shortDescription: true,
+  description: true,
+  minPrice: true,
+  maxPrice: true,
+  hasStock: true,
+  variantAxes: true,
+  isSeedData: true,
+  category: { select: { name: true, slug: true } },
+  partBrand: { select: { name: true, slug: true } },
+  media: {
+    orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    select: {
+      id: true,
+      altText: true,
+      isPrimary: true,
+      file: { select: { storedName: true, path: true, width: true, height: true } },
+    },
+  },
+  attributeValues: {
+    where: { attribute: { showInSpecs: true } },
+    select: {
+      valueString: true,
+      attribute: { select: { name: true, slug: true, unit: true, sortOrder: true } },
+    },
+  },
+  variants: {
+    where: { isActive: true },
+    orderBy: [{ position: 'asc' }, { id: 'asc' }],
+    select: {
+      id: true,
+      sku: true,
+      partNumber: true,
+      mpn: true,
+      variantName: true,
+      price: true,
+      priceType: true,
+      mrp: true,
+      unitOfMeasure: true,
+      packSize: true,
+      minOrderQty: true,
+      leadTimeDays: true,
+      isDefault: true,
+      inventory: { select: { quantity: true, stockStatus: true } },
+      attributeValues: {
+        select: {
+          valueString: true,
+          attribute: { select: { name: true, slug: true, unit: true, sortOrder: true } },
+        },
+      },
+    },
+  },
   _count: { select: { variants: true } },
 } satisfies Prisma.ProductSelect;
 
@@ -50,6 +137,34 @@ export class CatalogueRepository {
         parentId: true,
         description: true,
         productCount: true,
+      },
+    });
+  }
+
+  /**
+   * Names for the sidebar's expanded category panel.
+   *
+   * One flat query grouped in memory rather than a per-category query: the
+   * tree is thirty-odd categories, and thirty round trips to show five links
+   * each is the classic N+1. The tree endpoint is ISR-cached for an hour, so
+   * this runs a handful of times a day.
+   */
+  async findCategoryProductPreviews() {
+    return this.prisma.client.product.findMany({
+      where: { isActive: true, deletedAt: null },
+      orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
+      select: {
+        name: true,
+        slug: true,
+        categoryId: true,
+        // Doubles as the source of the category tile's thumbnail: a category
+        // has no artwork of its own, and the first product in it is a truer
+        // picture of the category than any stock image would be.
+        media: {
+          where: { isPrimary: true },
+          take: 1,
+          select: { altText: true, file: { select: { storedName: true, path: true } } },
+        },
       },
     });
   }
@@ -102,7 +217,10 @@ export class CatalogueRepository {
    * indexed columns instead of joining the EAV table N times for N filters.
    */
   async listProducts(query: ProductListQuery, attributeFilters: AttributeFilter[]) {
-    const where: Prisma.ProductWhereInput = { isActive: true };
+    // deletedAt as well as isActive: soft delete clears isActive today, so this
+    // is belt and braces — but a product restored to active while still
+    // deleted would otherwise reappear in the catalogue.
+    const where: Prisma.ProductWhereInput = { isActive: true, deletedAt: null };
 
     if (query.category) {
       const category = await this.prisma.client.category.findFirst({
@@ -145,7 +263,7 @@ export class CatalogueRepository {
     const [items, total] = await Promise.all([
       this.prisma.client.product.findMany({
         where,
-        select: CARD_SELECT,
+        select: LISTING_SELECT,
         orderBy: this.orderBy(query.sort),
         skip: (query.page - 1) * query.perPage,
         take: query.perPage,
@@ -231,7 +349,7 @@ export class CatalogueRepository {
 
   async findProductBySlug(slug: string) {
     return this.prisma.client.product.findFirst({
-      where: { slug, isActive: true },
+      where: { slug, isActive: true, deletedAt: null },
       select: {
         id: true,
         name: true,
@@ -251,7 +369,14 @@ export class CatalogueRepository {
         ogTitle: true,
         ogDescription: true,
         seoIndexable: true,
-        category: { select: { id: true, name: true, slug: true, parent: { select: { name: true, slug: true } } } },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            parent: { select: { name: true, slug: true } },
+          },
+        },
         partBrand: { select: { id: true, name: true, slug: true } },
         media: {
           orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
@@ -267,7 +392,9 @@ export class CatalogueRepository {
           select: {
             valueString: true,
             valueDecimal: true,
-            attribute: { select: { name: true, slug: true, unit: true, showInSpecs: true, sortOrder: true } },
+            attribute: {
+              select: { name: true, slug: true, unit: true, showInSpecs: true, sortOrder: true },
+            },
           },
         },
         variants: {
@@ -325,6 +452,7 @@ export class CatalogueRepository {
     return this.prisma.client.product.findMany({
       where: {
         isActive: true,
+        deletedAt: null,
         id: { not: productId },
         compatibility: { some: { machineModelId: { in: models.map((m) => m.machineModelId) } } },
       },
@@ -347,7 +475,7 @@ export class CatalogueRepository {
   async resolveVariants(ids: number[]) {
     if (ids.length === 0) return [];
     return this.prisma.client.productVariant.findMany({
-      where: { id: { in: ids }, isActive: true },
+      where: { id: { in: ids }, isActive: true, product: { isActive: true, deletedAt: null } },
       select: {
         id: true,
         sku: true,
@@ -364,10 +492,14 @@ export class CatalogueRepository {
             id: true,
             name: true,
             slug: true,
+            // The basket links back to the product's row, which lives on its
+            // category listing — without the category the anchor cannot be
+            // built.
+            category: { select: { name: true, slug: true } },
             media: {
               where: { isPrimary: true },
               take: 1,
-              select: { altText: true, file: { select: { storedName: true } } },
+              select: { altText: true, file: { select: { storedName: true, path: true } } },
             },
           },
         },
@@ -408,7 +540,12 @@ export class CatalogueRepository {
         where: {
           attributeId: attribute.id,
           ...(productIds
-            ? { OR: [{ productId: { in: productIds } }, { variant: { productId: { in: productIds } } }] }
+            ? {
+                OR: [
+                  { productId: { in: productIds } },
+                  { variant: { productId: { in: productIds } } },
+                ],
+              }
             : {}),
         },
         select: { valueString: true, valueDecimal: true },
@@ -495,20 +632,28 @@ export class CatalogueRepository {
 
       if (exact.length > 0) {
         // An exact key match outranks a prefix match.
-        const exactIds = exact.filter((v) => v.searchKey.split(' ').includes(key)).map((v) => v.productId);
+        const exactIds = exact
+          .filter((v) => v.searchKey.split(' ').includes(key))
+          .map((v) => v.productId);
         const prefixIds = exact.map((v) => v.productId);
         const ordered = [...new Set([...exactIds, ...prefixIds])];
 
         const items = await this.prisma.client.product.findMany({
-          where: { id: { in: ordered }, isActive: true },
+          where: { id: { in: ordered }, isActive: true, deletedAt: null },
           select: CARD_SELECT,
         });
 
         // Preserve the ranking the id ordering established.
         const byId = new Map(items.map((item) => [item.id, item]));
-        const ranked = ordered.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+        const ranked = ordered
+          .map((id) => byId.get(id))
+          .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
-        return { items: ranked.slice(offset, offset + limit), total: ranked.length, matchType: 'part_number' as const };
+        return {
+          items: ranked.slice(offset, offset + limit),
+          total: ranked.length,
+          matchType: 'part_number' as const,
+        };
       }
     }
 
@@ -552,7 +697,7 @@ export class CatalogueRepository {
 
   async findFeaturedProducts(limit = 10) {
     return this.prisma.client.product.findMany({
-      where: { isActive: true, isFeatured: true },
+      where: { isActive: true, isFeatured: true, deletedAt: null },
       select: CARD_SELECT,
       take: limit,
       orderBy: [{ hasStock: 'desc' }, { name: 'asc' }],
@@ -561,10 +706,14 @@ export class CatalogueRepository {
 
   async findTopProducts(limit = 10) {
     return this.prisma.client.product.findMany({
-      where: { isActive: true, hasStock: true },
+      // Stock is a preference in the ordering, NOT a filter. LEI quotes rather
+      // than sells from a shelf, and a catalogue whose parts are all
+      // made-to-order would otherwise leave the homepage permanently empty —
+      // which is exactly what "no stock figure published" produced.
+      where: { isActive: true, deletedAt: null },
       select: CARD_SELECT,
       take: limit,
-      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ isFeatured: 'desc' }, { hasStock: 'desc' }, { createdAt: 'desc' }],
     });
   }
 }

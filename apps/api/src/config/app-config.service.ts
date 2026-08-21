@@ -89,6 +89,10 @@ export class AppConfigService {
     return this.get('STORAGE_ROOT');
   }
 
+  get revalidateSecret(): string | undefined {
+    return this.get('REVALIDATE_SECRET');
+  }
+
   get maxUploadBytes(): number {
     return this.get('MAX_UPLOAD_BYTES');
   }

@@ -74,7 +74,10 @@ export function CompatibilityFinder({
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <label htmlFor="finder-brand" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80">
+          <label
+            htmlFor="finder-brand"
+            className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80"
+          >
             Machine brand
           </label>
           <select
@@ -96,7 +99,10 @@ export function CompatibilityFinder({
         </div>
 
         <div>
-          <label htmlFor="finder-model" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80">
+          <label
+            htmlFor="finder-model"
+            className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80"
+          >
             Model
           </label>
           <select
@@ -116,7 +122,10 @@ export function CompatibilityFinder({
         </div>
 
         <div>
-          <label htmlFor="finder-category" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80">
+          <label
+            htmlFor="finder-category"
+            className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-white/80"
+          >
             Part category
           </label>
           <select
@@ -143,8 +152,6 @@ export function CompatibilityFinder({
         Find compatible parts
         <ArrowRight className="h-4 w-4" />
       </button>
-
-
     </form>
   );
 }

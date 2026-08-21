@@ -84,7 +84,14 @@ export class EnquiriesService {
   }
 
   private async dispatchNotifications(result: {
-    enquiry: { id: number; publicRef: string; contactName: string; contactEmail: string | null; contactCompany: string | null; contactPhone: string | null };
+    enquiry: {
+      id: number;
+      publicRef: string;
+      contactName: string;
+      contactEmail: string | null;
+      contactCompany: string | null;
+      contactPhone: string | null;
+    };
     itemCount: number;
   }): Promise<void> {
     try {

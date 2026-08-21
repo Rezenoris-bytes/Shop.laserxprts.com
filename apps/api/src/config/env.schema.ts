@@ -68,6 +68,13 @@ export const envSchema = z
     // Files are stored OUTSIDE the web root and served via the API, so a
     // malicious upload can never be executed by the web server.
     STORAGE_ROOT: z.string().min(1).default('./storage'),
+
+    /**
+     * Shared secret for purging the storefront's ISR cache after an admin
+     * write. Optional: absent, revalidation is skipped and the catalogue simply
+     * refreshes on its normal schedule rather than the API failing to boot.
+     */
+    REVALIDATE_SECRET: z.string().min(8).optional(),
     MAX_UPLOAD_BYTES: z.coerce
       .number()
       .int()

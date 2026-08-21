@@ -40,7 +40,9 @@ export default function DashboardPage() {
 
       {data.placeholderSettings.length > 0 && (
         <div className="mb-6 rounded-card border border-amber/40 bg-amber-wash px-4 py-3 text-sm">
-          <span className="font-semibold">{data.placeholderSettings.length} placeholder settings</span>{' '}
+          <span className="font-semibold">
+            {data.placeholderSettings.length} placeholder settings
+          </span>{' '}
           still need real values (company details, GST, terms) before quotes can go out for real.
           {auth.hasPermission('SETTINGS', 'view') && (
             <Link href="/admin/settings" className="ml-2 font-medium underline">
@@ -63,9 +65,19 @@ export default function DashboardPage() {
           href="/admin/enquiries?status=IN_PROGRESS"
           tone="muted"
         />
-        <Tile label="Total enquiries" value={data.enquiries.total} href="/admin/enquiries" tone="muted" />
+        <Tile
+          label="Total enquiries"
+          value={data.enquiries.total}
+          href="/admin/enquiries"
+          tone="muted"
+        />
 
-        <Tile label="Draft quotes" value={data.quotes.draft} href="/admin/quotes?status=DRAFT" tone="muted" />
+        <Tile
+          label="Draft quotes"
+          value={data.quotes.draft}
+          href="/admin/quotes?status=DRAFT"
+          tone="muted"
+        />
         <Tile
           label="Quotes expiring within 7 days"
           value={data.quotes.expiringSoon}
@@ -90,7 +102,10 @@ export default function DashboardPage() {
           </p>
           <ul className="mt-3 divide-y divide-ink-line rounded-md border border-ink-line">
             {data.searchNoResults.map((row) => (
-              <li key={row.normalized} className="flex items-center justify-between px-3 py-2 text-sm">
+              <li
+                key={row.normalized}
+                className="flex items-center justify-between px-3 py-2 text-sm"
+              >
                 <span className="font-mono">{row.normalized}</span>
                 <span className="text-ink-muted">{row.count}×</span>
               </li>
@@ -121,7 +136,10 @@ function Tile({
   }[tone];
 
   return (
-    <Link href={href} className={`card block border p-5 transition-shadow hover:shadow-md ${toneClass}`}>
+    <Link
+      href={href}
+      className={`card block border p-5 transition-shadow hover:shadow-md ${toneClass}`}
+    >
       <p className="text-3xl font-black">{value}</p>
       <p className="mt-1 text-sm text-ink-muted">{label}</p>
     </Link>

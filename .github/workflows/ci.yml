@@ -57,8 +57,11 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      # Runs the API build directly rather than `npm run build` (root), since
+      # that script now also runs `prisma migrate deploy` — CI's DATABASE_URL
+      # is a placeholder with no real database behind it to migrate.
       - name: Build
-        run: npm run build
+        run: npm run build -w @lei/api
         env:
           DATABASE_URL: mysql://ci:ci@localhost:3306/ci
 

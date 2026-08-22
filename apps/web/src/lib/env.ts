@@ -30,7 +30,10 @@ function readEnv() {
   const apiUrl = (parsed.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
   const siteUrl = (parsed.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
 
-  for (const [key, value] of Object.entries({ NEXT_PUBLIC_API_URL: apiUrl, NEXT_PUBLIC_SITE_URL: siteUrl })) {
+  for (const [key, value] of Object.entries({
+    NEXT_PUBLIC_API_URL: apiUrl,
+    NEXT_PUBLIC_SITE_URL: siteUrl,
+  })) {
     const { hostname, protocol } = new URL(value);
     if (!isLocalHostname(hostname) && protocol !== 'https:') {
       // eslint-disable-next-line no-console

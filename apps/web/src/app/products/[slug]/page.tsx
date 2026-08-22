@@ -87,7 +87,12 @@ export default async function ProductPage({ params }: PageProps) {
         <div className="grid gap-10 lg:grid-cols-2">
           <div>
             <div className="card grid aspect-[4/3] place-items-center bg-ink-wash">
-              <svg viewBox="0 0 200 150" className="h-3/5 w-3/5" role="img" aria-label={`${product.name} — image placeholder`}>
+              <svg
+                viewBox="0 0 200 150"
+                className="h-3/5 w-3/5"
+                role="img"
+                aria-label={`${product.name} — image placeholder`}
+              >
                 <g fill="none" stroke="#b9c2cc" strokeWidth="2">
                   <circle cx="100" cy="75" r="46" />
                   <circle cx="100" cy="75" r="30" />
@@ -109,7 +114,9 @@ export default async function ProductPage({ params }: PageProps) {
             )}
             <h1 className="mt-1 text-2xl font-bold leading-tight sm:text-3xl">{product.name}</h1>
             {product.shortDescription && (
-              <p className="mt-3 text-sm leading-relaxed text-ink-muted">{product.shortDescription}</p>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+                {product.shortDescription}
+              </p>
             )}
 
             <div className="mt-6">
@@ -190,9 +197,7 @@ export default async function ProductPage({ params }: PageProps) {
                     </span>
                   )}
                   {entry.isPartial && (
-                    <span className="ml-1.5 text-[11px] text-ink-muted">
-                      selected options only
-                    </span>
+                    <span className="ml-1.5 text-[11px] text-ink-muted">selected options only</span>
                   )}
                   {entry.isVerified && <span className="ml-1.5 text-[11px] text-ok">verified</span>}
                 </li>
@@ -254,9 +259,7 @@ function StructuredData({ product }: { product: Awaited<ReturnType<typeof api.pr
       lowPrice: Math.min(...priced.map((v) => v.price!)),
       highPrice: Math.max(...priced.map((v) => v.price!)),
       offerCount: priced.length,
-      availability: product.hasStock
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/PreOrder',
+      availability: product.hasStock ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder',
       seller: { '@type': 'Organization', name: siteName },
     };
   }

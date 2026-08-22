@@ -23,7 +23,7 @@ The platform is **not an online store**. It does not currently include cart, che
 
 ## Tech Stack
 
-| Layer      | Technology                                        |
+| Layer      | Technology                                         |
 | ---------- | -------------------------------------------------- |
 | Frontend   | Next.js, React, TypeScript, Tailwind CSS           |
 | Backend    | NestJS, Fastify                                    |

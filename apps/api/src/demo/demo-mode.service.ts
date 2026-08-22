@@ -39,7 +39,9 @@ export class DemoModeService implements OnApplicationBootstrap {
    */
   async onApplicationBootstrap(): Promise<void> {
     if (this.enabled) {
-      this.logger.warn('DEMO_MODE is ON — indexing blocked, sample banner shown, quote PDFs watermarked.');
+      this.logger.warn(
+        'DEMO_MODE is ON — indexing blocked, sample banner shown, quote PDFs watermarked.',
+      );
       return;
     }
 

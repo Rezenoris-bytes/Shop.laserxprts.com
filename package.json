@@ -12,6 +12,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm install --include=optional sharp -w @lei/api",
     "dev": "npm run dev --workspaces --if-present",
     "dev:api": "npm run dev -w @lei/api",
     "dev:web": "npm run dev -w @lei/web",

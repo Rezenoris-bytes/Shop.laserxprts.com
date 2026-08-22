@@ -19,6 +19,14 @@ const nextConfig = {
   transpilePackages: ['@lei/shared'],
 
   images: {
+    // Images are served straight from the API rather than proxied through
+    // Next's optimiser. The optimiser requests every image at nine widths
+    // (384w…3840w), which on shared hosting means thousands of requests for a
+    // 150-product catalogue — enough to take the API down on a cold cache.
+    // The source images are already web-sized (~1000px, 14–500KB) and the API
+    // serves them content-addressed with immutable year-long cache headers, so
+    // resizing them a second time bought little and cost a great deal.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: apiOrigin.protocol.replace(':', ''),

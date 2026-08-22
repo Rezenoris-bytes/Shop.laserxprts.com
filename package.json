@@ -12,7 +12,6 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "node -e \"if(process.platform==='linux'){require('child_process').execSync('npm install --os=linux --cpu=x64 --include=optional sharp -w @lei/api',{stdio:'inherit'})}\"",
     "dev": "npm run dev --workspaces --if-present",
     "dev:api": "npm run dev -w @lei/api",
     "dev:web": "npm run dev -w @lei/web",

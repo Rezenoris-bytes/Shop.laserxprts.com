@@ -1,6 +1,6 @@
 # LEI local development stack.
-# Only MySQL and Redis run in Docker for development — Next.js and NestJS run
-# via `npm run dev` for fast reload. Application containers are added in the
+# Only MySQL runs in Docker for development — Next.js and NestJS run via
+# `npm run dev` for fast reload. Application containers are added in the
 # deployment phase (Stage 5), per the GitHub Actions plan.
 
 services:
@@ -37,25 +37,5 @@ services:
         limits:
           memory: 1g
 
-  redis:
-    image: redis:7-alpine
-    container_name: lei-redis
-    restart: unless-stopped
-    command: redis-server --save 60 1 --loglevel warning
-    ports:
-      - '${REDIS_PORT:-6379}:6379'
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 256m
-
 volumes:
   mysql_data:
-  redis_data:

@@ -65,10 +65,6 @@ export class AppConfigService {
     return this.get('DATABASE_URL');
   }
 
-  get redisUrl(): string | undefined {
-    return this.get('REDIS_URL');
-  }
-
   get jwtAccessSecret(): string {
     return this.get('JWT_ACCESS_SECRET');
   }
@@ -95,27 +91,6 @@ export class AppConfigService {
 
   get maxUploadBytes(): number {
     return this.get('MAX_UPLOAD_BYTES');
-  }
-
-  get mailProvider(): Env['MAIL_PROVIDER'] {
-    return this.get('MAIL_PROVIDER');
-  }
-
-  get mailApiKey(): string | undefined {
-    return this.get('MAIL_API_KEY');
-  }
-
-  get mailFromAddress(): string {
-    return this.get('MAIL_FROM_ADDRESS');
-  }
-
-  get mailFromName(): string {
-    return this.get('MAIL_FROM_NAME');
-  }
-
-  /** In demo mode outbound mail is restricted to these addresses. */
-  get mailDemoAllowlist(): string[] {
-    return this.get('MAIL_DEMO_ALLOWLIST');
   }
 
   get rateLimitTtlSeconds(): number {

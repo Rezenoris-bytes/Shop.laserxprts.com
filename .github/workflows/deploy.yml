@@ -20,10 +20,14 @@ env:
   NODE_VERSION: '20.x'
 
 jobs:
-  # ── Step 1: API ─────────────────────────────────────────────────────────────
-  # Deploys the NestJS backend to crm.laserxprts.com via SSH.
-  # DB migrations run here before the web build so the schema is always
-  # up to date before new frontend code goes live.
+  # ── API → crm.laserxprts.com ────────────────────────────────────────────
+  # Independent full checkout, since apps/api depends on @lei/shared via an
+  # npm workspaces symlink — installing from a subfolder alone would try (and
+  # fail) to fetch @lei/shared from the npm registry.
+  #
+  # NOTE: REPO_DIR below is a placeholder. Confirm the real Application Root
+  # Hostinger assigned to the crm.laserxprts.com Node.js App in hPanel before
+  # the first run of this workflow, and update the path if it differs.
   deploy-api:
     name: Deploy API → crm.laserxprts.com
     runs-on: ubuntu-latest
@@ -31,7 +35,7 @@ jobs:
     environment: production
 
     steps:
-      - name: Deploy and migrate via SSH
+      - name: Deploy, build, migrate and restart via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -43,10 +47,10 @@ jobs:
           script: |
             set -euo pipefail
 
-            # ── Clone on first run, pull on subsequent runs ──────────────
-            REPO_DIR="$HOME/lei-platform"
+            REPO_DIR="$HOME/domains/crm.laserxprts.com/repo"
             if [ ! -d "$REPO_DIR/.git" ]; then
               echo "First deploy: cloning repository..."
+              mkdir -p "$(dirname "$REPO_DIR")"
               git clone ${{ secrets.GIT_REPO_URL }} "$REPO_DIR"
             fi
 
@@ -56,51 +60,51 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # ── Write .env on first deploy ───────────────────────────────
-            # On subsequent deploys the file is left as-is unless you
-            # manually delete it and re-run. This avoids overwriting any
-            # runtime changes made on the server.
-            if [ ! -f .env ]; then
-              echo "Writing production .env (first deploy)..."
-              printf '%s' "$PRODUCTION_ENV" > .env
-            fi
+            # .env is rewritten on every deploy so a new/changed variable
+            # always reaches the server without manual intervention.
+            echo "Writing production .env..."
+            printf '%s' "$PRODUCTION_ENV" > .env
 
-            # ── Install and build ────────────────────────────────────────
-            echo "Installing dependencies..."
-            npm ci --prefer-offline
-
-            echo "Generating Prisma client..."
-            npm run db:generate -w @lei/api
+            echo "Installing dependencies (full workspace, for @lei/shared resolution)..."
+            npm install
 
             echo "Building shared types..."
             npm run build -w @lei/shared
 
+            echo "Generating Prisma client..."
+            npm run db:generate -w @lei/api
+
             echo "Building API..."
             npm run build -w @lei/api
 
-            # ── Migrate database ─────────────────────────────────────────
-            # prisma migrate deploy is safe to run on every deployment:
-            # it only applies migrations that have not been applied yet.
+            # Safe to run on every deploy: only applies migrations not yet applied.
             echo "Running database migrations..."
             npm run db:migrate:deploy -w @lei/api
 
-            echo "✅ API build and migration complete."
+            # Passenger's standard restart trigger — without this, a
+            # successful build never actually starts serving the new code.
+            echo "Triggering Passenger restart..."
+            mkdir -p tmp
+            touch tmp/restart.txt
+
+            echo "✅ API deployed and restarted."
         env:
           PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
 
-  # ── Step 2: Web ─────────────────────────────────────────────────────────────
-  # Deploys the Next.js frontend to shop.laserxprts.com via SSH.
-  # Runs after the API job so the database is always migrated before
-  # new frontend code starts serving requests.
+  # ── Web → shop.laserxprts.com ───────────────────────────────────────────
+  # Independent full checkout for the same @lei/shared workspace-resolution
+  # reason as the API job. No longer depends on deploy-api's build output.
+  #
+  # NOTE: REPO_DIR below is a placeholder — confirm the real Application Root
+  # for the shop.laserxprts.com Node.js App in hPanel before the first run.
   deploy-web:
     name: Deploy Web → shop.laserxprts.com
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
-    needs: deploy-api
 
     steps:
-      - name: Build Next.js via SSH
+      - name: Deploy, build and restart via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -111,9 +115,37 @@ jobs:
           script: |
             set -euo pipefail
 
-            cd "$HOME/lei-platform"
+            REPO_DIR="$HOME/domains/shop.laserxprts.com/repo"
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              echo "First deploy: cloning repository..."
+              mkdir -p "$(dirname "$REPO_DIR")"
+              git clone ${{ secrets.GIT_REPO_URL }} "$REPO_DIR"
+            fi
 
-            echo "Building Next.js frontend..."
+            cd "$REPO_DIR"
+
+            echo "Pulling latest code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Rewritten every deploy — NEXT_PUBLIC_* vars are read at BUILD
+            # time by `next build`, so this must be current before building.
+            echo "Writing production .env..."
+            printf '%s' "$PRODUCTION_ENV" > .env
+
+            echo "Installing dependencies (full workspace, for @lei/shared resolution)..."
+            npm install
+
+            echo "Building shared types..."
+            npm run build -w @lei/shared
+
+            echo "Building web..."
             npm run build -w @lei/web
 
-            echo "✅ Web build complete."
+            echo "Triggering Passenger restart..."
+            mkdir -p tmp
+            touch tmp/restart.txt
+
+            echo "✅ Web deployed and restarted."
+        env:
+          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}

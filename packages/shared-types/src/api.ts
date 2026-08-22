@@ -71,7 +71,6 @@ export interface HealthStatus {
   demoMode: boolean;
   checks: {
     database: ComponentHealth;
-    redis: ComponentHealth;
   };
 }
 

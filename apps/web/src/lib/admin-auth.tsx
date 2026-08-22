@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { ApiRequestError, api, type AdminUser } from './api';
+import { env } from './env';
 
 /**
  * Admin authentication state.
@@ -145,8 +146,7 @@ async function adminRequest<T>(
   const { body, headers, ...rest } = options;
 
   const attempt = async (token: string | null): Promise<Response> => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-    return fetch(`${base}/api/v1${path}`, {
+    return fetch(`${env.apiUrl}/api/v1${path}`, {
       ...rest,
       credentials: 'include',
       headers: {
@@ -202,8 +202,7 @@ export async function adminUpload<T>(
   method: 'POST' | 'PATCH' = 'POST',
 ): Promise<T> {
   const attempt = async (token: string | null): Promise<Response> => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-    return fetch(`${base}/api/v1${path}`, {
+    return fetch(`${env.apiUrl}/api/v1${path}`, {
       method,
       credentials: 'include',
       headers: token ? { Authorization: `Bearer ${token}` } : {},

@@ -23,14 +23,13 @@ The platform is **not an online store**. It does not currently include cart, che
 
 ## Tech Stack
 
-| Layer      | Technology                               |
-| ---------- | ---------------------------------------- |
-| Frontend   | Next.js, React, TypeScript, Tailwind CSS |
-| Backend    | NestJS, Fastify                          |
-| Database   | MySQL 8, Prisma                          |
-| Cache      | Redis                                    |
-| Search     | MySQL                                    |
-| Deployment | Docker, Nginx, Hostinger VPS             |
+| Layer      | Technology                                        |
+| ---------- | -------------------------------------------------- |
+| Frontend   | Next.js, React, TypeScript, Tailwind CSS           |
+| Backend    | NestJS, Fastify                                    |
+| Database   | MySQL 8, Prisma                                    |
+| Search     | MySQL                                              |
+| Deployment | Hostinger Business Web Hosting (Node.js/Passenger) |
 
 ## Project Structure
 

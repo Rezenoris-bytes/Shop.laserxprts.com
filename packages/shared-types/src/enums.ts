@@ -294,16 +294,6 @@ export const AuditAction = {
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
-export const EmailStatus = {
-  QUEUED: 'QUEUED',
-  SENT: 'SENT',
-  DELIVERED: 'DELIVERED',
-  BOUNCED: 'BOUNCED',
-  COMPLAINED: 'COMPLAINED',
-  FAILED: 'FAILED',
-} as const;
-export type EmailStatus = (typeof EmailStatus)[keyof typeof EmailStatus];
-
 export const ImportStatus = {
   PENDING: 'PENDING',
   VALIDATING: 'VALIDATING',

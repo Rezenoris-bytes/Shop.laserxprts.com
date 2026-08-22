@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { normalizeEmail, normalizePhone, type QuoteRequestInput } from '@lei/shared';
 import { PasswordService } from '../auth/password.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { SettingsService } from '../settings/settings.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '@lei/shared';
 import { EnquiriesRepository } from './enquiries.repository';
@@ -21,17 +19,11 @@ export class EnquiriesService {
   constructor(
     private readonly repository: EnquiriesRepository,
     private readonly passwords: PasswordService,
-    private readonly notifications: NotificationsService,
-    private readonly settings: SettingsService,
     private readonly audit: AuditService,
   ) {}
 
   /**
    * Submits a Quote Request.
-   *
-   * Order matters: the enquiry is committed FIRST, then emails are queued. A
-   * mail provider outage must never lose a lead — that is the whole point of
-   * the system.
    */
   async submit(
     input: QuoteRequestInput,
@@ -76,55 +68,7 @@ export class EnquiriesService {
       newValues: { status: 'NEW', itemCount: result.itemCount },
     });
 
-    // Fire and forget — failures are logged to email_logs, never surfaced to
-    // the customer, and never roll back the saved enquiry.
-    void this.dispatchNotifications(result);
-
     return { publicRef: result.enquiry.publicRef, itemCount: result.itemCount };
-  }
-
-  private async dispatchNotifications(result: {
-    enquiry: {
-      id: number;
-      publicRef: string;
-      contactName: string;
-      contactEmail: string | null;
-      contactCompany: string | null;
-      contactPhone: string | null;
-    };
-    itemCount: number;
-  }): Promise<void> {
-    try {
-      if (result.enquiry.contactEmail) {
-        await this.notifications.sendEnquiryConfirmation({
-          to: result.enquiry.contactEmail,
-          contactName: result.enquiry.contactName,
-          publicRef: result.enquiry.publicRef,
-          itemCount: result.itemCount,
-          enquiryId: result.enquiry.id,
-        });
-      }
-
-      const recipients = await this.settings.salesNotificationRecipients();
-      if (recipients.length > 0) {
-        await this.notifications.sendEnquiryAlert({
-          recipients,
-          publicRef: result.enquiry.publicRef,
-          contactName: result.enquiry.contactName,
-          contactCompany: result.enquiry.contactCompany,
-          contactPhone: result.enquiry.contactPhone,
-          itemCount: result.itemCount,
-          enquiryId: result.enquiry.id,
-        });
-      } else {
-        this.logger.warn(
-          'No sales notification recipients configured — new enquiries will go unnoticed. ' +
-            'Set notify.sales_emails.',
-        );
-      }
-    } catch (error) {
-      this.logger.error(`Enquiry notifications failed: ${(error as Error).message}`);
-    }
   }
 
   /**

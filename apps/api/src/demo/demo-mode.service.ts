@@ -9,7 +9,6 @@ import { DemoModeRepository, SeedDataCensus } from './demo-mode.repository';
  *   - robots.txt disallows everything; X-Robots-Tag: noindex on every response
  *   - the storefront shows a persistent sample-data banner
  *   - quote PDFs carry a "SAMPLE — NOT A COMMERCIAL DOCUMENT" watermark
- *   - outbound email is restricted to MAIL_DEMO_ALLOWLIST
  *   - seed records are visibly chipped in the admin UI
  *
  * The reason this matters: the staging deployment sits on a subdomain of a real
@@ -40,10 +39,7 @@ export class DemoModeService implements OnApplicationBootstrap {
    */
   async onApplicationBootstrap(): Promise<void> {
     if (this.enabled) {
-      this.logger.warn(
-        'DEMO_MODE is ON — indexing blocked, sample banner shown, quote PDFs watermarked, ' +
-          'outbound email restricted.',
-      );
+      this.logger.warn('DEMO_MODE is ON — indexing blocked, sample banner shown, quote PDFs watermarked.');
       return;
     }
 
@@ -85,17 +81,6 @@ export class DemoModeService implements OnApplicationBootstrap {
   /** Current census, surfaced to the admin dashboard. */
   async census(): Promise<SeedDataCensus> {
     return this.repository.censusSeedData();
-  }
-
-  /**
-   * In demo mode, outbound mail goes only to allowlisted addresses so a seeded
-   * customer record can never receive a real email.
-   */
-  canSendEmailTo(address: string): boolean {
-    if (!this.enabled) return true;
-    const allowlist = this.config.mailDemoAllowlist;
-    if (allowlist.length === 0) return false;
-    return allowlist.includes(address.trim().toLowerCase());
   }
 
   /** Banner copy, served to the frontend so the wording lives in one place. */

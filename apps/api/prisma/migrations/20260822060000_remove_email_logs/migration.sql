@@ -1,0 +1,12 @@
+-- Removes the email_logs table and its EmailStatus enum column.
+--
+-- Mail/notification code was removed from the API entirely (Redis and the
+-- Brevo integration were dropped ahead of the Hostinger deployment, neither
+-- being needed right now). email_logs was a standalone table with no
+-- incoming relations from any other model, so it drops cleanly.
+--
+-- Written by hand, following this project's established convention: earlier
+-- migrations add indexes/triggers that the Prisma schema does not model, so
+-- `prisma migrate dev` reads them as drift. Hand-written migrations plus
+-- `migrate resolve` are the safe path on this project.
+DROP TABLE IF EXISTS `email_logs`;

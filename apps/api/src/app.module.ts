@@ -4,10 +4,8 @@ import { DiscoveryModule } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { AppConfigModule } from './config/config.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { RedisModule } from './redis/redis.module';
 import { DemoModule } from './demo/demo.module';
 import { AuditModule } from './audit/audit.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
 import { SettingsModule } from './settings/settings.module';
 import { FilesModule } from './files/files.module';
@@ -33,10 +31,8 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
     DiscoveryModule,
     AppConfigModule,
     PrismaModule,
-    RedisModule,
     DemoModule,
     AuditModule,
-    NotificationsModule,
     SettingsModule,
     FilesModule,
     JwtModule.register({}),

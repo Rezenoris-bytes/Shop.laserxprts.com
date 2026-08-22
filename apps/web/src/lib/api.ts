@@ -1,4 +1,5 @@
 import type { ApiError, ApiResponse } from '@lei/shared';
+import { env } from './env';
 
 /**
  * API client.
@@ -7,10 +8,10 @@ import type { ApiError, ApiResponse } from '@lei/shared';
  * this app hardcodes a hostname — moving to the production domain is a change
  * to NEXT_PUBLIC_API_URL and NEXT_PUBLIC_SITE_URL plus DNS and TLS.
  */
-const BROWSER_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const BROWSER_BASE = env.apiUrl;
 // Server components talk to the API directly; in Docker this is the service
 // name rather than localhost, which is why it is a separate variable.
-const SERVER_BASE = process.env.API_URL ?? BROWSER_BASE;
+const SERVER_BASE = (process.env.API_URL ?? BROWSER_BASE).replace(/\/+$/, '');
 
 const base = () => (typeof window === 'undefined' ? SERVER_BASE : BROWSER_BASE);
 

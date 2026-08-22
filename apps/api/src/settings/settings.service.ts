@@ -25,10 +25,8 @@ export interface QuoteDefaults {
 /**
  * Settings, with a short-lived in-process cache.
  *
- * Settings are read on every quote render and every enquiry notification but
- * change perhaps twice a year. A 60-second cache avoids a database round trip
- * per read without introducing Redis, which is deliberately reserved for rate
- * limiting and refresh-token families.
+ * Settings are read on every quote render but change perhaps twice a year.
+ * A 60-second in-process cache avoids a database round trip per read.
  */
 @Injectable()
 export class SettingsService {

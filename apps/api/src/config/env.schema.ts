@@ -22,8 +22,8 @@ export const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
     // ── Demo mode ─────────────────────────────────────────────────────────
-    // Drives indexing blocks, the sample-data banner, PDF watermarking and
-    // outbound-mail restriction. See DemoModeService for the runtime rails.
+    // Drives indexing blocks, the sample-data banner and PDF watermarking.
+    // See DemoModeService for the runtime rails.
     DEMO_MODE: booleanFromString.default('true'),
 
     // ── Domain (production domain deferred — all env-driven) ──────────────
@@ -42,6 +42,12 @@ export const envSchema = z
 
     API_PORT: portNumber.default(4000),
 
+    // ── Port assigned by the host at runtime (e.g. Hostinger Passenger) ────
+    // main.ts prefers this over API_PORT when present. Declared here purely
+    // for documentation/validation; the raw env read in main.ts is what
+    // actually decides the bound port.
+    PORT: portNumber.optional(),
+
     // ── Database ──────────────────────────────────────────────────────────
     DATABASE_URL: z
       .string()
@@ -49,17 +55,6 @@ export const envSchema = z
       .refine((value) => value.startsWith('mysql://'), {
         message: 'DATABASE_URL must be a mysql:// connection string',
       }),
-
-    // ── Redis (rate limiting + refresh-token families only) ───────────────
-    // Optional: if absent, rate limiting fails open and token-reuse detection
-    // is disabled. Provide REDIS_URL in production for full security.
-    REDIS_URL: z
-      .string()
-      .refine(
-        (value) => !value || value.startsWith('redis://') || value.startsWith('rediss://'),
-        { message: 'REDIS_URL must be a redis:// or rediss:// connection string' },
-      )
-      .optional(),
 
     // ── Auth ──────────────────────────────────────────────────────────────
     JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
@@ -84,21 +79,6 @@ export const envSchema = z
       .positive()
       .default(10 * 1024 * 1024),
 
-    // ── Email ─────────────────────────────────────────────────────────────
-    MAIL_PROVIDER: z.enum(['console', 'brevo']).default('console'),
-    MAIL_API_KEY: z.string().optional(),
-    MAIL_FROM_ADDRESS: z.string().email().default('noreply@example.com'),
-    MAIL_FROM_NAME: z.string().default('Laser Experts India'),
-    MAIL_DEMO_ALLOWLIST: z
-      .string()
-      .optional()
-      .transform((value) =>
-        (value ?? '')
-          .split(',')
-          .map((address) => address.trim().toLowerCase())
-          .filter(Boolean),
-      ),
-
     // ── Rate limiting ─────────────────────────────────────────────────────
     RATE_LIMIT_TTL: z.coerce.number().int().positive().default(60),
     RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
@@ -120,14 +100,6 @@ export const envSchema = z
           message: 'SITE_URL must use https in production',
         });
       }
-    }
-
-    if (env.MAIL_PROVIDER === 'brevo' && !env.MAIL_API_KEY) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['MAIL_API_KEY'],
-        message: 'MAIL_API_KEY is required when MAIL_PROVIDER is "brevo"',
-      });
     }
   });
 

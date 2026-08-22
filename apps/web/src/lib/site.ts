@@ -1,13 +1,12 @@
+import { env } from './env';
+
 /**
  * Site-level configuration.
  *
  * The production domain is deferred, so nothing here is a literal — SITE_URL
  * drives canonicals, Open Graph, the sitemap and every absolute link.
  */
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(
-  /\/+$/,
-  '',
-);
+export const siteUrl = env.siteUrl;
 
 export const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 

@@ -15,7 +15,6 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Client, type ClientContext } from '../common/decorators/client-context.decorator';
 import { ZodBody } from '../common/pipes/zod-validation.pipe';
 import { AppConfigService } from '../config/app-config.service';
-import { NotificationsService } from '../notifications/notifications.service';
 import { AuthService, type AuthenticatedUser } from './auth.service';
 
 const REFRESH_COOKIE = 'lei_rt';
@@ -25,7 +24,6 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly config: AppConfigService,
-    private readonly notifications: NotificationsService,
   ) {}
 
   @Public()
@@ -90,11 +88,7 @@ export class AuthController {
   @Post('password-reset/request')
   @HttpCode(HttpStatus.OK)
   async requestReset(@Body(ZodBody(passwordResetRequestSchema)) body: PasswordResetRequestInput) {
-    const result = await this.auth.requestPasswordReset(body.email);
-
-    if (result) {
-      await this.notifications.sendPasswordReset(body.email, result.token);
-    }
+    await this.auth.requestPasswordReset(body.email);
 
     // Always the same response. Telling the caller whether the account exists
     // would leak exactly what the login form is careful not to.

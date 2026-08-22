@@ -283,14 +283,6 @@ enum AuditAction {
   IMPORT
 }
 
-enum EmailStatus {
-  QUEUED
-  SENT
-  DELIVERED
-  BOUNCED
-  COMPLAINED
-  FAILED
-}
 
 enum ImportStatus {
   PENDING
@@ -528,28 +520,6 @@ model FileDerivative {
 
   @@unique([fileId, variant, format])
   @@map("file_derivatives")
-}
-
-/// Delivery and bounce visibility. Without this, sales believes a quote was
-/// delivered when it actually bounced.
-model EmailLog {
-  id           Int         @id @default(autoincrement())
-  toEmail      String      @map("to_email") @db.VarChar(190)
-  template     String      @db.VarChar(64)
-  subject      String      @db.VarChar(255)
-  status       EmailStatus @default(QUEUED)
-  providerId   String?     @map("provider_id") @db.VarChar(190)
-  entityType   String?     @map("entity_type") @db.VarChar(64)
-  entityId     String?     @map("entity_id") @db.VarChar(64)
-  errorMessage String?     @map("error_message") @db.Text
-  attempts     Int         @default(0) @db.TinyInt
-  sentAt       DateTime?   @map("sent_at") @db.DateTime(3)
-  createdAt    DateTime    @default(now()) @map("created_at") @db.DateTime(3)
-
-  @@index([status, createdAt])
-  @@index([entityType, entityId])
-  @@index([toEmail])
-  @@map("email_logs")
 }
 
 /// The seed catalogue is loaded through this same importer, so the production

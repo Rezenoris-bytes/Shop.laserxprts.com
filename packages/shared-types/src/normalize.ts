@@ -98,35 +98,3 @@ export function slugify(input: string): string {
     .slice(0, 190);
 }
 
-/**
- * GST state codes 01–38. Used to decide CGST+SGST vs IGST.
- * Returns null for anything that is not a valid two-digit code.
- */
-export function normalizeStateCode(input: string): string | null {
-  const digits = input.replace(/\D/g, '');
-  if (digits.length === 0) return null;
-  const padded = digits.padStart(2, '0');
-  const value = Number(padded);
-  if (value < 1 || value > 38) return null;
-  return padded;
-}
-
-/**
- * Extracts the state code from a GSTIN. The first two characters of a valid
- * 15-character GSTIN are the state code.
- */
-export function stateCodeFromGstin(gstin: string): string | null {
-  const cleaned = gstin.trim().toUpperCase();
-  if (cleaned.length !== 15) return null;
-  return normalizeStateCode(cleaned.slice(0, 2));
-}
-
-/**
- * Basic GSTIN shape check. Deliberately format-only — it does not verify the
- * checksum or that the number is registered, which requires the GSTN API.
- */
-export function isValidGstinFormat(gstin: string): boolean {
-  return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(
-    gstin.trim().toUpperCase(),
-  );
-}

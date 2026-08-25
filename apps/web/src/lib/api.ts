@@ -125,12 +125,28 @@ export const api = {
     };
   },
 
+  searchAutocomplete: async (q: string) => {
+    if (!q.trim()) return { data: [] };
+    const response = await fetch(
+      `${base()}/api/v1/search/autocomplete?${toQuery({ q })}`,
+      { cache: 'no-store' },
+    );
+    if (!response.ok) return { data: [] };
+    return (await response.json()) as { data: AutocompleteSuggestion[] };
+  },
+
   /** Basket rehydration. Prices always come from here, never from storage. */
   resolveVariants: (ids: number[]) =>
     request<ResolvedBasket>(`/variants/resolve?ids=${ids.join(',')}`, { cache: 'no-store' }),
 
   submitQuoteRequest: (body: unknown) =>
-    request<{ publicRef: string; itemCount: number; message: string }>('/enquiries', {
+    request<{ publicRef: string; itemCount: number }>('/enquiries', {
+      method: 'POST',
+      body,
+    }),
+
+  submitContactForm: (body: unknown) =>
+    request<{ publicRef: string }>('/contact', {
       method: 'POST',
       body,
     }),
@@ -156,7 +172,23 @@ export const api = {
 
   adminEnquiry: (accessToken: string, id: number) =>
     request<AdminEnquiryDetail>(`/admin/enquiries/${id}`, { accessToken, cache: 'no-store' }),
+
+  /**
+   * Storefront contact details, sourced from the admin Settings page. Short
+   * revalidation window so a phone/email change goes live within minutes
+   * without needing a rebuild.
+   */
+  contact: () => request<PublicContact>('/settings/contact', { revalidate: 300 }),
 };
+
+export interface PublicContact {
+  phone: string;
+  email: string;
+  whatsappNumber: string;
+  address: string;
+  city: string;
+  gstin: string;
+}
 
 function toQuery(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
@@ -186,7 +218,6 @@ export interface ProductCard {
   shortDescription: string | null;
   priceFrom: number | null;
   priceTo: number | null;
-  hasStock: boolean;
   variantCount: number;
   /** The variant a card-level quote request is raised against. */
   defaultVariant: { id: number; minOrderQty: number } | null;
@@ -261,8 +292,6 @@ export interface ProductVariantView {
   minOrderQty: number;
   leadTimeDays: number | null;
   isDefault: boolean;
-  stockStatus: string;
-  inStock: boolean;
   axisValues: Record<string, string>;
   specs: Array<{ name: string; slug: string; value: string; unit: string | null }>;
 }
@@ -274,10 +303,7 @@ export interface ProductDetail {
   shortDescription: string | null;
   description: string | null;
   productType: string;
-  hsnCode: string | null;
-  gstRate: number | null;
   priceRange: { min: number | null; max: number | null };
-  hasStock: boolean;
   isSeedData: boolean;
   seo: {
     metaTitle: string | null;
@@ -360,7 +386,6 @@ export interface ResolvedBasketItem {
   unitOfMeasure: string;
   packSize: number;
   minOrderQty: number;
-  stockStatus: string;
   product: {
     id: number;
     name: string;
@@ -379,10 +404,8 @@ export interface AdminUser {
   id: number;
   name: string;
   email: string;
-  role: string;
-  department: string | null;
+  role: 'OWNER';
   mustChangePassword: boolean;
-  permissions: Record<string, { view: boolean; create: boolean; update: boolean; delete: boolean }>;
 }
 
 export interface AdminEnquiryRow {
@@ -421,4 +444,11 @@ export interface AdminEnquiryDetail extends AdminEnquiryRow {
     } | null;
   }>;
   customer: { id: number; companyName: string | null; contactName: string; status: string } | null;
+}
+
+export interface AutocompleteSuggestion {
+  id: number;
+  name: string;
+  slug: string;
+  image: { storedName: string; path: string } | null;
 }

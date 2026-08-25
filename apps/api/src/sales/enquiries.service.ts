@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { normalizeEmail, normalizePhone, type QuoteRequestInput } from '@lei/shared';
+import { normalizeEmail, normalizePhone, type QuoteRequestInput, type ContactFormInput } from '@lei/shared';
 import { PasswordService } from '../auth/password.service';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '@lei/shared';
@@ -72,6 +72,45 @@ export class EnquiriesService {
   }
 
   /**
+   * Submits a General Contact Form enquiry.
+   */
+  async submitContact(
+    input: ContactFormInput,
+    context: { ip?: string; userAgent?: string },
+  ): Promise<{ publicRef: string }> {
+    const spamScore = this.scoreSpamContact(input);
+
+    if (input.website) {
+      this.logger.warn(`Honeypot triggered from ${context.ip ?? 'unknown'} — discarding silently`);
+      return { publicRef: this.passwords.generatePublicRef() };
+    }
+
+    const result = await this.repository.createContactEnquiry({
+      publicRef: this.passwords.generatePublicRef(),
+      contactName: input.contactName,
+      contactEmail: input.contactEmail,
+      contactPhone: input.contactPhone,
+      contactCompany: input.contactCompany,
+      subject: input.subject,
+      message: input.message,
+      consentText: CONSENT_TEXT,
+      ipAddress: context.ip,
+      userAgent: context.userAgent,
+      spamScore,
+    });
+
+    await this.audit.record({
+      action: AuditAction.CREATE,
+      entityType: 'Enquiry',
+      entityId: String(result.enquiry.id),
+      ipAddress: context.ip,
+      newValues: { status: 'NEW', type: 'GENERAL' },
+    });
+
+    return { publicRef: result.enquiry.publicRef };
+  }
+
+  /**
    * Cheap heuristics, recorded rather than enforced.
    *
    * A public lead-generation form will be scraped and spammed; the point is to
@@ -79,6 +118,18 @@ export class EnquiriesService {
    * genuine enquiry.
    */
   private scoreSpam(input: QuoteRequestInput): number {
+    let score = 0;
+
+    if (input.elapsedMs !== undefined && input.elapsedMs < MIN_FORM_SECONDS * 1000) score += 40;
+    if (input.message && /https?:\/\//i.test(input.message)) score += 30;
+    if (input.message && /\b(seo|backlink|crypto|casino|loan)\b/i.test(input.message)) score += 30;
+    if (input.contactName.length < 3) score += 10;
+    if (!input.contactPhone && !input.contactCompany) score += 5;
+
+    return Math.min(score, 100);
+  }
+
+  private scoreSpamContact(input: ContactFormInput): number {
     let score = 0;
 
     if (input.elapsedMs !== undefined && input.elapsedMs < MIN_FORM_SECONDS * 1000) score += 40;

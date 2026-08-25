@@ -18,7 +18,6 @@ export const siteTagline = 'Laser spares, consumables and technical services';
 export const businessPhone = '+91 89258 42285';
 export const businessEmail = 'business@laserxprts.com';
 export const businessLocation = 'Hosur, Tamil Nadu';
-export const businessGst = '33XXXXX0000X1ZX';
 
 /** Full registered head office address. */
 export const businessAddress = {

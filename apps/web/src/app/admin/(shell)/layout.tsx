@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useRequireAdmin } from '@/lib/admin-auth';
 import { adminNav } from '@/lib/admin-nav';
@@ -24,18 +25,20 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
     );
   }
 
-  const visibleNav = adminNav.filter(
-    (item) => item.module === null || auth.hasPermission(item.module, 'view'),
-  );
+  const visibleNav = adminNav;
 
   return (
     <div className="flex min-h-screen bg-ink-wash">
       <aside className="flex w-60 shrink-0 flex-col border-r border-ink-line bg-white">
-        <div className="flex h-16 items-center gap-2 border-b border-ink-line px-5">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-ink text-xs font-black text-amber">
-            LEI
-          </span>
-          <span className="text-sm font-bold">Admin</span>
+        <div className="flex h-16 items-center gap-2 border-b border-ink-line px-4">
+          <Image
+            src="/laser_expert_logo.png"
+            alt="Laser Expert India"
+            width={120}
+            height={36}
+            className="h-9 w-auto object-contain"
+            priority
+          />
         </div>
 
         <nav aria-label="Admin" className="flex-1 space-y-0.5 p-3">
@@ -59,7 +62,7 @@ export default function AdminShellLayout({ children }: { children: React.ReactNo
         <div className="border-t border-ink-line p-3">
           <p className="truncate text-xs font-semibold">{auth.user.name}</p>
           <p className="truncate text-[11px] text-ink-muted">
-            {auth.user.role === 'SUPER_ADMIN' ? 'Super Admin' : auth.user.department}
+            {auth.user.role === 'OWNER' ? 'Owner' : auth.user.role}
           </p>
           <button
             type="button"

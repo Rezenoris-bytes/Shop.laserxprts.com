@@ -1,11 +1,11 @@
 import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'node:crypto';
-import { AuditAction, normalizeEmail, type PermissionModule } from '@lei/shared';
+import { AuditAction, normalizeEmail } from '@lei/shared';
 import { AppConfigService } from '../config/app-config.service';
 import { AuditService } from '../audit/audit.service';
 import { PasswordService } from './password.service';
-import { AuthRepository, type UserWithPermissions } from './auth.repository';
+import { AuthRepository, type AuthUser } from './auth.repository';
 
 const MAX_FAILED_ATTEMPTS = 8;
 const LOCK_MINUTES = 15;
@@ -15,14 +15,8 @@ export interface AuthenticatedUser {
   name: string;
   email: string;
   role: string;
-  department: string | null;
   mustChangePassword: boolean;
-  permissions: PermissionMap;
 }
-
-export type PermissionMap = Partial<
-  Record<PermissionModule, { view: boolean; create: boolean; update: boolean; delete: boolean }>
->;
 
 export interface AccessTokenPayload {
   sub: number;
@@ -273,30 +267,18 @@ export class AuthService {
     return this.toAuthenticatedUser(user);
   }
 
-  toAuthenticatedUser(user: UserWithPermissions): AuthenticatedUser {
-    const permissions: PermissionMap = {};
-    for (const row of user.permissions) {
-      permissions[row.module as PermissionModule] = {
-        view: row.canView,
-        create: row.canCreate,
-        update: row.canUpdate,
-        delete: row.canDelete,
-      };
-    }
-
+  toAuthenticatedUser(user: AuthUser): AuthenticatedUser {
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      department: user.department,
       mustChangePassword: user.mustChangePassword,
-      permissions,
     };
   }
 
   private async issueSession(
-    user: UserWithPermissions,
+    user: AuthUser,
     familyId: string,
     context: { ip?: string; userAgent?: string },
   ): Promise<LoginResult & { refreshTokenId: number }> {

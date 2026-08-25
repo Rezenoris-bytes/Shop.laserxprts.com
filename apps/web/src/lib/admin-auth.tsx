@@ -86,10 +86,9 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hasPermission = useCallback(
-    (module: string, action: 'view' | 'create' | 'update' | 'delete') => {
-      if (!user) return false;
-      if (user.role === 'SUPER_ADMIN') return true;
-      return Boolean(user.permissions[module]?.[action]);
+    // OWNER has full access to everything — no module-level checks needed.
+    (_module: string, _action: 'view' | 'create' | 'update' | 'delete') => {
+      return Boolean(user);
     },
     [user],
   );
@@ -250,4 +249,32 @@ export function adminFetchEnveloped<T>(
   options: Omit<RequestInit, 'body'> & { body?: unknown } = {},
 ): Promise<{ data: T; meta: Record<string, unknown> }> {
   return adminRequest(path, options);
+}
+
+export async function adminDownload(path: string): Promise<Blob> {
+  const attempt = async (token: string | null): Promise<Response> => {
+    return fetch(`${env.apiUrl}/api/v1${path}`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  };
+
+  let response = await attempt(currentToken);
+
+  if (response.status === 401 && currentToken !== null) {
+    try {
+      const refreshed = await api.refresh();
+      currentToken = refreshed.accessToken;
+      response = await attempt(currentToken);
+    } catch {
+      currentToken = null;
+      onUnauthorized?.();
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(`Download failed with status ${response.status}`);
+  }
+
+  return response.blob();
 }

@@ -1,4 +1,4 @@
-import { adminFetch, adminFetchEnveloped, adminUpload } from './admin-auth';
+import { adminFetch, adminFetchEnveloped, adminUpload, adminDownload } from './admin-auth';
 import type { AdminEnquiryDetail, AdminEnquiryRow, ListMeta } from './api';
 
 export type { AdminEnquiryRow };
@@ -20,9 +20,9 @@ function toQuery(params: Record<string, string | number | undefined>): string {
 }
 
 export interface DashboardData {
-  enquiries: { new: number; acknowledged: number; inProgress: number; total: number };
+  enquiries: { new: number; called: number; confirmed: number; total: number };
   quotes: { draft: number; sent: number; expiringSoon: number };
-  inventory: { lowStock: number; outOfStock: number };
+  products: { active: number; inactive: number };
   searchNoResults: Array<{ normalized: string; count: number }>;
   demoData: Record<string, number>;
   placeholderSettings: string[];
@@ -63,6 +63,15 @@ export interface AdminProductRow {
   _count: { variants: number };
 }
 
+export interface BulkUploadResult {
+  created: number;
+  updated: number;
+  imagesAttached: number;
+  categoriesCreated: number;
+  brandsCreated: number;
+  errors: Array<{ row: number; message: string }>;
+}
+
 export interface AdminProductMedia {
   id: number;
   fileId: number;
@@ -90,8 +99,6 @@ export interface AdminProductDetail {
   productType: string;
   shortDescription: string | null;
   description: string | null;
-  hsnCode: string | null;
-  gstRate: string | null;
   isFeatured: boolean;
   isActive: boolean;
   metaTitle: string | null;
@@ -108,7 +115,6 @@ export interface AdminProductDetail {
     packSize: number;
     isDefault: boolean;
     isActive: boolean;
-    inventory: { quantity: number; reorderLevel: number; stockStatus: string } | null;
   }>;
   compatibility: Array<{
     id: number;
@@ -164,18 +170,10 @@ export interface AdminUserRow {
   id: number;
   name: string;
   email: string;
-  role: string;
-  department: string | null;
+  role: 'OWNER';
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
-  permissions: Array<{
-    module: string;
-    canView: boolean;
-    canCreate: boolean;
-    canUpdate: boolean;
-    canDelete: boolean;
-  }>;
 }
 
 export interface AuditLogRow {
@@ -256,6 +254,14 @@ export const adminApi = {
     adminFetch<AdminProductDetail>(`/admin/products/${id}`, { method: 'PATCH', body }),
   deleteProduct: (id: number) => adminFetch(`/admin/products/${id}`, { method: 'DELETE' }),
 
+  // ── Bulk upload ──────────────────────────────────────────────────────
+  bulkUploadProducts: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return adminUpload<BulkUploadResult>('/admin/products/bulk-upload', form);
+  },
+  bulkUploadTemplate: () => adminDownload('/admin/products/bulk-upload/template'),
+
   // ── Product media ───────────────────────────────────────────────────
   productMedia: (id: number) => adminFetch<AdminProductMedia[]>(`/admin/products/${id}/media`),
 
@@ -294,8 +300,9 @@ export const adminApi = {
     adminFetch('/admin/variants', { method: 'POST', body }),
   updateVariant: (id: number, body: Record<string, unknown>) =>
     adminFetch(`/admin/variants/${id}`, { method: 'PATCH', body }),
-  updateInventory: (id: number, body: Record<string, unknown>) =>
-    adminFetch(`/admin/variants/${id}/inventory`, { method: 'PATCH', body }),
+  deleteVariant: (id: number, productId: number) =>
+    adminFetch(`/admin/variants/${id}?productId=${productId}`, { method: 'DELETE' }),
+
   stockMovements: (id: number) => adminFetch(`/admin/variants/${id}/stock-movements`),
 
   // Compatibility
@@ -330,15 +337,13 @@ export const adminApi = {
 
   // Users
   users: () => adminFetch<AdminUserRow[]>('/admin/users'),
-  createUser: (body: { name: string; email: string; department: string }) =>
+  createUser: (body: { name: string; email: string }) =>
     adminFetch<{ user: AdminUserRow; temporaryPassword: string }>('/admin/users', {
       method: 'POST',
       body,
     }),
   activateUser: (id: number) => adminFetch(`/admin/users/${id}/activate`, { method: 'PATCH' }),
   deactivateUser: (id: number) => adminFetch(`/admin/users/${id}/deactivate`, { method: 'PATCH' }),
-  setPermissions: (id: number, permissions: unknown[]) =>
-    adminFetch(`/admin/users/${id}/permissions`, { method: 'PATCH', body: { permissions } }),
 
   // Audit
   auditLogs: (query: Record<string, string | number | undefined> = {}) =>

@@ -34,8 +34,8 @@ export class DashboardService {
       this.repository.enquiryCountsByStatus(),
       this.repository.quoteCountsByStatus(),
       this.repository.quotesExpiringSoon(),
-      this.repository.lowStockCount(),
-      this.repository.outOfStockCount(),
+      this.repository.activeProductsCount(),
+      this.repository.inactiveProductsCount(),
       this.repository.searchNoResultsRecent(7, 10),
       this.demo.census(),
       this.settings.placeholderKeys(),
@@ -47,17 +47,17 @@ export class DashboardService {
     return {
       enquiries: {
         new: byStatus(enquiryCounts, 'NEW'),
-        acknowledged: byStatus(enquiryCounts, 'ACKNOWLEDGED'),
-        inProgress: byStatus(enquiryCounts, 'IN_PROGRESS'),
-        total: enquiryCounts.reduce((sum, row) => sum + row._count._all, 0),
+        called: byStatus(enquiryCounts, 'CALLED'),
+        confirmed: byStatus(enquiryCounts, 'CONFIRMED'),
+        total: enquiryCounts.reduce((sum: number, row: { _count: { _all: number } }) => sum + row._count._all, 0),
       },
       quotes: {
         draft: byStatus(quoteCounts, 'DRAFT'),
         sent: byStatus(quoteCounts, 'SENT'),
         expiringSoon,
       },
-      inventory: { lowStock, outOfStock },
-      searchNoResults: noResults.map((row) => ({
+      products: { active: lowStock, inactive: outOfStock },
+      searchNoResults: noResults.map((row: { normalized: string; _count: { _all: number } }) => ({
         normalized: row.normalized,
         count: row._count._all,
       })),

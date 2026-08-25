@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { slugify } from '@lei/shared';
 import {
   adminApi,
   type AdminCategory,
@@ -40,8 +41,6 @@ export function ProductDetailsForm({
     productType: product.productType,
     shortDescription: product.shortDescription ?? '',
     description: product.description ?? '',
-    hsnCode: product.hsnCode ?? '',
-    gstRate: product.gstRate ?? '',
     metaTitle: product.metaTitle ?? '',
     metaDescription: product.metaDescription ?? '',
     isFeatured: product.isFeatured,
@@ -52,9 +51,20 @@ export function ProductDetailsForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [saved, setSaved] = useState(false);
+  // Slug follows the name until the admin edits it directly.
+  const [slugTouched, setSlugTouched] = useState(false);
 
   const set = (key: keyof typeof values, value: string | boolean) => {
     setValues((current) => ({ ...current, [key]: value }));
+    setSaved(false);
+  };
+
+  const setName = (value: string) => {
+    setValues((current) => ({
+      ...current,
+      name: value,
+      slug: slugTouched ? current.slug : slugify(value),
+    }));
     setSaved(false);
   };
 
@@ -74,8 +84,6 @@ export function ProductDetailsForm({
       productType: values.productType,
       shortDescription: values.shortDescription || undefined,
       description: values.description || undefined,
-      hsnCode: values.hsnCode || undefined,
-      gstRate: values.gstRate === '' ? undefined : Number(values.gstRate),
       metaTitle: values.metaTitle || undefined,
       metaDescription: values.metaDescription || undefined,
       isFeatured: values.isFeatured,
@@ -104,21 +112,32 @@ export function ProductDetailsForm({
             <input
               id="p-name"
               value={values.name}
-              onChange={(event) => set('name', event.target.value)}
+              onChange={(event) => setName(event.target.value)}
               disabled={!canUpdate}
               className="field"
               required
             />
           </Field>
 
-          <Field label="Slug" htmlFor="p-slug" error={fieldErrors.slug}>
+          <Field
+            label="Slug"
+            htmlFor="p-slug"
+            error={fieldErrors.slug}
+            hint="Auto-generated from the name — edit only if you need a different URL."
+          >
             <input
               id="p-slug"
               value={values.slug}
-              onChange={(event) => set('slug', event.target.value)}
+              onChange={(event) => {
+                setSlugTouched(true);
+                set('slug', event.target.value);
+              }}
               disabled={!canUpdate}
               className="field"
-              pattern="[a-z0-9-]+"
+              // The hyphen is escaped: modern browsers compile `pattern` with
+              // the `v` flag, where a bare trailing `-` in a class is a syntax
+              // error and the whole attribute is discarded.
+              pattern="[a-z0-9\-]+"
               title="Lower case letters, numbers and hyphens only"
             />
           </Field>
@@ -171,32 +190,6 @@ export function ProductDetailsForm({
               ))}
             </select>
           </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="HSN code" htmlFor="p-hsn" error={fieldErrors.hsnCode}>
-              <input
-                id="p-hsn"
-                value={values.hsnCode}
-                onChange={(event) => set('hsnCode', event.target.value)}
-                disabled={!canUpdate}
-                className="field"
-              />
-            </Field>
-
-            <Field label="GST %" htmlFor="p-gst" error={fieldErrors.gstRate}>
-              <input
-                id="p-gst"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={values.gstRate}
-                onChange={(event) => set('gstRate', event.target.value)}
-                disabled={!canUpdate}
-                className="field"
-              />
-            </Field>
-          </div>
         </div>
 
         <Field

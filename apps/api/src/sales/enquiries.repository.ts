@@ -27,6 +27,20 @@ export interface CreateEnquiryData {
   items: Array<{ variantId: number; quantity: number; note?: string }>;
 }
 
+export interface CreateContactEnquiryData {
+  publicRef: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone?: string;
+  contactCompany?: string;
+  subject?: string;
+  message: string;
+  consentText: string;
+  ipAddress?: string;
+  userAgent?: string;
+  spamScore: number;
+}
+
 @Injectable()
 export class EnquiriesRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -121,13 +135,64 @@ export class EnquiriesRepository {
     });
   }
 
+  async createContactEnquiry(data: CreateContactEnquiryData) {
+    return this.prisma.raw.$transaction(async (tx) => {
+      const customer = await this.findOrCreateCustomer(tx, {
+        contactName: data.contactName,
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone,
+        contactCompany: data.contactCompany,
+      });
+
+      const enquiry = await tx.enquiry.create({
+        data: {
+          publicRef: data.publicRef,
+          customerId: customer?.id ?? null,
+          type: 'GENERAL',
+          status: 'NEW',
+          source: 'WEBSITE_ENQUIRY',
+          contactName: data.contactName,
+          contactEmail: data.contactEmail,
+          contactPhone: data.contactPhone ?? null,
+          contactCompany: data.contactCompany ?? null,
+          subject: data.subject ?? null,
+          message: data.message,
+          consentGiven: true,
+          consentText: data.consentText,
+          consentAt: new Date(),
+          ipAddress: data.ipAddress ?? null,
+          userAgent: data.userAgent?.slice(0, 255) ?? null,
+          spamScore: data.spamScore,
+        },
+      });
+
+      if (customer) {
+        await tx.lead.create({
+          data: {
+            customerId: customer.id,
+            enquiryId: enquiry.id,
+            leadType: 'PRODUCT', // general enquiries fall under product pipeline by default
+            source: 'WEBSITE_ENQUIRY',
+            status: 'NEW',
+            priority: 'MEDIUM',
+          },
+        });
+      }
+
+      return { enquiry, customer };
+    });
+  }
+
   /**
    * Find-or-create keyed on normalised email, then normalised phone.
    *
    * Auto-created records are flagged `isVerified: false` so sales can see which
    * came from a public form and have not been confirmed.
    */
-  private async findOrCreateCustomer(tx: Prisma.TransactionClient, data: CreateEnquiryData) {
+  private async findOrCreateCustomer(
+    tx: Prisma.TransactionClient,
+    data: { contactName: string; contactEmail?: string; contactPhone?: string; contactCompany?: string; contactCity?: string }
+  ) {
     const emailNormalized = data.contactEmail ? normalizeEmail(data.contactEmail) : null;
     const phoneNormalized = data.contactPhone ? normalizePhone(data.contactPhone) : null;
 
@@ -228,7 +293,7 @@ export class EnquiriesRepository {
                 variantName: true,
                 price: true,
                 product: {
-                  select: { id: true, name: true, slug: true, hsnCode: true, gstRate: true },
+                  select: { id: true, name: true, slug: true },
                 },
               },
             },

@@ -43,7 +43,7 @@ export default function DashboardPage() {
           <span className="font-semibold">
             {data.placeholderSettings.length} placeholder settings
           </span>{' '}
-          still need real values (company details, GST, terms) before quotes can go out for real.
+          still need real values (company details, terms) before quotes can go out for real.
           {auth.hasPermission('SETTINGS', 'view') && (
             <Link href="/admin/settings" className="ml-2 font-medium underline">
               Review settings →
@@ -60,9 +60,9 @@ export default function DashboardPage() {
           tone={data.enquiries.new > 0 ? 'warn' : 'ok'}
         />
         <Tile
-          label="In progress"
-          value={data.enquiries.inProgress}
-          href="/admin/enquiries?status=IN_PROGRESS"
+          label="Called"
+          value={data.enquiries.called}
+          href="/admin/enquiries?status=CALLED"
           tone="muted"
         />
         <Tile
@@ -85,10 +85,10 @@ export default function DashboardPage() {
           tone={data.quotes.expiringSoon > 0 ? 'warn' : 'ok'}
         />
         <Tile
-          label="Low / out of stock"
-          value={data.inventory.lowStock + data.inventory.outOfStock}
-          href="/admin/products?stock=low"
-          tone={data.inventory.outOfStock > 0 ? 'bad' : data.inventory.lowStock > 0 ? 'warn' : 'ok'}
+          label="Active / inactive products"
+          value={data.products.active + data.products.inactive}
+          href="/admin/products"
+          tone={data.products.inactive > 0 ? 'bad' : 'ok'}
         />
       </div>
 

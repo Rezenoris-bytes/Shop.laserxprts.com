@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { adminApi, type AdminProductRow } from '@/lib/admin-api';
+import { adminApi, type AdminProductRow, type BulkUploadResult } from '@/lib/admin-api';
 import {
   AdminPageHeader,
   DataTable,
@@ -21,6 +21,7 @@ export default function AdminProductsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const canUpdate = auth.hasPermission('CATALOGUE', 'update');
+  const canCreate = auth.hasPermission('CATALOGUE', 'create');
 
   /**
    * Publish state is the one field worth changing without opening a product,
@@ -43,13 +44,55 @@ export default function AdminProductsPage() {
     }
   };
 
-  useEffect(() => {
-    setIsLoading(true);
+  const load = () =>
     adminApi
       .products({ q: search || undefined, perPage: 50 })
-      .then((result) => setRows(result.data))
-      .finally(() => setIsLoading(false));
+      .then((result) => setRows(result.data));
+
+  useEffect(() => {
+    setIsLoading(true);
+    load().finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<BulkUploadResult | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = async () => {
+    setDownloadingTemplate(true);
+    try {
+      const blob = await adminApi.bulkUploadTemplate();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'product-upload-template.xlsx';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (caught) {
+      setUploadError((caught as Error).message);
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    setUploading(true);
+    setUploadError(null);
+    setUploadResult(null);
+    try {
+      const result = await adminApi.bulkUploadProducts(file);
+      setUploadResult(result);
+      await load();
+    } catch (caught) {
+      setUploadError((caught as Error).message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const columns: Column<AdminProductRow>[] = [
     {
@@ -82,10 +125,7 @@ export default function AdminProductsPage() {
             label={row.isActive ? 'Published' : 'Unpublished'}
             tone={row.isActive ? 'ok' : 'muted'}
           />
-          <StatusChip
-            label={row.hasStock ? 'In stock' : 'No stock'}
-            tone={row.hasStock ? 'ok' : 'bad'}
-          />
+
         </div>
       ),
     },
@@ -116,13 +156,78 @@ export default function AdminProductsPage() {
       <AdminPageHeader
         title="Products"
         action={
-          auth.hasPermission('CATALOGUE', 'create') && (
-            <Link href="/admin/products/new" className="btn-primary text-sm">
+          auth.hasPermission('CATALOGUE', 'create') ? (
+            <Link href="/admin/products/new" className="btn-primary text-sm py-1.5">
               New product
             </Link>
-          )
+          ) : null
         }
       />
+      {canCreate && (
+        <section className="card mb-4 flex flex-wrap items-center gap-3 p-4">
+          <div className="flex-1 min-w-[200px]">
+            <p className="text-sm font-semibold">Bulk upload</p>
+            <p className="text-xs text-ink-muted">
+              Add or update many products at once from a spreadsheet. Rows with the same product
+              name become variants of one product (e.g. H15/H20/H25) — see the template for an
+              example. New categories and brands are created automatically if they don&apos;t
+              exist yet. Insert a photo directly into the &quot;image&quot; cell of an .xlsx file
+              to attach it automatically.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void downloadTemplate()}
+            disabled={downloadingTemplate}
+            className="btn-secondary text-xs py-1.5"
+          >
+            {downloadingTemplate ? 'Preparing…' : 'Download template'}
+          </button>
+          <label className="btn-primary cursor-pointer text-xs py-1.5">
+            {uploading ? 'Uploading…' : 'Upload file'}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx"
+              className="hidden"
+              disabled={uploading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void uploadFile(file);
+              }}
+            />
+          </label>
+
+          {uploadError && <p className="w-full text-xs text-bad">{uploadError}</p>}
+          {uploadResult && (
+            <div className="w-full rounded border border-ink-line bg-ink-wash p-3 text-xs">
+              <p className="font-medium">
+                {uploadResult.created} created · {uploadResult.updated} updated ·{' '}
+                {uploadResult.imagesAttached} photo(s) attached
+                {(uploadResult.categoriesCreated > 0 || uploadResult.brandsCreated > 0) && (
+                  <>
+                    {' '}
+                    ({uploadResult.categoriesCreated} new categor
+                    {uploadResult.categoriesCreated === 1 ? 'y' : 'ies'}, {uploadResult.brandsCreated}
+                    {' '}
+                    new brand{uploadResult.brandsCreated === 1 ? '' : 's'})
+                  </>
+                )}
+              </p>
+              {uploadResult.errors.length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-bad">
+                  {uploadResult.errors.map((err, index) => (
+                    <li key={index}>
+                      Row {err.row}: {err.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="mb-4">
         <input
           type="search"

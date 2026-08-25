@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { AdminPermission, RefreshToken, User } from '@prisma/client';
+import type { RefreshToken, User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-export type UserWithPermissions = User & { permissions: AdminPermission[] };
+export type AuthUser = User;
 
 @Injectable()
 export class AuthRepository {
@@ -10,17 +10,15 @@ export class AuthRepository {
 
   // ── Users ─────────────────────────────────────────────────────────────
 
-  async findByEmail(emailNormalized: string): Promise<UserWithPermissions | null> {
+  async findByEmail(emailNormalized: string): Promise<AuthUser | null> {
     return this.prisma.client.user.findFirst({
       where: { emailNormalized, deletedAt: null },
-      include: { permissions: true },
     });
   }
 
-  async findById(id: number): Promise<UserWithPermissions | null> {
+  async findById(id: number): Promise<AuthUser | null> {
     return this.prisma.client.user.findFirst({
       where: { id, deletedAt: null },
-      include: { permissions: true },
     });
   }
 

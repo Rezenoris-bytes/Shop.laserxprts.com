@@ -19,8 +19,6 @@ export default function NewProductPage() {
     partBrandId: '',
     productType: 'SPARE_PART',
     shortDescription: '',
-    hsnCode: '',
-    gstRate: '18',
   });
 
   useEffect(() => {
@@ -42,8 +40,6 @@ export default function NewProductPage() {
         partBrandId: form.partBrandId ? Number(form.partBrandId) : null,
         productType: form.productType,
         shortDescription: form.shortDescription || undefined,
-        hsnCode: form.hsnCode || undefined,
-        gstRate: form.gstRate ? Number(form.gstRate) : undefined,
         isActive: true,
       });
       router.push(`/admin/products/${product.id}`);
@@ -145,32 +141,6 @@ export default function NewProductPage() {
             onChange={(e) => set('shortDescription', e.target.value)}
             className="field"
           />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="hsn" className="label">
-              HSN code
-            </label>
-            <input
-              id="hsn"
-              value={form.hsnCode}
-              onChange={(e) => set('hsnCode', e.target.value)}
-              className="field"
-            />
-          </div>
-          <div>
-            <label htmlFor="gst" className="label">
-              GST rate (%)
-            </label>
-            <input
-              id="gst"
-              type="number"
-              value={form.gstRate}
-              onChange={(e) => set('gstRate', e.target.value)}
-              className="field"
-            />
-          </div>
         </div>
 
         {error && <p className="text-xs text-bad">{error}</p>}

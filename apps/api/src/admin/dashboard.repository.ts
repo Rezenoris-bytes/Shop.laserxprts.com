@@ -22,12 +22,12 @@ export class DashboardRepository {
     });
   }
 
-  async lowStockCount() {
-    return this.prisma.client.inventory.count({ where: { stockStatus: 'LOW_STOCK' } });
+  async activeProductsCount() {
+    return this.prisma.client.product.count({ where: { isActive: true, deletedAt: null } });
   }
 
-  async outOfStockCount() {
-    return this.prisma.client.inventory.count({ where: { stockStatus: 'OUT_OF_STOCK' } });
+  async inactiveProductsCount() {
+    return this.prisma.client.product.count({ where: { isActive: false, deletedAt: null } });
   }
 
   async searchNoResultsRecent(days: number, limit: number) {

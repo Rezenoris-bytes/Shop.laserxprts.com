@@ -1,28 +1,30 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import type { AdminEnquiryDetail } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { AdminPageHeader, DemoBadge } from '@/components/admin/data-table';
-import { useAdminAuth } from '@/lib/admin-auth';
 
-const STATUS_OPTIONS = [
-  'NEW',
-  'ACKNOWLEDGED',
-  'IN_PROGRESS',
-  'QUOTED',
-  'CLOSED_WON',
-  'CLOSED_LOST',
-  'SPAM',
-];
-const PRIORITY_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+/** Ordered pipeline stages — drive both the select and the quick-action buttons. */
+const PIPELINE_STAGES = [
+  { value: 'NEW', label: 'New', tone: 'warn' },
+  { value: 'CALLED', label: 'Called', tone: 'ok' },
+  { value: 'CONFIRMED', label: 'Confirmed', tone: 'ok' },
+  { value: 'CLOSED', label: 'Closed', tone: 'muted' },
+] as const;
+
+type Stage = (typeof PIPELINE_STAGES)[number]['value'];
+
+const TONE_CLASSES: Record<string, string> = {
+  warn: 'border-amber/50 bg-amber-wash text-amber-900',
+  ok: 'border-ok/40 bg-ok/5 text-ok',
+  muted: 'border-ink-line bg-ink-wash text-ink-muted',
+};
 
 export default function EnquiryDetailPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
-  const auth = useAdminAuth();
   const id = Number(params.id);
 
   const [enquiry, setEnquiry] = useState<AdminEnquiryDetail | null>(null);
@@ -36,9 +38,6 @@ export default function EnquiryDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const canUpdate = auth.hasPermission('ENQUIRIES', 'update');
-  const canCreateQuote = auth.hasPermission('QUOTES', 'create');
-
   const update = async (changes: Record<string, unknown>) => {
     setSaving(true);
     try {
@@ -49,10 +48,11 @@ export default function EnquiryDetailPage() {
     }
   };
 
-  const acknowledge = () => update({ status: 'ACKNOWLEDGED' });
-  const assignToMe = () => update({ assignedToId: auth.user?.id });
+  const setStatus = (status: Stage) => update({ status });
 
   if (!enquiry) return <p className="text-sm text-ink-muted">Loading…</p>;
+
+  const currentStage = PIPELINE_STAGES.find((s) => s.value === enquiry.status);
 
   return (
     <div>
@@ -63,22 +63,12 @@ export default function EnquiryDetailPage() {
           </>
         }
         description={`Received ${formatDateTime(enquiry.createdAt)}`}
-        action={
-          canCreateQuote && (
-            <button
-              type="button"
-              onClick={() => router.push('/admin/quotes')}
-              className="btn-primary"
-            >
-              Create Quote
-            </button>
-          )
-        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* ── Left column ───────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* Items — pre-populates the quote builder with no retyping. */}
+          {/* Items */}
           <section className="card p-5">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
               Items ({enquiry.items.length})
@@ -110,6 +100,7 @@ export default function EnquiryDetailPage() {
             </ul>
           </section>
 
+          {/* Message */}
           {enquiry.message && (
             <section className="card p-5">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
@@ -118,15 +109,11 @@ export default function EnquiryDetailPage() {
               <p className="mt-2 whitespace-pre-line text-sm">{enquiry.message}</p>
             </section>
           )}
-
-          {enquiry.spamScore > 30 && (
-            <div className="rounded-card border border-amber/40 bg-amber-wash px-4 py-3 text-sm">
-              Spam score {enquiry.spamScore}/100 — review before acting on this enquiry.
-            </div>
-          )}
         </div>
 
+        {/* ── Right column ──────────────────────────────────────── */}
         <div className="space-y-6">
+          {/* Contact / customer info */}
           <section className="card p-5">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
               Contact
@@ -138,80 +125,50 @@ export default function EnquiryDetailPage() {
               <Row label="Phone" value={enquiry.contactPhone ?? '—'} />
               <Row label="City" value={enquiry.contactCity ?? '—'} />
             </dl>
-            {enquiry.customer && (
-              <a
-                href={`/admin/customers/${enquiry.customer.id}`}
-                className="mt-3 block text-xs font-medium text-ink underline"
-              >
-                View customer record →
-              </a>
-            )}
           </section>
 
+          {/* Pipeline / status */}
           <section className="card p-5">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Status</h2>
-            <div className="mt-3 space-y-3">
-              <div>
-                <label htmlFor="status" className="label">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  value={enquiry.status}
-                  disabled={!canUpdate || saving}
-                  onChange={(event) => update({ status: event.target.value })}
-                  className="field"
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="priority" className="label">
-                  Priority
-                </label>
-                <select
-                  id="priority"
-                  value={enquiry.priority}
-                  disabled={!canUpdate || saving}
-                  onChange={(event) => update({ priority: event.target.value })}
-                  className="field"
-                >
-                  {PRIORITY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+              Pipeline Stage
+            </h2>
 
-              {canUpdate && enquiry.status === 'NEW' && (
-                <button
-                  type="button"
-                  onClick={acknowledge}
-                  disabled={saving}
-                  className="btn-secondary w-full text-xs"
-                >
-                  Mark acknowledged
-                </button>
-              )}
-              {canUpdate && !enquiry.assignedTo && (
-                <button
-                  type="button"
-                  onClick={assignToMe}
-                  disabled={saving}
-                  className="btn-secondary w-full text-xs"
-                >
-                  Assign to me
-                </button>
-              )}
-              {enquiry.assignedTo && (
-                <p className="text-xs text-ink-muted">Assigned to {enquiry.assignedTo.name}</p>
-              )}
+            {/* Current stage badge */}
+            {currentStage && (
+              <div
+                className={`mt-3 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${TONE_CLASSES[currentStage.tone]}`}
+              >
+                {currentStage.label}
+              </div>
+            )}
+
+            {/* Quick-action pipeline buttons */}
+            <div className="mt-4 flex flex-col gap-2">
+              {PIPELINE_STAGES.map((stage) => {
+                const isCurrent = enquiry.status === stage.value;
+                return (
+                  <button
+                    key={stage.value}
+                    type="button"
+                    disabled={isCurrent || saving}
+                    onClick={() => setStatus(stage.value)}
+                    className={[
+                      'rounded-md border px-4 py-2 text-sm font-medium transition-opacity',
+                      isCurrent
+                        ? 'cursor-default opacity-40'
+                        : 'cursor-pointer hover:opacity-80',
+                      TONE_CLASSES[stage.tone],
+                    ].join(' ')}
+                  >
+                    {isCurrent ? `✓ ${stage.label}` : `Move to ${stage.label}`}
+                  </button>
+                );
+              })}
             </div>
+
+            {saving && (
+              <p className="mt-2 text-xs text-ink-muted">Saving…</p>
+            )}
           </section>
         </div>
       </div>

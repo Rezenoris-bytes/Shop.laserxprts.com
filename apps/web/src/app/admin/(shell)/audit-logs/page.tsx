@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi, type AuditLogRow } from '@/lib/admin-api';
-import { PermissionGate } from '@/components/admin/permission-gate';
 import { AdminPageHeader, DataTable, StatusChip, type Column } from '@/components/admin/data-table';
 import { formatDateTime } from '@/lib/format';
 
@@ -41,7 +40,7 @@ export default function AuditLogsPage() {
   ];
 
   return (
-    <PermissionGate module="AUDIT">
+    <div>
       <div>
         <AdminPageHeader title="Audit Log" description="Who changed what, and when." />
         <DataTable
@@ -51,6 +50,6 @@ export default function AuditLogsPage() {
           emptyMessage="No audited actions yet."
         />
       </div>
-    </PermissionGate>
+    </div>
   );
 }

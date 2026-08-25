@@ -3,33 +3,3 @@ RT-BM110-SL-H15,,Raytools,BM110,,H15 thread heads
 RT-BM110-SL-H15,,Raytools,BM111,,H15 thread heads
 RT-BM110-SL-H20,,Raytools,BT240,,H20 thread heads
 RT-BM110-SL-H20,,Raytools,BM114,,H20 thread heads
-RT-BM110-DL,NZ-RT-DL-H15-010,Raytools,BM110,,H15 thread only
-RT-BM110-DL,NZ-RT-DL-H15-010,Raytools,BM111,,H15 thread only
-RT-BM110-DL,NZ-RT-DL-H15-015,Raytools,BM110,,H15 thread only
-RT-BM110-DL,NZ-RT-DL-H15-015,Raytools,BM111,,H15 thread only
-RT-BM110-DL,NZ-RT-DL-H15-020,Raytools,BM110,,H15 thread only
-RT-BM110-DL,NZ-RT-DL-H15-020,Raytools,BM111,,H15 thread only
-RT-BM110-DL,NZ-RT-DL-H20-010,Raytools,BT240,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-010,Raytools,BM114,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-020,Raytools,BT240,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-020,Raytools,BM114,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-035,Raytools,BT240,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-035,Raytools,BM114,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-040,Raytools,BT240,,H20 thread only
-RT-BM110-DL,NZ-RT-DL-H20-040,Raytools,BM114,,H20 thread only
-PC-PROCUTTER-SL,,Precitec,ProCutter 2.0,,
-PC-PROCUTTER-SL,,Precitec,HPSSL,,
-WSX-NC30-CR-H15,,WSX,NC30,,
-WSX-NC30-CR-H15,,WSX,NC60,,
-WSX-NC30-CR-H15,,WSX,KC15,,
-OS-CT-SPECIALIST,,Ospri,LC30,,Reflective materials
-OS-CT-SPECIALIST,,Ospri,LC50,,Reflective materials
-RT-PW-D279,,Raytools,BM110,,
-RT-PW-D279,,Raytools,BM111,,
-RT-PW-D279,,Raytools,BT240,,
-RT-FL-D30,,Raytools,BM110,,
-RT-FL-D30,,Raytools,BM111,,
-RT-CR-M11,,Raytools,BM110,,
-RT-CR-M11,,Raytools,BM111,,
-LEI-KIT-BM110,,Raytools,BM110,,
-RT-FL-D30,FL-RT-D30-F150,Raytools,BT240,6kW,High power only

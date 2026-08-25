@@ -13,7 +13,7 @@ export default function QuotesPage() {
       <div className="card px-6 py-14 text-center">
         <p className="text-sm font-semibold">Quote builder is not yet available</p>
         <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">
-          Revisions, GST calculation and PDF generation are the next stage of work.
+          Revisions and PDF generation are the next stage of work.
         </p>
       </div>
     </div>

@@ -36,7 +36,6 @@ export default function ProductDetailPage() {
 
   const canUpdate = auth.hasPermission('CATALOGUE', 'update');
   const canDelete = auth.hasPermission('CATALOGUE', 'delete');
-  const canUpdateStock = auth.hasPermission('INVENTORY', 'update');
 
   if (!product) return <p className="text-sm text-ink-muted">Loading…</p>;
 
@@ -65,8 +64,6 @@ export default function ProductDetailPage() {
           tone={product.isActive ? 'ok' : 'muted'}
         />
         <StatusChip label={product.productType} tone="muted" />
-        {product.hsnCode && <StatusChip label={`HSN ${product.hsnCode}`} tone="muted" />}
-        {product.gstRate && <StatusChip label={`GST ${product.gstRate}%`} tone="muted" />}
       </div>
 
       <ProductDetailsForm
@@ -90,7 +87,7 @@ export default function ProductDetailPage() {
       <VariantsSection
         product={product}
         canUpdate={canUpdate}
-        canUpdateStock={canUpdateStock}
+        canDelete={canDelete}
         onChange={load}
       />
       <CompatibilitySection
@@ -106,16 +103,16 @@ export default function ProductDetailPage() {
 function VariantsSection({
   product,
   canUpdate,
-  canUpdateStock,
+  canDelete,
   onChange,
 }: {
   product: AdminProductDetail;
   canUpdate: boolean;
-  canUpdateStock: boolean;
+  canDelete: boolean;
   onChange: () => void;
 }) {
   const [showForm, setShowForm] = useState(false);
-  const [editingStock, setEditingStock] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   return (
     <section className="mb-8">
@@ -146,7 +143,7 @@ function VariantsSection({
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-ink-line bg-ink-wash">
             <tr>
-              {['SKU', 'Part number', 'Name', 'Price', 'Stock', 'Status', ''].map((h) => (
+              {['SKU', 'Part number', 'Name', 'Price', 'Status', ''].map((h) => (
                 <th
                   key={h}
                   className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-ink-muted"
@@ -157,59 +154,171 @@ function VariantsSection({
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-line">
-            {product.variants.map((variant) => (
-              <tr key={variant.id}>
-                <td className="px-3 py-2 font-mono text-xs">{variant.sku}</td>
-                <td className="px-3 py-2 font-mono text-xs">{variant.partNumber}</td>
-                <td className="px-3 py-2">{variant.variantName}</td>
-                <td className="px-3 py-2">
-                  {variant.price ? `₹${variant.price}` : variant.priceType}
-                </td>
-                <td className="px-3 py-2">
-                  {editingStock === variant.id ? (
-                    <StockEditor
-                      variantId={variant.id}
-                      current={variant.inventory?.quantity ?? 0}
-                      onDone={() => {
-                        setEditingStock(null);
-                        onChange();
-                      }}
+            {product.variants.map((variant) =>
+              editingId === variant.id ? (
+                <EditVariantRow
+                  key={variant.id}
+                  productId={product.id}
+                  variant={variant}
+                  onDone={() => {
+                    setEditingId(null);
+                    onChange();
+                  }}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <tr key={variant.id}>
+                  <td className="px-3 py-2 font-mono text-xs">{variant.sku}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{variant.partNumber}</td>
+                  <td className="px-3 py-2">{variant.variantName}</td>
+                  <td className="px-3 py-2">
+                    {variant.price ? `₹${variant.price}` : variant.priceType}
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusChip
+                      label={variant.isActive ? 'Active' : 'Inactive'}
+                      tone={variant.isActive ? 'ok' : 'muted'}
                     />
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={!canUpdateStock}
-                      onClick={() => setEditingStock(variant.id)}
-                      className="underline decoration-dotted disabled:no-underline"
-                    >
-                      {variant.inventory?.quantity ?? 0}
-                    </button>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <StatusChip
-                    label={variant.inventory?.stockStatus ?? 'UNKNOWN'}
-                    tone={
-                      variant.inventory?.stockStatus === 'IN_STOCK'
-                        ? 'ok'
-                        : variant.inventory?.stockStatus === 'LOW_STOCK'
-                          ? 'warn'
-                          : 'bad'
-                    }
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <StatusChip
-                    label={variant.isActive ? 'Active' : 'Inactive'}
-                    tone={variant.isActive ? 'ok' : 'muted'}
-                  />
-                </td>
-              </tr>
-            ))}
+                    {variant.isDefault && (
+                      <span className="ml-1.5 text-[11px] text-ink-muted">default</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {canUpdate && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(variant.id)}
+                        className="text-xs font-medium underline"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              `Delete variant "${variant.variantName}" (${variant.sku})? This can't be undone from here.`,
+                            )
+                          )
+                            return;
+                          await adminApi.deleteVariant(variant.id, product.id);
+                          onChange();
+                        }}
+                        className="ml-3 text-xs font-medium text-bad underline"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ),
+            )}
           </tbody>
         </table>
       </div>
     </section>
+  );
+}
+
+function EditVariantRow({
+  productId,
+  variant,
+  onDone,
+  onCancel,
+}: {
+  productId: number;
+  variant: AdminProductDetail['variants'][number];
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const [sku, setSku] = useState(variant.sku);
+  const [partNumber, setPartNumber] = useState(variant.partNumber);
+  const [variantName, setVariantName] = useState(variant.variantName);
+  const [price, setPrice] = useState(variant.price ?? '');
+  const [isActive, setIsActive] = useState(variant.isActive);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await adminApi.updateVariant(variant.id, {
+        productId,
+        sku,
+        partNumber,
+        variantName,
+        price: price === '' ? null : Number(price),
+        priceType: price === '' ? 'ON_REQUEST' : 'FIXED',
+        isActive,
+      });
+      onDone();
+    } catch {
+      setError('Could not save. SKU may already be in use.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <tr className="bg-amber-wash/40">
+      <td className="px-3 py-2">
+        <input
+          value={sku}
+          onChange={(e) => setSku(e.target.value)}
+          className="field w-32 font-mono text-xs"
+        />
+      </td>
+      <td className="px-3 py-2">
+        <input
+          value={partNumber}
+          onChange={(e) => setPartNumber(e.target.value)}
+          className="field w-32 font-mono text-xs"
+        />
+      </td>
+      <td className="px-3 py-2">
+        <input
+          value={variantName}
+          onChange={(e) => setVariantName(e.target.value)}
+          className="field w-28"
+        />
+      </td>
+      <td className="px-3 py-2">
+        <input
+          type="number"
+          value={price}
+          placeholder="On request"
+          onChange={(e) => setPrice(e.target.value)}
+          className="field w-24"
+        />
+      </td>
+      <td className="px-3 py-2">
+        <label className="flex items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+          />
+          Active
+        </label>
+      </td>
+      <td className="px-3 py-2 text-right">
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className="btn-primary px-3 py-1 text-xs"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button type="button" onClick={onCancel} className="ml-2 text-xs underline">
+          Cancel
+        </button>
+        {error && <p className="mt-1 text-[11px] text-bad">{error}</p>}
+      </td>
+    </tr>
   );
 }
 
@@ -298,38 +407,6 @@ function AddVariantForm({ productId, onCreated }: { productId: number; onCreated
       </button>
       {error && <p className="text-xs text-bad">{error}</p>}
     </form>
-  );
-}
-
-function StockEditor({
-  variantId,
-  current,
-  onDone,
-}: {
-  variantId: number;
-  current: number;
-  onDone: () => void;
-}) {
-  const [quantity, setQuantity] = useState(String(current));
-
-  const save = async () => {
-    await adminApi.updateInventory(variantId, { quantity: Number(quantity), reason: 'COUNT' });
-    onDone();
-  };
-
-  return (
-    <span className="flex items-center gap-1">
-      <input
-        type="number"
-        value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
-        className="field h-7 w-16 py-0.5 text-xs"
-        autoFocus
-      />
-      <button type="button" onClick={save} className="text-xs font-medium text-ok">
-        Save
-      </button>
-    </span>
   );
 }
 

@@ -73,8 +73,6 @@ async function main(): Promise<void> {
     await tx.attributeValue.deleteMany({
       where: { OR: [{ productId: { in: productIds } }, { variantId: { in: variantIds } }] },
     });
-    await tx.stockMovement.deleteMany({ where: { variantId: { in: variantIds } } });
-    await tx.inventory.deleteMany({ where: { variantId: { in: variantIds } } });
     await tx.enquiryItem.deleteMany({ where: { variantId: { in: variantIds } } });
 
     const seedEnquiries = await tx.enquiry.findMany({ where: seed, select: { id: true } });

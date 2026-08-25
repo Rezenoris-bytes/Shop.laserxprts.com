@@ -1,9 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AuditAction, UserRole, normalizeEmail, type AdminDepartment } from '@lei/shared';
+import { AuditAction, UserRole, normalizeEmail } from '@lei/shared';
 import { PasswordService } from '../auth/password.service';
 import { AuditService } from '../audit/audit.service';
 import { UsersRepository } from './users.repository';
-import { expandTemplate } from './permission-templates';
 
 @Injectable()
 export class UsersService {
@@ -18,12 +17,10 @@ export class UsersService {
   }
 
   /**
-   * Creates an ADMIN with a temporary password and the department's default
-   * permission template pre-filled — the template is a starting point the
-   * caller can adjust, never the source of truth the guard reads.
+   * Creates an OWNER with a temporary password.
    */
   async create(
-    data: { name: string; email: string; department: AdminDepartment },
+    data: { name: string; email: string },
     actorId: number,
   ) {
     const emailNormalized = normalizeEmail(data.email);
@@ -37,18 +34,15 @@ export class UsersService {
       email: data.email,
       emailNormalized,
       passwordHash: await this.passwords.hash(temporaryPassword),
-      department: data.department,
       mustChangePassword: true,
     });
-
-    await this.repository.setPermissions(user.id, expandTemplate(data.department));
 
     await this.audit.record({
       userId: actorId,
       action: AuditAction.CREATE,
       entityType: 'User',
       entityId: String(user.id),
-      newValues: { name: user.name, email: user.email, department: user.department },
+      newValues: { name: user.name, email: user.email },
     });
 
     // Returned once, in the response only — never logged, never emailed in
@@ -58,9 +52,7 @@ export class UsersService {
 
   async deactivate(id: number, actorId: number) {
     const target = await this.repository.findById(id);
-    if (target?.role === UserRole.SUPER_ADMIN) {
-      throw new BadRequestException('Cannot deactivate the Super Admin account');
-    }
+
     const user = await this.repository.setActive(id, false);
     await this.audit.record({
       userId: actorId,
@@ -84,23 +76,5 @@ export class UsersService {
     return user;
   }
 
-  async setPermissions(
-    id: number,
-    permissions: Parameters<UsersRepository['setPermissions']>[1],
-    actorId: number,
-  ) {
-    const target = await this.repository.findById(id);
-    if (target?.role === UserRole.SUPER_ADMIN) {
-      throw new BadRequestException('Super Admin permissions cannot be edited');
-    }
-    const result = await this.repository.setPermissions(id, permissions);
-    await this.audit.record({
-      userId: actorId,
-      action: AuditAction.PERMISSION_CHANGE,
-      entityType: 'User',
-      entityId: String(id),
-      newValues: { permissions },
-    });
-    return result;
-  }
+
 }

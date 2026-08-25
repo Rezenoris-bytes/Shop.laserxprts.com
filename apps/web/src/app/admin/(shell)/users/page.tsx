@@ -2,28 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { adminApi, type AdminUserRow } from '@/lib/admin-api';
-import { PermissionGate } from '@/components/admin/permission-gate';
 import { AdminPageHeader, DataTable, StatusChip, type Column } from '@/components/admin/data-table';
 import { formatDateTime } from '@/lib/format';
 import { ApiRequestError } from '@/lib/api';
 
-const DEPARTMENTS = ['SALES', 'SERVICE', 'CATALOGUE', 'CONTENT', 'OPERATIONS'];
-const MODULES = [
-  'CATALOGUE',
-  'INVENTORY',
-  'MACHINES',
-  'SERVICES',
-  'SERVICE_REQUESTS',
-  'CUSTOMERS',
-  'ENQUIRIES',
-  'LEADS',
-  'QUOTES',
-  'ORDERS',
-  'REPORTS',
-  'USERS',
-  'AUDIT',
-  'SETTINGS',
-];
+const MODULES: string[] = [];
 
 /**
  * SUPER_ADMIN only, in practice: the USERS permission is never granted by any
@@ -34,7 +17,6 @@ export default function UsersPage() {
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [created, setCreated] = useState<{ email: string; temporaryPassword: string } | null>(null);
-  const [editingPermissions, setEditingPermissions] = useState<number | null>(null);
 
   const load = () => adminApi.users().then(setRows);
 
@@ -47,7 +29,7 @@ export default function UsersPage() {
     { header: 'Email', render: (row) => row.email },
     {
       header: 'Role',
-      render: (row) => (row.role === 'SUPER_ADMIN' ? 'Super Admin' : row.department),
+      render: () => 'Owner',
     },
     {
       header: 'Status',
@@ -64,38 +46,29 @@ export default function UsersPage() {
     },
     {
       header: '',
-      render: (row) =>
-        row.role !== 'SUPER_ADMIN' && (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setEditingPermissions(row.id)}
-              className="text-xs underline"
-            >
-              Permissions
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                await (row.isActive
-                  ? adminApi.deactivateUser(row.id)
-                  : adminApi.activateUser(row.id));
-                await load();
-              }}
-              className="text-xs text-bad underline"
-            >
-              {row.isActive ? 'Deactivate' : 'Activate'}
-            </button>
-          </div>
-        ),
+      render: (row) => (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              await (row.isActive
+                ? adminApi.deactivateUser(row.id)
+                : adminApi.activateUser(row.id));
+              await load();
+            }}
+            className="text-xs text-bad underline"
+          >
+            {row.isActive ? 'Deactivate' : 'Activate'}
+          </button>
+        </div>
+      ),
     },
   ];
 
   return (
-    <PermissionGate module="USERS">
-      <div>
-        <AdminPageHeader
-          title="Users & Permissions"
+    <div>
+      <AdminPageHeader
+        title="Users"
           action={
             <button
               type="button"
@@ -132,32 +105,20 @@ export default function UsersPage() {
 
         <DataTable columns={columns} rows={rows} />
 
-        {editingPermissions !== null && (
-          <PermissionsEditor
-            user={rows.find((r) => r.id === editingPermissions)!}
-            onClose={() => setEditingPermissions(null)}
-            onSaved={() => {
-              setEditingPermissions(null);
-              load();
-            }}
-          />
-        )}
-      </div>
-    </PermissionGate>
+    </div>
   );
 }
 
 function NewUserForm({ onCreated }: { onCreated: (email: string, password: string) => void }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [department, setDepartment] = useState('SALES');
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     try {
-      const result = await adminApi.createUser({ name, email, department });
+      const result = await adminApi.createUser({ name, email });
       onCreated(result.user.email, result.temporaryPassword);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Could not create admin.');
@@ -191,23 +152,7 @@ function NewUserForm({ onCreated }: { onCreated: (email: string, password: strin
           className="field"
         />
       </div>
-      <div>
-        <label htmlFor="udept" className="label">
-          Department
-        </label>
-        <select
-          id="udept"
-          value={department}
-          onChange={(e) => setDepartment(e.target.value)}
-          className="field"
-        >
-          {DEPARTMENTS.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
+
       <button type="submit" className="btn-primary">
         Create
       </button>
@@ -216,83 +161,3 @@ function NewUserForm({ onCreated }: { onCreated: (email: string, password: strin
   );
 }
 
-function PermissionsEditor({
-  user,
-  onClose,
-  onSaved,
-}: {
-  user: AdminUserRow;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [grants, setGrants] = useState(() => {
-    const map = new Map(user.permissions.map((p) => [p.module, p]));
-    return MODULES.map(
-      (module) =>
-        map.get(module) ?? {
-          module,
-          canView: false,
-          canCreate: false,
-          canUpdate: false,
-          canDelete: false,
-        },
-    );
-  });
-
-  const toggle = (module: string, key: 'canView' | 'canCreate' | 'canUpdate' | 'canDelete') => {
-    setGrants((current) =>
-      current.map((g) => (g.module === module ? { ...g, [key]: !g[key] } : g)),
-    );
-  };
-
-  const save = async () => {
-    await adminApi.setPermissions(
-      user.id,
-      grants.filter((g) => g.canView || g.canCreate || g.canUpdate || g.canDelete),
-    );
-    onSaved();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-card bg-white p-6">
-        <h2 className="text-base font-bold">Permissions — {user.name}</h2>
-        <table className="mt-4 w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-ink-line text-ink-muted">
-              <th className="py-1.5">Module</th>
-              <th className="py-1.5">View</th>
-              <th className="py-1.5">Create</th>
-              <th className="py-1.5">Update</th>
-              <th className="py-1.5">Delete</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink-line">
-            {grants.map((grant) => (
-              <tr key={grant.module}>
-                <td className="py-1.5 font-medium">{grant.module}</td>
-                {(['canView', 'canCreate', 'canUpdate', 'canDelete'] as const).map((key) => (
-                  <td key={key} className="py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={grant[key]}
-                      onChange={() => toggle(grant.module, key)}
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="btn-secondary text-sm">
-            Cancel
-          </button>
-          <button type="button" onClick={save} className="btn-primary text-sm">
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

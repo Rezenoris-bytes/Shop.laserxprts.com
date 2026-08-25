@@ -11,17 +11,19 @@ import {
   Query,
 } from '@nestjs/common';
 import {
-  PermissionAction,
-  PermissionModule,
+
+
   adminListQuerySchema,
   quoteRequestSchema,
+  contactFormSchema,
   updateEnquirySchema,
   type AdminListQuery,
   type QuoteRequestInput,
+  type ContactFormInput,
   type UpdateEnquiryInput,
 } from '@lei/shared';
 import { Public } from '../common/decorators/public.decorator';
-import { RequirePermission } from '../common/decorators/require-permission.decorator';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Client, type ClientContext } from '../common/decorators/client-context.decorator';
 import { ZodBody, ZodQuery } from '../common/pipes/zod-validation.pipe';
@@ -54,8 +56,22 @@ export class EnquiriesController {
     };
   }
 
+  @Public()
+  @Post('contact')
+  @HttpCode(HttpStatus.CREATED)
+  async submitContact(
+    @Body(ZodBody(contactFormSchema)) body: ContactFormInput,
+    @Client() client: ClientContext,
+  ) {
+    const result = await this.enquiries.submitContact(body, client);
+    return {
+      publicRef: result.publicRef,
+      message: 'Your message has been received. We will respond within one working day.',
+    };
+  }
+
   @Get('admin/enquiries')
-  @RequirePermission(PermissionModule.ENQUIRIES, PermissionAction.VIEW)
+
   list(@Query(ZodQuery(adminListQuerySchema)) query: AdminListQuery) {
     return this.enquiries.list({
       page: query.page,
@@ -66,13 +82,13 @@ export class EnquiriesController {
   }
 
   @Get('admin/enquiries/:id')
-  @RequirePermission(PermissionModule.ENQUIRIES, PermissionAction.VIEW)
+
   get(@Param('id', ParseIntPipe) id: number) {
     return this.enquiries.get(id);
   }
 
   @Patch('admin/enquiries/:id')
-  @RequirePermission(PermissionModule.ENQUIRIES, PermissionAction.UPDATE)
+
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body(ZodBody(updateEnquirySchema)) body: UpdateEnquiryInput,

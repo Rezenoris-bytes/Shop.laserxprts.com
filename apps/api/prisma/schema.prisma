@@ -35,35 +35,7 @@ datasource db {
 // ============================================================================
 
 enum UserRole {
-  SUPER_ADMIN
-  ADMIN
-}
-
-/// Descriptive business assignment. NEVER read by the permission guard —
-/// it only pre-fills permission templates in the admin UI.
-enum AdminDepartment {
-  SALES
-  SERVICE
-  CATALOGUE
-  CONTENT
-  OPERATIONS
-}
-
-enum PermissionModule {
-  CATALOGUE
-  INVENTORY
-  MACHINES
-  SERVICES
-  SERVICE_REQUESTS
-  CUSTOMERS
-  ENQUIRIES
-  LEADS
-  QUOTES
-  ORDERS
-  REPORTS
-  USERS
-  AUDIT
-  SETTINGS
+  OWNER
 }
 
 enum ProductType {
@@ -90,14 +62,6 @@ enum UnitOfMeasure {
   HOUR
   VISIT
   LOT
-}
-
-enum StockStatus {
-  IN_STOCK
-  LOW_STOCK
-  OUT_OF_STOCK
-  MADE_TO_ORDER
-  DISCONTINUED
 }
 
 enum AttributeDataType {
@@ -158,12 +122,9 @@ enum EnquiryType {
 
 enum EnquiryStatus {
   NEW
-  ACKNOWLEDGED
-  IN_PROGRESS
-  QUOTED
-  CLOSED_WON
-  CLOSED_LOST
-  SPAM
+  CALLED
+  CONFIRMED
+  CLOSED
 }
 
 enum LeadType {
@@ -210,14 +171,6 @@ enum QuoteStatus {
   REJECTED
   EXPIRED
   CANCELLED
-}
-
-/// Determined by comparing LEI's state code to the customer's place of supply.
-enum TaxTreatment {
-  CGST_SGST
-  IGST
-  EXEMPT
-  ZERO_RATED
 }
 
 enum ServicePricingType {
@@ -279,10 +232,8 @@ enum AuditAction {
   QUOTE_SENT
   QUOTE_ACCEPTED
   QUOTE_REJECTED
-  STOCK_ADJUST
   IMPORT
 }
-
 
 enum ImportStatus {
   PENDING
@@ -301,7 +252,6 @@ enum ImportType {
   PRODUCTS
   VARIANTS
   COMPATIBILITY
-  INVENTORY
   MEDIA
 }
 
@@ -310,16 +260,15 @@ enum ImportType {
 // ============================================================================
 
 model User {
-  id              Int              @id @default(autoincrement())
-  name            String           @db.VarChar(120)
-  email           String           @unique @db.VarChar(190)
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(120)
+  email           String   @unique @db.VarChar(190)
   /// Lowercased/trimmed match key so login lookups use an index.
-  emailNormalized String           @unique @map("email_normalized") @db.VarChar(190)
-  passwordHash    String           @map("password_hash") @db.VarChar(255)
+  emailNormalized String   @unique @map("email_normalized") @db.VarChar(190)
+  passwordHash    String   @map("password_hash") @db.VarChar(255)
   role            UserRole
-  department      AdminDepartment?
-  phone           String?          @db.VarChar(20)
-  isActive        Boolean          @default(true) @map("is_active")
+  phone           String?  @db.VarChar(20)
+  isActive        Boolean  @default(true) @map("is_active")
 
   // Brute-force protection
   lastLoginAt        DateTime? @map("last_login_at") @db.DateTime(3)
@@ -332,7 +281,6 @@ model User {
   updatedAt DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt DateTime? @map("deleted_at") @db.DateTime(3)
 
-  permissions       AdminPermission[]
   refreshTokens     RefreshToken[]
   passwordResets    PasswordResetToken[]
   auditLogs         AdminAuditLog[]
@@ -342,33 +290,12 @@ model User {
   ownedQuotes       Quote[]                @relation("QuoteOwner")
   createdRevisions  QuoteRevision[]        @relation("RevisionAuthor")
   assignedRequests  ServiceRequest[]       @relation("ServiceRequestAssignee")
-  stockMovements    StockMovement[]
   verifiedCompat    ProductCompatibility[] @relation("CompatibilityVerifier")
   importJobs        ImportJob[]
 
   @@index([role, isActive])
   @@index([deletedAt])
   @@map("users")
-}
-
-/// The ONLY authorization source of truth. The permission guard reads this
-/// table and nothing else — never User.department.
-model AdminPermission {
-  id        Int              @id @default(autoincrement())
-  userId    Int              @map("user_id")
-  module    PermissionModule
-  canView   Boolean          @default(false) @map("can_view")
-  canCreate Boolean          @default(false) @map("can_create")
-  canUpdate Boolean          @default(false) @map("can_update")
-  canDelete Boolean          @default(false) @map("can_delete")
-  createdAt DateTime         @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, module])
-  @@index([userId])
-  @@map("admin_permissions")
 }
 
 /// Refresh-token rotation with reuse detection. Rotation without a store cannot
@@ -623,11 +550,6 @@ model Product {
   shortDescription String?     @map("short_description") @db.VarChar(500)
   description      String?     @db.Text
 
-  /// Tax classification is commodity-level, so it lives here rather than on
-  /// the variant. Snapshotted onto quote lines at issue time.
-  hsnCode String?  @map("hsn_code") @db.VarChar(12)
-  gstRate Decimal? @map("gst_rate") @db.Decimal(5, 2)
-
   isFeatured Boolean @default(false) @map("is_featured")
   isActive   Boolean @default(true) @map("is_active")
 
@@ -635,7 +557,6 @@ model Product {
   /// whenever a variant is saved or imported.
   minPrice Decimal? @map("min_price") @db.Decimal(14, 2)
   maxPrice Decimal? @map("max_price") @db.Decimal(14, 2)
-  hasStock Boolean  @default(false) @map("has_stock")
 
   /// DERIVED, never configured: the attribute slugs whose values differ across
   /// this product's variants. Drives the selector on the product page, so one
@@ -723,12 +644,10 @@ model ProductVariant {
   deletedAt  DateTime? @map("deleted_at") @db.DateTime(3)
 
   product         Product                @relation(fields: [productId], references: [id], onDelete: Restrict)
-  inventory       Inventory?
   attributeValues AttributeValue[]
   compatibility   ProductCompatibility[]
   enquiryItems    EnquiryItem[]
   quoteItems      QuoteRevisionItem[]
-  stockMovements  StockMovement[]
 
   @@unique([productId, variantName])
   @@index([partNumber])
@@ -814,56 +733,6 @@ model AttributeValue {
   @@index([attributeId, valueDecimal])
   @@index([attributeId, valueString(length: 100)])
   @@map("attribute_values")
-}
-
-// ============================================================================
-// INVENTORY  (Tier 1)
-// ============================================================================
-
-model Inventory {
-  id               Int         @id @default(autoincrement())
-  /// 1:1 with the SELLABLE unit, not the product.
-  variantId        Int         @unique @map("variant_id")
-  quantity         Int         @default(0)
-  reservedQuantity Int         @default(0) @map("reserved_quantity")
-  reorderLevel     Int         @default(0) @map("reorder_level")
-  stockStatus      StockStatus @default(OUT_OF_STOCK) @map("stock_status")
-  /// TRUE when a human set the status (MADE_TO_ORDER / DISCONTINUED). The
-  /// recalculation job MUST skip these rows, or it silently overwrites a
-  /// deliberate decision.
-  isManualOverride Boolean     @default(false) @map("is_manual_override")
-  location         String?     @db.VarChar(100)
-  lastCountedAt    DateTime?   @map("last_counted_at") @db.DateTime(3)
-  updatedById      Int?        @map("updated_by_id")
-  updatedAt        DateTime    @updatedAt @map("updated_at") @db.DateTime(3)
-
-  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-
-  @@index([stockStatus])
-  @@index([quantity])
-  @@map("inventory")
-}
-
-/// Append-only ledger. Inventory.quantity alone cannot answer "why did stock
-/// change?", which makes stock disputes unresolvable.
-model StockMovement {
-  id             Int      @id @default(autoincrement())
-  variantId      Int      @map("variant_id")
-  quantityBefore Int      @map("quantity_before")
-  quantityChange Int      @map("quantity_change")
-  quantityAfter  Int      @map("quantity_after")
-  reason         String   @db.VarChar(50)
-  reference      String?  @db.VarChar(100)
-  notes          String?  @db.VarChar(500)
-  performedById  Int?     @map("performed_by_id")
-  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(3)
-
-  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  performedBy User?          @relation(fields: [performedById], references: [id], onDelete: SetNull)
-
-  @@index([variantId, createdAt])
-  @@index([createdAt])
-  @@map("stock_movements")
 }
 
 // ============================================================================
@@ -1000,8 +869,6 @@ model Customer {
   emailNormalized String? @map("email_normalized") @db.VarChar(190)
   phoneNormalized String? @map("phone_normalized") @db.VarChar(20)
 
-  gstin      String?        @db.VarChar(15)
-  /// GST state code 01-38. Drives CGST+SGST vs IGST.
   stateCode  String?        @map("state_code") @db.Char(2)
   city       String?        @db.VarChar(100)
   country    String         @default("IN") @db.Char(2)
@@ -1033,8 +900,7 @@ model Customer {
   @@map("customers")
 }
 
-/// TIER 2 — table created, no Phase 1 code. Phase 1 uses Customer.stateCode
-/// for the GST determination.
+/// TIER 2 — table created, no Phase 1 code.
 model CustomerAddress {
   id         Int      @id @default(autoincrement())
   customerId Int      @map("customer_id")
@@ -1267,17 +1133,9 @@ model QuoteRevision {
   subtotal       Decimal @default(0) @db.Decimal(14, 2)
   discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(14, 2)
   freightAmount  Decimal @default(0) @map("freight_amount") @db.Decimal(14, 2)
-  taxableAmount  Decimal @default(0) @map("taxable_amount") @db.Decimal(14, 2)
-
-  /// GST split is STORED, not derived at render time — the treatment must
-  /// freeze with the document, because rates change by notification.
-  taxTreatment TaxTreatment @default(CGST_SGST) @map("tax_treatment")
-  cgstAmount   Decimal      @default(0) @map("cgst_amount") @db.Decimal(14, 2)
-  sgstAmount   Decimal      @default(0) @map("sgst_amount") @db.Decimal(14, 2)
-  igstAmount   Decimal      @default(0) @map("igst_amount") @db.Decimal(14, 2)
-  roundOff     Decimal      @default(0) @map("round_off") @db.Decimal(6, 2)
-  total        Decimal      @default(0) @db.Decimal(14, 2)
-  currency     String       @default("INR") @db.Char(3)
+  roundOff       Decimal @default(0) @map("round_off") @db.Decimal(6, 2)
+  total          Decimal @default(0) @db.Decimal(14, 2)
+  currency       String  @default("INR") @db.Char(3)
 
   notes         String? @db.Text
   /// Terms frozen at issue time, so a later change to the default T&C cannot
@@ -1320,7 +1178,6 @@ model QuoteRevisionItem {
 
   productNameSnapshot String        @map("product_name_snapshot") @db.VarChar(255)
   partNumberSnapshot  String?       @map("part_number_snapshot") @db.VarChar(100)
-  hsnCodeSnapshot     String?       @map("hsn_code_snapshot") @db.VarChar(12)
   description         String?       @db.Text
   unitOfMeasure       UnitOfMeasure @default(PIECE) @map("unit_of_measure")
 
@@ -1329,8 +1186,6 @@ model QuoteRevisionItem {
   unitPrice       Decimal @map("unit_price") @db.Decimal(14, 2)
   discountPercent Decimal @default(0) @map("discount_percent") @db.Decimal(5, 2)
   lineSubtotal    Decimal @map("line_subtotal") @db.Decimal(14, 2)
-  gstRate         Decimal @default(0) @map("gst_rate") @db.Decimal(5, 2)
-  gstAmount       Decimal @default(0) @map("gst_amount") @db.Decimal(14, 2)
   lineTotal       Decimal @map("line_total") @db.Decimal(14, 2)
 
   sortOrder Int @default(0) @map("sort_order")
@@ -1375,9 +1230,6 @@ model Service {
   description       String?            @db.Text
   pricingType       ServicePricingType @default(ON_REQUEST) @map("pricing_type")
   price             Decimal?           @db.Decimal(14, 2)
-  /// Services use SAC codes rather than HSN.
-  sacCode           String?            @map("sac_code") @db.VarChar(12)
-  gstRate           Decimal?           @map("gst_rate") @db.Decimal(5, 2)
   isFeatured        Boolean            @default(false) @map("is_featured")
   isActive          Boolean            @default(true) @map("is_active")
 

@@ -36,15 +36,6 @@ export const phoneSchema = z
   .max(20)
   .regex(/^[0-9+\-\s()]+$/, 'Enter a valid phone number');
 
-export const gstinSchema = z
-  .string()
-  .trim()
-  .toUpperCase()
-  .regex(
-    /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
-    'Enter a valid 15-character GSTIN',
-  );
-
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   // Hard server-side cap. "Never return unbounded lists" is enforced by the
@@ -297,8 +288,6 @@ export const upsertProductSchema = z.object({
     .default('SPARE_PART'),
   shortDescription: z.string().trim().max(500).optional(),
   description: z.string().trim().max(50000).optional(),
-  hsnCode: z.string().trim().max(12).optional(),
-  gstRate: z.number().min(0).max(100).optional(),
   isFeatured: z.boolean().default(false),
   isActive: z.boolean().default(true),
   metaTitle: z.string().trim().max(255).optional(),
@@ -328,16 +317,6 @@ export const upsertVariantSchema = z.object({
 });
 export type UpsertVariantInput = z.infer<typeof upsertVariantSchema>;
 
-export const updateInventorySchema = z.object({
-  quantity: z.number().int().min(0).max(10000000),
-  reorderLevel: z.number().int().min(0).max(10000000).optional(),
-  stockStatus: z
-    .enum(['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'MADE_TO_ORDER', 'DISCONTINUED'])
-    .optional(),
-  reason: z.string().trim().min(1).max(50).default('COUNT'),
-  notes: z.string().trim().max(500).optional(),
-});
-export type UpdateInventoryInput = z.infer<typeof updateInventorySchema>;
 
 export const upsertCompatibilitySchema = z.object({
   productId: z.number().int().positive(),
@@ -355,7 +334,7 @@ export type UpsertCompatibilityInput = z.infer<typeof upsertCompatibilitySchema>
 
 export const updateEnquirySchema = z.object({
   status: z
-    .enum(['NEW', 'ACKNOWLEDGED', 'IN_PROGRESS', 'QUOTED', 'CLOSED_WON', 'CLOSED_LOST', 'SPAM'])
+    .enum(['NEW', 'CALLED', 'CONFIRMED', 'CLOSED'])
     .optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   assignedToId: z.number().int().positive().nullable().optional(),
@@ -367,12 +346,10 @@ export const quoteLineSchema = z.object({
   serviceId: z.number().int().positive().nullable().optional(),
   productName: z.string().trim().min(1).max(255),
   partNumber: z.string().trim().max(100).optional(),
-  hsnCode: z.string().trim().max(12).optional(),
   description: z.string().trim().max(2000).optional(),
   quantity: z.number().positive().max(1000000),
   unitPrice: z.number().nonnegative().max(99999999),
   discountPercent: z.number().min(0).max(100).default(0),
-  gstRate: z.number().min(0).max(100).default(18),
   unitOfMeasure: z
     .enum(['PIECE', 'SET', 'PACK', 'METRE', 'LITRE', 'KG', 'HOUR', 'VISIT', 'LOT'])
     .default('PIECE'),
@@ -437,8 +414,8 @@ export type CreateAttributeInput = z.infer<typeof createAttributeSchema>;
 export const dashboardResponseSchema = z.object({
   enquiries: z.object({
     new: z.number(),
-    acknowledged: z.number(),
-    inProgress: z.number(),
+    called: z.number(),
+    confirmed: z.number(),
     total: z.number(),
   }),
   quotes: z.object({
@@ -446,9 +423,9 @@ export const dashboardResponseSchema = z.object({
     sent: z.number(),
     expiringSoon: z.number(),
   }),
-  inventory: z.object({
-    lowStock: z.number(),
-    outOfStock: z.number(),
+  products: z.object({
+    active: z.number(),
+    inactive: z.number(),
   }),
   searchNoResults: z.array(z.object({ normalized: z.string(), count: z.number() })),
   demoData: z.record(z.string(), z.number()),
@@ -461,38 +438,8 @@ export type DashboardResponse = z.infer<typeof dashboardResponseSchema>;
 export const createAdminUserSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: emailSchema,
-  department: z.enum(['SALES', 'SERVICE', 'CATALOGUE', 'CONTENT', 'OPERATIONS']),
 });
 export type CreateAdminUserInput = z.infer<typeof createAdminUserSchema>;
-
-export const permissionGrantSchema = z.object({
-  module: z.enum([
-    'CATALOGUE',
-    'INVENTORY',
-    'MACHINES',
-    'SERVICES',
-    'SERVICE_REQUESTS',
-    'CUSTOMERS',
-    'ENQUIRIES',
-    'LEADS',
-    'QUOTES',
-    'ORDERS',
-    'REPORTS',
-    'USERS',
-    'AUDIT',
-    'SETTINGS',
-  ]),
-  canView: z.boolean().default(false),
-  canCreate: z.boolean().default(false),
-  canUpdate: z.boolean().default(false),
-  canDelete: z.boolean().default(false),
-});
-export type PermissionGrantInput = z.infer<typeof permissionGrantSchema>;
-
-export const setPermissionsSchema = z.object({
-  permissions: z.array(permissionGrantSchema).max(20),
-});
-export type SetPermissionsInput = z.infer<typeof setPermissionsSchema>;
 
 export const updateSettingSchema = z.object({
   value: z.string().max(20000),

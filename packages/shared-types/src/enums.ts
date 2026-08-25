@@ -7,45 +7,9 @@
  */
 
 export const UserRole = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  ADMIN: 'ADMIN',
+  OWNER: 'OWNER',
 } as const;
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
-export const AdminDepartment = {
-  SALES: 'SALES',
-  SERVICE: 'SERVICE',
-  CATALOGUE: 'CATALOGUE',
-  CONTENT: 'CONTENT',
-  OPERATIONS: 'OPERATIONS',
-} as const;
-export type AdminDepartment = (typeof AdminDepartment)[keyof typeof AdminDepartment];
-
-export const PermissionModule = {
-  CATALOGUE: 'CATALOGUE',
-  INVENTORY: 'INVENTORY',
-  MACHINES: 'MACHINES',
-  SERVICES: 'SERVICES',
-  SERVICE_REQUESTS: 'SERVICE_REQUESTS',
-  CUSTOMERS: 'CUSTOMERS',
-  ENQUIRIES: 'ENQUIRIES',
-  LEADS: 'LEADS',
-  QUOTES: 'QUOTES',
-  ORDERS: 'ORDERS',
-  REPORTS: 'REPORTS',
-  USERS: 'USERS',
-  AUDIT: 'AUDIT',
-  SETTINGS: 'SETTINGS',
-} as const;
-export type PermissionModule = (typeof PermissionModule)[keyof typeof PermissionModule];
-
-export const PermissionAction = {
-  VIEW: 'view',
-  CREATE: 'create',
-  UPDATE: 'update',
-  DELETE: 'delete',
-} as const;
-export type PermissionAction = (typeof PermissionAction)[keyof typeof PermissionAction];
 
 export const ProductType = {
   SPARE_PART: 'SPARE_PART',
@@ -153,12 +117,9 @@ export type EnquiryType = (typeof EnquiryType)[keyof typeof EnquiryType];
 
 export const EnquiryStatus = {
   NEW: 'NEW',
-  ACKNOWLEDGED: 'ACKNOWLEDGED',
-  IN_PROGRESS: 'IN_PROGRESS',
-  QUOTED: 'QUOTED',
-  CLOSED_WON: 'CLOSED_WON',
-  CLOSED_LOST: 'CLOSED_LOST',
-  SPAM: 'SPAM',
+  CALLED: 'CALLED',
+  CONFIRMED: 'CONFIRMED',
+  CLOSED: 'CLOSED',
 } as const;
 export type EnquiryStatus = (typeof EnquiryStatus)[keyof typeof EnquiryStatus];
 
@@ -223,14 +184,6 @@ export const OrderStatus = {
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
-export const TaxTreatment = {
-  CGST_SGST: 'CGST_SGST',
-  IGST: 'IGST',
-  EXEMPT: 'EXEMPT',
-  ZERO_RATED: 'ZERO_RATED',
-} as const;
-export type TaxTreatment = (typeof TaxTreatment)[keyof typeof TaxTreatment];
-
 export const ServicePricingType = {
   FIXED: 'FIXED',
   PER_HOUR: 'PER_HOUR',
@@ -289,7 +242,6 @@ export const AuditAction = {
   QUOTE_SENT: 'QUOTE_SENT',
   QUOTE_ACCEPTED: 'QUOTE_ACCEPTED',
   QUOTE_REJECTED: 'QUOTE_REJECTED',
-  STOCK_ADJUST: 'STOCK_ADJUST',
   IMPORT: 'IMPORT',
 } as const;
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

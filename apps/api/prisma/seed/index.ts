@@ -3,8 +3,7 @@ import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { AdminDepartment, normalizeEmail } from '@lei/shared';
-import { expandTemplate } from '../../src/admin/permission-templates';
+import { normalizeEmail } from '@lei/shared';
 import { seedCatalogueFromCsv } from './catalogue';
 
 loadEnv({ path: path.resolve(__dirname, '../../../../.env') });
@@ -31,7 +30,7 @@ async function main(): Promise<void> {
 
   await seedSettings();
   const users = await seedUsers();
-  await seedCatalogueFromCsv(prisma);
+  if (process.env.SEED_SKIP_CATALOGUE !== 'true') await seedCatalogueFromCsv(prisma);
 
   console.log('\n' + '='.repeat(60));
   console.log('Seed complete.\n');
@@ -74,13 +73,7 @@ async function seedSettings(): Promise<void> {
       key: 'company.gstin',
       value: 'PLACEHOLDER — 27AAAAA0000A1Z5',
       group: 'company',
-      description: 'LEI GSTIN. Supplied by the accountant.',
-    },
-    {
-      key: 'company.state_code',
-      value: '27',
-      group: 'company',
-      description: 'GST state code. Decides CGST+SGST vs IGST.',
+      description: 'GSTIN, shown on the storefront and printed on quotations',
     },
     {
       key: 'company.address',
@@ -123,12 +116,6 @@ async function seedSettings(): Promise<void> {
       description: 'Default validity period in days',
     },
     {
-      key: 'quote.default_gst_rate',
-      value: '18',
-      group: 'quote',
-      description: 'Fallback GST rate when a product has none',
-    },
-    {
       key: 'quote.payment_terms',
       value: 'PLACEHOLDER — 100% advance',
       group: 'quote',
@@ -145,8 +132,7 @@ async function seedSettings(): Promise<void> {
       value:
         'PLACEHOLDER — Terms and conditions to be supplied by LEI.\n' +
         '1. Prices are in INR and exclusive of freight unless stated.\n' +
-        '2. GST is charged at the applicable rate.\n' +
-        '3. This quotation is valid for the period stated above.',
+        '2. This quotation is valid for the period stated above.',
       group: 'quote',
       description: 'Terms printed on quotations. Snapshotted onto each revision at issue time.',
     },
@@ -198,52 +184,11 @@ async function seedSettings(): Promise<void> {
 async function seedUsers() {
   const accounts = [
     {
-      name: 'LEI Owner',
-      email: 'owner@lei.local',
+      name: 'Super Admin',
+      email: 'admin@lei.local',
       password: 'DevSuperAdmin2026!',
-      role: 'SUPER_ADMIN' as const,
-      department: null,
+      role: 'OWNER' as const,
       label: 'full access',
-    },
-    {
-      name: 'Priya Sales',
-      email: 'sales@lei.local',
-      password: 'DevSalesAdmin2026!',
-      role: 'ADMIN' as const,
-      department: AdminDepartment.SALES,
-      label: 'sales',
-    },
-    {
-      name: 'Arun Catalogue',
-      email: 'catalogue@lei.local',
-      password: 'DevCatalogue2026!',
-      role: 'ADMIN' as const,
-      department: AdminDepartment.CATALOGUE,
-      label: 'catalogue — no customer PII',
-    },
-    {
-      name: 'Meera Service',
-      email: 'service@lei.local',
-      password: 'DevServiceAdm2026!',
-      role: 'ADMIN' as const,
-      department: AdminDepartment.SERVICE,
-      label: 'service',
-    },
-    {
-      name: 'Karthik Ops',
-      email: 'ops@lei.local',
-      password: 'DevOperations2026!',
-      role: 'ADMIN' as const,
-      department: AdminDepartment.OPERATIONS,
-      label: 'operations',
-    },
-    {
-      name: 'Divya Content',
-      email: 'content@lei.local',
-      password: 'DevContentAdm2026!',
-      role: 'ADMIN' as const,
-      department: AdminDepartment.CONTENT,
-      label: 'content',
     },
   ];
 
@@ -266,20 +211,9 @@ async function seedUsers() {
           parallelism: 1,
         }),
         role: account.role,
-        department: account.department,
-        isActive: true,
+        mustChangePassword: false,
       },
     });
-
-    // SUPER_ADMIN needs no permission rows — the guard short-circuits on role.
-    if (account.department) {
-      await prisma.adminPermission.createMany({
-        data: expandTemplate(account.department).map((row) => ({
-          ...row,
-          userId: user.id,
-        })) as never,
-      });
-    }
 
     created += 1;
   }

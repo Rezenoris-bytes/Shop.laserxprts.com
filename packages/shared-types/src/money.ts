@@ -1,5 +1,5 @@
 /**
- * Money and Indian GST arithmetic.
+ * Money arithmetic.
  *
  * All arithmetic runs on integer paise. No floating point is used anywhere in
  * this file, because a quote that shows 1,24,999.99 in the admin panel and
@@ -9,15 +9,7 @@
  * This module is deliberately dependency-free so the frontend can render the
  * same totals the API computed, without shipping a decimal library or the
  * Prisma runtime.
- *
- * Rounding policy (fixed, and unit-tested):
- *   - Per line: half-up to 2 decimal places.
- *   - Header grand total: rounded to the nearest whole rupee.
- *   - `roundOff` on the header absorbs the difference, so the printed lines
- *     always add up to the printed total.
  */
-
-import { TaxTreatment } from './enums';
 
 // ── Primitives ──────────────────────────────────────────────────────────────
 
@@ -88,38 +80,30 @@ export interface QuoteLineInput {
   quantityMilli: number;
   /** Discount percentage, e.g. 7.5 for 7.5%. */
   discountPercent?: number;
-  /** GST rate percentage, e.g. 18 for 18%. */
-  gstRatePercent: number;
 }
 
 export interface QuoteLineResult {
   grossPaise: number;
   discountPaise: number;
-  /** Taxable value of the line, after discount. */
+  /** Value of the line after discount. */
   lineSubtotalPaise: number;
-  gstAmountPaise: number;
   lineTotalPaise: number;
 }
 
 export function calculateLine(input: QuoteLineInput): QuoteLineResult {
-  const { unitPricePaise, quantityMilli, discountPercent = 0, gstRatePercent } = input;
+  const { unitPricePaise, quantityMilli, discountPercent = 0 } = input;
 
   const grossPaise = roundHalfUp((unitPricePaise * quantityMilli) / 1000);
   const discountPaise = roundHalfUp((grossPaise * discountPercent) / 100);
   const lineSubtotalPaise = grossPaise - discountPaise;
-  const gstAmountPaise = roundHalfUp((lineSubtotalPaise * gstRatePercent) / 100);
-  const lineTotalPaise = lineSubtotalPaise + gstAmountPaise;
 
-  return { grossPaise, discountPaise, lineSubtotalPaise, gstAmountPaise, lineTotalPaise };
+  return { grossPaise, discountPaise, lineSubtotalPaise, lineTotalPaise: lineSubtotalPaise };
 }
 
 export interface QuoteTotalsInput {
   lines: QuoteLineInput[];
   /** Freight charged at header level, in paise. */
   freightPaise?: number;
-  /** GST rate applied to freight. Defaults to the highest line rate present. */
-  freightGstRatePercent?: number;
-  treatment: TaxTreatment;
 }
 
 export interface QuoteTotalsResult {
@@ -127,53 +111,21 @@ export interface QuoteTotalsResult {
   subtotalPaise: number;
   discountPaise: number;
   freightPaise: number;
-  taxableAmountPaise: number;
-  cgstPaise: number;
-  sgstPaise: number;
-  igstPaise: number;
-  totalGstPaise: number;
   /** Signed adjustment that makes the printed lines sum to the printed total. */
   roundOffPaise: number;
   totalPaise: number;
-  treatment: TaxTreatment;
 }
 
 export function calculateQuoteTotals(input: QuoteTotalsInput): QuoteTotalsResult {
-  const { lines, freightPaise = 0, treatment } = input;
+  const { lines, freightPaise = 0 } = input;
 
   const lineResults = lines.map(calculateLine);
 
   const subtotalPaise = lineResults.reduce((sum, line) => sum + line.grossPaise, 0);
   const discountPaise = lineResults.reduce((sum, line) => sum + line.discountPaise, 0);
   const lineTaxablePaise = lineResults.reduce((sum, line) => sum + line.lineSubtotalPaise, 0);
-  const lineGstPaise = lineResults.reduce((sum, line) => sum + line.gstAmountPaise, 0);
 
-  // Freight attracts GST at the rate of the principal supply. Absent an explicit
-  // rate we use the highest rate on the document, which is the conservative choice.
-  const highestLineRate = lines.reduce((max, line) => Math.max(max, line.gstRatePercent), 0);
-  const freightGstRate = input.freightGstRatePercent ?? highestLineRate;
-  const freightGstPaise = roundHalfUp((freightPaise * freightGstRate) / 100);
-
-  const taxableAmountPaise = lineTaxablePaise + freightPaise;
-  const totalGstPaise = lineGstPaise + freightGstPaise;
-
-  let cgstPaise = 0;
-  let sgstPaise = 0;
-  let igstPaise = 0;
-
-  if (treatment === TaxTreatment.CGST_SGST) {
-    // Split half/half. The odd paise goes to CGST so the two always sum exactly.
-    cgstPaise = Math.ceil(totalGstPaise / 2);
-    sgstPaise = totalGstPaise - cgstPaise;
-  } else if (treatment === TaxTreatment.IGST) {
-    igstPaise = totalGstPaise;
-  }
-  // EXEMPT and ZERO_RATED leave all three at zero.
-
-  const grandTotalRawPaise =
-    treatment === TaxTreatment.EXEMPT || treatment === TaxTreatment.ZERO_RATED
-      ? taxableAmountPaise
-      : taxableAmountPaise + totalGstPaise;
+  const grandTotalRawPaise = lineTaxablePaise + freightPaise;
 
   // Round the document total to the nearest whole rupee.
   const totalPaise = roundHalfUp(grandTotalRawPaise / 100) * 100;
@@ -184,32 +136,7 @@ export function calculateQuoteTotals(input: QuoteTotalsInput): QuoteTotalsResult
     subtotalPaise,
     discountPaise,
     freightPaise,
-    taxableAmountPaise,
-    cgstPaise,
-    sgstPaise,
-    igstPaise,
-    totalGstPaise:
-      treatment === TaxTreatment.EXEMPT || treatment === TaxTreatment.ZERO_RATED
-        ? 0
-        : totalGstPaise,
     roundOffPaise,
     totalPaise,
-    treatment,
   };
-}
-
-/**
- * Decides the tax treatment from place of supply.
- *
- * Same state  -> CGST + SGST
- * Other state -> IGST
- * Unknown customer state -> IGST, because charging IGST when CGST+SGST was due
- * is correctable, while the reverse leaves the customer unable to claim credit.
- */
-export function resolveTaxTreatment(
-  supplierStateCode: string | null | undefined,
-  customerStateCode: string | null | undefined,
-): TaxTreatment {
-  if (!supplierStateCode || !customerStateCode) return TaxTreatment.IGST;
-  return supplierStateCode === customerStateCode ? TaxTreatment.CGST_SGST : TaxTreatment.IGST;
 }

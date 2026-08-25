@@ -1,16 +1,14 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import {
   AuditAction,
-  PermissionAction,
-  PermissionModule,
+
+
   createAdminUserSchema,
-  setPermissionsSchema,
   updateSettingSchema,
   type CreateAdminUserInput,
-  type SetPermissionsInput,
   type UpdateSettingInput,
 } from '@lei/shared';
-import { RequirePermission } from '../common/decorators/require-permission.decorator';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodBody } from '../common/pipes/zod-validation.pipe';
 import { AuditService } from '../audit/audit.service';
@@ -36,7 +34,7 @@ export class AdminController {
   ) {}
 
   @Get('dashboard')
-  @RequirePermission(PermissionModule.REPORTS, PermissionAction.VIEW)
+
   getDashboard() {
     return this.dashboard.get();
   }
@@ -44,13 +42,13 @@ export class AdminController {
   // ── Users ─────────────────────────────────────────────────────────────
 
   @Get('users')
-  @RequirePermission(PermissionModule.USERS, PermissionAction.VIEW)
+
   listUsers() {
     return this.users.list();
   }
 
   @Post('users')
-  @RequirePermission(PermissionModule.USERS, PermissionAction.CREATE)
+
   createUser(
     @Body(ZodBody(createAdminUserSchema)) body: CreateAdminUserInput,
     @CurrentUser('id') actorId: number,
@@ -59,31 +57,21 @@ export class AdminController {
   }
 
   @Patch('users/:id/deactivate')
-  @RequirePermission(PermissionModule.USERS, PermissionAction.UPDATE)
+
   deactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.users.deactivate(id, actorId);
   }
 
   @Patch('users/:id/activate')
-  @RequirePermission(PermissionModule.USERS, PermissionAction.UPDATE)
+
   activate(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.users.activate(id, actorId);
-  }
-
-  @Patch('users/:id/permissions')
-  @RequirePermission(PermissionModule.USERS, PermissionAction.UPDATE)
-  setPermissions(
-    @Param('id', ParseIntPipe) id: number,
-    @Body(ZodBody(setPermissionsSchema)) body: SetPermissionsInput,
-    @CurrentUser('id') actorId: number,
-  ) {
-    return this.users.setPermissions(id, body.permissions as never, actorId);
   }
 
   // ── Audit log ─────────────────────────────────────────────────────────
 
   @Get('audit-logs')
-  @RequirePermission(PermissionModule.AUDIT, PermissionAction.VIEW)
+
   async auditLogs(
     @Query('page') page = '1',
     @Query('perPage') perPage = '50',
@@ -99,7 +87,7 @@ export class AdminController {
   // ── Settings ──────────────────────────────────────────────────────────
 
   @Get('settings')
-  @RequirePermission(PermissionModule.SETTINGS, PermissionAction.VIEW)
+
   async listSettings() {
     const all = await this.settings.all();
     // Secrets are masked, not omitted — the admin should see that a value is
@@ -111,7 +99,7 @@ export class AdminController {
   }
 
   @Patch('settings/:key')
-  @RequirePermission(PermissionModule.SETTINGS, PermissionAction.UPDATE)
+
   async updateSetting(
     @Param('key') key: string,
     @Body(ZodBody(updateSettingSchema)) body: UpdateSettingInput,

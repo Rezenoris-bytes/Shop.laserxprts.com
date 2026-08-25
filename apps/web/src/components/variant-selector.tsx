@@ -2,53 +2,34 @@
 
 import { useMemo, useState } from 'react';
 import type { ProductDetail, ProductVariantView } from '@/lib/api';
+import { SingleOrderModal } from '@/components/single-order-modal';
 
-/**
- * Only the two fields the selector actually reads. Typed structurally so the
- * same component serves a catalogue row and any future surface, rather than
- * demanding a whole ProductDetail that no longer exists on the listing path.
- */
 type SelectableProduct = Pick<ProductDetail, 'axes' | 'variants'>;
-import { useQuoteRequest } from '@/lib/quote-request';
 
-import { stockLabel, stockToneClass } from '@/lib/stock';
-
-/**
- * Variant selector.
- *
- * ONE component renders every product family, because the axes are derived
- * from the data rather than configured:
- *
- *   0 axes  -> no selector at all (single-variant product)
- *   1 axis  -> one row of chips (diameter)
- *   2 axes  -> two rows (thread x diameter, or height x diameter)
- *   n axes  -> n rows, no code change
- *
- * Combinations that do not exist are disabled rather than hidden — the seed
- * deliberately contains an asymmetric family (3.5 and 4.0 exist only for H20)
- * so this path is exercised. Hiding them would make the range look smaller
- * than it is; disabling shows what is available for another thread.
- */
 export function VariantSelector({ product }: { product: SelectableProduct }) {
-  const { add } = useQuoteRequest();
-
-  const initial = product.variants.find((variant) => variant.isDefault) ?? product.variants[0];
+  // ── Variant selection ────────────────────────────────────────────────────
+  const initial = product.variants.find((v) => v.isDefault) ?? product.variants[0];
   const [selection, setSelection] = useState<Record<string, string>>(
     initial ? { ...initial.axisValues } : {},
   );
-  const [quantity, setQuantity] = useState(1);
-  const [justAdded, setJustAdded] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(initial?.id ?? null);
 
+  // ── Modal ─────────────────────────────────────────────────────────────────
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // ── Derive selected variant ───────────────────────────────────────────────
   const selected: ProductVariantView | null = useMemo(() => {
-    if (product.axes.length === 0) return product.variants[0] ?? null;
+    if (product.axes.length === 0) {
+      if (product.variants.length === 1) return product.variants[0] ?? null;
+      return product.variants.find((v) => v.id === selectedId) ?? null;
+    }
     return (
       product.variants.find((variant) =>
         product.axes.every((axis) => variant.axisValues[axis.slug] === selection[axis.slug]),
       ) ?? null
     );
-  }, [product, selection]);
+  }, [product, selection, selectedId]);
 
-  /** A value is selectable if some variant matches it plus the other choices. */
   const isAvailable = (axisSlug: string, value: string): boolean =>
     product.variants.some((variant) => {
       if (variant.axisValues[axisSlug] !== value) return false;
@@ -60,22 +41,11 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
         });
     });
 
-  const onAdd = () => {
-    if (!selected) return;
-    add(selected.id, quantity);
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 2500);
-  };
-
-  const canOrder =
-    selected !== null &&
-    selected.priceType !== 'CONTACT_SALES' &&
-    selected.stockStatus !== 'DISCONTINUED';
-
-  const stock = selected ? stockLabel(selected.stockStatus) : null;
+  const canOrder = selected !== null && selected.priceType !== 'CONTACT_SALES';
 
   return (
     <div className="space-y-5">
+      {/* ── Axis-based chips (e.g. D1.2, D1.4 …) ── */}
       {product.axes.map((axis) => (
         <fieldset key={axis.slug}>
           <legend className="label">
@@ -92,7 +62,7 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
                   type="button"
                   disabled={!available}
                   aria-pressed={active}
-                  onClick={() => setSelection((current) => ({ ...current, [axis.slug]: value }))}
+                  onClick={() => setSelection((cur) => ({ ...cur, [axis.slug]: value }))}
                   className={[
                     'min-w-[3.25rem] rounded-md border px-3 py-2 text-sm font-medium transition-colors',
                     active
@@ -110,63 +80,52 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
         </fieldset>
       ))}
 
-      {/* No axes but several variants: fall back to a plain list, e.g. the
-          ceramic ring's Standard / Heavy Duty, which differ by name only. */}
+      {/* ── No-axis fallback: select by variant name ── */}
       {product.axes.length === 0 && product.variants.length > 1 && (
         <fieldset>
           <legend className="label">Option</legend>
           <div className="flex flex-wrap gap-2">
-            {product.variants.map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                aria-pressed={selected?.id === variant.id}
-                onClick={() => setSelection({ __variant: String(variant.id) })}
-                className={[
-                  'rounded-md border px-3 py-2 text-sm font-medium',
-                  selected?.id === variant.id
-                    ? 'border-ink bg-ink text-white'
-                    : 'border-ink-line bg-white hover:border-ink',
-                ].join(' ')}
-              >
-                {variant.name}
-              </button>
-            ))}
+            {product.variants.map((variant) => {
+              const active = selectedId === variant.id;
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setSelectedId(variant.id)}
+                  className={[
+                    'rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                    active
+                      ? 'border-ink bg-ink text-white'
+                      : 'border-ink-line bg-white hover:border-ink',
+                  ].join(' ')}
+                >
+                  {variant.name}
+                </button>
+              );
+            })}
           </div>
         </fieldset>
       )}
 
-      <div className="rounded-card border border-ink-line bg-ink-wash p-4">
+      {/* ── Price / order box ── */}
+      <div className="rounded-card border border-ink-line bg-white p-5">
         {selected ? (
           <>
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <p className="inline-flex items-center gap-1.5 rounded-md bg-amber/10 px-3 py-1 text-sm font-semibold text-amber-dark">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
-                  >
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                  Price on enquiry
-                </p>
-                <p className="mt-0.5 font-mono text-xs text-ink-muted">
-                  {selected.partNumber} · SKU {selected.sku}
-                </p>
-              </div>
-              {stock && <span className={`chip ${stockToneClass[stock.tone]}`}>{stock.label}</span>}
-            </div>
+            <p className="inline-flex items-center gap-2 rounded-lg bg-amber-wash px-4 py-2 text-base font-bold text-warn">
+              <TagIcon />
+              Price on Request
+            </p>
+
+            <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-lg">
+              <span className="font-bold text-ink">{selected.name || selected.partNumber}</span>
+              <span aria-hidden className="text-ink-line">|</span>
+              <span className="text-base text-ink-muted">SKU: {selected.sku}</span>
+            </p>
 
             {selected.packSize > 1 && (
               <p className="mt-2 text-xs text-ink-muted">
-                Sold as a pack of {selected.packSize}. Quantity below is in packs.
+                Sold as a pack of {selected.packSize}.
               </p>
             )}
             {selected.leadTimeDays !== null && selected.leadTimeDays > 0 && (
@@ -175,43 +134,31 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap items-end gap-3">
-              <div className="w-28">
-                <label htmlFor="qty" className="label">
-                  Quantity
-                </label>
-                <input
-                  id="qty"
-                  type="number"
-                  min={selected.minOrderQty}
-                  value={quantity}
-                  onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))}
-                  className="field"
-                />
-              </div>
+            {/* Single "Add to Quote" button — no qty stepper on the page */}
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              disabled={!canOrder}
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2.5 rounded-lg bg-amber
+                         px-6 text-base font-bold text-ink transition-colors hover:bg-amber-dark
+                         disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <QuoteIcon />
+              Add to Quote
+            </button>
 
-              <button
-                type="button"
-                onClick={onAdd}
-                disabled={!canOrder}
-                className="btn-primary flex-1 sm:flex-none"
-              >
-                {justAdded ? 'Added to request' : 'Add to Quote Request'}
-              </button>
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink-line pt-4 text-sm text-ink-muted">
+              <span className="flex items-center gap-2"><ShieldIcon /> Genuine Parts</span>
+              <span aria-hidden className="text-ink-line">|</span>
+              <span className="flex items-center gap-2"><TruckIcon /> Fast Shipping</span>
+              <span aria-hidden className="text-ink-line">|</span>
+              <span className="flex items-center gap-2"><SupportIcon /> Expert Support</span>
             </div>
-
-            {/* Announced to screen readers without stealing focus. */}
-            <p aria-live="polite" className="sr-only">
-              {justAdded ? `${selected.partNumber} added to your quote request` : ''}
-            </p>
 
             {selected.priceType === 'CONTACT_SALES' && (
               <p className="mt-3 text-xs text-ink-muted">
                 This item is quoted individually. Please{' '}
-                <a href="/contact" className="font-medium underline">
-                  contact our team
-                </a>
-                .
+                <a href="/contact" className="font-medium underline">contact our team</a>.
               </p>
             )}
           </>
@@ -222,6 +169,46 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
           </p>
         )}
       </div>
+
+      {/* ── Unified order modal (Single / Bulk → contact form) ── */}
+      <SingleOrderModal
+        open={modalOpen}
+        item={
+          selected
+            ? {
+                variantId: selected.id,
+                variantName: selected.name || selected.partNumber,
+                sku: selected.sku,
+                minOrderQty: selected.minOrderQty,
+              }
+            : null
+        }
+        onClose={() => setModalOpen(false)}
+      />
     </div>
   );
+}
+
+function Icon({ size = 18, children }: { size?: number; children: React.ReactNode }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+      {children}
+    </svg>
+  );
+}
+function TagIcon() {
+  return <Icon><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" /><circle cx="7" cy="7" r="1.5" /></Icon>;
+}
+function QuoteIcon() {
+  return <Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" /></Icon>;
+}
+function ShieldIcon() {
+  return <Icon size={16}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></Icon>;
+}
+function TruckIcon() {
+  return <Icon size={16}><path d="M10 17h4V5H2v12h3" /><path d="M14 9h4l4 4v4h-3" /><circle cx="7.5" cy="17.5" r="2" /><circle cx="17.5" cy="17.5" r="2" /></Icon>;
+}
+function SupportIcon() {
+  return <Icon size={16}><path d="M4 14v-3a8 8 0 0 1 16 0v3" /><path d="M4 15a2 2 0 0 1 2-2h1v5H6a2 2 0 0 1-2-2Z" /><path d="M20 15a2 2 0 0 0-2-2h-1v5h1a2 2 0 0 0 2-2Z" /><path d="M18 18v1a3 3 0 0 1-3 3h-2" /></Icon>;
 }

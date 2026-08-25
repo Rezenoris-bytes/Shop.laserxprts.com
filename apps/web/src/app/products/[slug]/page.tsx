@@ -122,14 +122,6 @@ export default async function ProductPage({ params }: PageProps) {
             <div className="mt-6">
               <VariantSelector product={product} />
             </div>
-
-            {product.hsnCode && (
-              <p className="mt-4 text-[11px] text-ink-muted">
-                HSN {product.hsnCode}
-                {product.gstRate !== null && ` · GST ${product.gstRate}%`}
-                {demoMode && ' · placeholder value'}
-              </p>
-            )}
           </div>
         </div>
 
@@ -259,7 +251,7 @@ function StructuredData({ product }: { product: Awaited<ReturnType<typeof api.pr
       lowPrice: Math.min(...priced.map((v) => v.price!)),
       highPrice: Math.max(...priced.map((v) => v.price!)),
       offerCount: priced.length,
-      availability: product.hasStock ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder',
+      availability: 'https://schema.org/InStock',
       seller: { '@type': 'Organization', name: siteName },
     };
   }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api, ApiRequestError, type ProductCard } from '@/lib/api';
+import { PhoneInput } from '@/components/phone-input';
 import { mediaUrl } from '@/lib/format';
 
 /**
@@ -256,14 +257,12 @@ export function QuickQuoteModal({
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Field label="Phone" htmlFor="qq-phone" error={errors.contactPhone}>
-                      <input
+                      <PhoneInput
                         id="qq-phone"
                         value={values.phone}
-                        onChange={(event) => set('phone', event.target.value)}
+                        onChange={(val) => set('phone', val)}
                         autoComplete="tel"
-                        inputMode="tel"
                         placeholder="+91"
-                        className="field"
                       />
                     </Field>
 

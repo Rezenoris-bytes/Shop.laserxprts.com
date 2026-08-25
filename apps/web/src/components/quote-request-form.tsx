@@ -6,13 +6,13 @@ import { quoteRequestSchema } from '@lei/shared';
 import { ApiRequestError, api, type MachineBrandNode } from '@/lib/api';
 import { useQuoteRequest } from '@/lib/quote-request';
 import { formatInr } from '@/lib/format';
+import { PhoneInput } from '@/components/phone-input';
 
 /**
  * Quote Request review and submission.
  *
  * Field discipline is deliberate: name, phone/email, company, city, message.
- * GSTIN is a SALES field collected later by an admin, not a barrier on a public
- * form. Every extra field here is drop-off on the site's primary conversion.
+ * Every extra field here is drop-off on the site's primary conversion.
  *
  * Validation uses the same Zod schema the API validates against, imported from
  * @lei/shared — so client and server rules cannot drift.
@@ -224,12 +224,12 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
               <span className="text-lg font-bold">{formatInr(estimate)}</span>
             </div>
             <p className="mt-1 text-[11px] text-ink-muted">
-              Excluding GST and freight. Your quotation will confirm final pricing.
+              Excluding freight. Your quotation will confirm final pricing.
             </p>
           </>
         ) : (
           <p className="mt-4 text-[11px] text-ink-muted">
-            Every item here is quoted individually. We will send pricing, GST and freight in your
+            Every item here is quoted individually. We will send pricing and freight in your
             quotation.
           </p>
         )}
@@ -250,12 +250,10 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
           </Field>
 
           <Field label="Phone" name="contactPhone" errors={errors.contactPhone}>
-            <input
+            <PhoneInput
               id="contactPhone"
-              type="tel"
               value={values.contactPhone}
-              onChange={(event) => set('contactPhone', event.target.value)}
-              className="field"
+              onChange={(val) => set('contactPhone', val)}
               autoComplete="tel"
               placeholder="98765 43210"
             />

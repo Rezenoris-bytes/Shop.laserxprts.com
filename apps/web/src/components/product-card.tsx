@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { QuoteButton } from '@/components/quote-button';
+import { QuickViewTrigger } from '@/components/quick-view-trigger';
 import type { ProductCard as ProductCardData } from '@/lib/api';
 import { mediaUrl } from '@/lib/format';
 
@@ -28,12 +29,9 @@ function productHref(product: ProductCardData): string {
 export function ProductCardTile({ product }: { product: ProductCardData }) {
   return (
     <article className="card group flex flex-col overflow-hidden card-hover">
-      <Link
-        href={productHref(product)}
-        className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-white"
-      >
+      <QuickViewTrigger product={product}>
         <ProductImage product={product} className="object-contain p-2 card-zoom" />
-      </Link>
+      </QuickViewTrigger>
 
       <div className="flex flex-1 flex-col p-4">
         {product.brand && (
@@ -60,7 +58,7 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
           <p className="text-sm font-semibold text-amber-dark">Price on request</p>
           <p className="mt-0.5 text-[11px] text-ink-muted">
             {product.variantCount === 1 ? '1 option' : `${product.variantCount} options`}
-            {product.hasStock ? ' · in stock' : ' · on request'}
+
           </p>
 
           <QuoteButton product={product} />

@@ -1,12 +1,9 @@
 import {
   buildVariantSearchKey,
-  isValidGstinFormat,
   normalizeEmail,
   normalizePhone,
   normalizeSearchKey,
-  normalizeStateCode,
   slugify,
-  stateCodeFromGstin,
 } from '@lei/shared';
 
 /**
@@ -83,25 +80,5 @@ describe('slugify', () => {
     const slug = slugify('  ***Focus Lens***  ');
     expect(slug).toBe('focus-lens');
     expect(slug).not.toMatch(/^-|-$|--/);
-  });
-});
-
-describe('GST identifiers', () => {
-  it('validates GSTIN format', () => {
-    expect(isValidGstinFormat('27AAPFU0939F1ZV')).toBe(true);
-    expect(isValidGstinFormat('27AAPFU0939F1Z')).toBe(false);
-    expect(isValidGstinFormat('not-a-gstin')).toBe(false);
-  });
-
-  it('extracts the state code from a GSTIN', () => {
-    expect(stateCodeFromGstin('27AAPFU0939F1ZV')).toBe('27'); // Maharashtra
-    expect(stateCodeFromGstin('33AAPFU0939F1ZV')).toBe('33'); // Tamil Nadu
-  });
-
-  it('rejects state codes outside the valid 01-38 range', () => {
-    expect(normalizeStateCode('27')).toBe('27');
-    expect(normalizeStateCode('7')).toBe('07');
-    expect(normalizeStateCode('99')).toBeNull();
-    expect(normalizeStateCode('00')).toBeNull();
   });
 });

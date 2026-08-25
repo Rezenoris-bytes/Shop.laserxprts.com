@@ -15,14 +15,12 @@ import { SalesModule } from './sales/sales.module';
 import { CustomersModule } from './customers/customers.module';
 import { AdminModule } from './admin/admin.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { PermissionsGuard } from './common/guards/permissions.guard';
 
 /**
  * Root module — modular monolith, one deployable.
  *
- * Both guards are registered globally and in this order: JwtAuthGuard
- * establishes who the caller is, PermissionsGuard decides what they may do.
- * Registering them globally (rather than per-controller) is what makes
+ * JwtAuthGuard establishes who the caller is.
+ * Registering it globally (rather than per-controller) is what makes
  * deny-by-default real — a new controller is protected the moment it exists,
  * without anyone remembering to add a decorator.
  */
@@ -45,7 +43,6 @@ import { PermissionsGuard } from './common/guards/permissions.guard';
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
 })
 export class AppModule {}

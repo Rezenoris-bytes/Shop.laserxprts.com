@@ -19,9 +19,15 @@ import { DemoBanner } from './demo-banner';
  */
 export function StorefrontChrome({
   demoMode,
+  phone,
+  email,
+  gstin,
   children,
 }: {
   demoMode: boolean;
+  phone: string;
+  email: string;
+  gstin: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -32,7 +38,7 @@ export function StorefrontChrome({
   return (
     <>
       {demoMode && <DemoBanner />}
-      <SiteHeader />
+      <SiteHeader phone={phone} email={email} gstin={gstin} />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50
@@ -43,7 +49,7 @@ export function StorefrontChrome({
       <main id="main" className="flex-1">
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter phone={phone} />
       <QuoteRequestDrawer />
     </>
   );

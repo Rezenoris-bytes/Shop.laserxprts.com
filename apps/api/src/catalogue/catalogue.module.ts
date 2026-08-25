@@ -6,6 +6,7 @@ import { AdminCatalogueRepository } from './admin-catalogue.repository';
 import { CatalogueService } from './catalogue.service';
 import { AdminCatalogueService } from './admin-catalogue.service';
 import { CatalogueImportService } from './import/catalogue-import.service';
+import { BulkProductUploadService } from './import/bulk-product-upload.service';
 import { StorefrontRevalidationService } from './storefront-revalidation.service';
 
 @Module({
@@ -16,6 +17,7 @@ import { StorefrontRevalidationService } from './storefront-revalidation.service
     AdminCatalogueService,
     AdminCatalogueRepository,
     CatalogueImportService,
+    BulkProductUploadService,
     StorefrontRevalidationService,
   ],
   exports: [CatalogueService, CatalogueRepository, CatalogueImportService],

@@ -22,7 +22,6 @@ interface ListingVariant {
   minOrderQty: number;
   leadTimeDays: number | null;
   isDefault: boolean;
-  inventory: { quantity: number; stockStatus: string } | null;
   attributeValues: ListingAttributeValue[];
 }
 
@@ -34,7 +33,6 @@ interface ListingRow {
   description: string | null;
   minPrice: unknown;
   maxPrice: unknown;
-  hasStock: boolean;
   variantAxes: unknown;
   isSeedData: boolean;
   category: { name: string; slug: string } | null;
@@ -198,13 +196,10 @@ export class CatalogueService {
       shortDescription: product.shortDescription,
       description: product.description,
       productType: product.productType,
-      hsnCode: product.hsnCode,
-      gstRate: product.gstRate === null ? null : Number(product.gstRate),
       priceRange: {
         min: product.minPrice === null ? null : Number(product.minPrice),
         max: product.maxPrice === null ? null : Number(product.maxPrice),
       },
-      hasStock: product.hasStock,
       isSeedData: product.isSeedData,
       seo: {
         metaTitle: product.metaTitle,
@@ -267,7 +262,7 @@ export class CatalogueService {
         unitOfMeasure: variant.unitOfMeasure,
         packSize: variant.packSize,
         minOrderQty: variant.minOrderQty,
-        stockStatus: variant.inventory?.stockStatus ?? 'OUT_OF_STOCK',
+        isDefault: variant.isDefault,
         product: {
           id: variant.product.id,
           name: variant.product.name,
@@ -300,6 +295,21 @@ export class CatalogueService {
         matchType: result.matchType,
       },
     };
+  }
+
+  async searchAutocomplete(term: string, limit = 5) {
+    const items = await this.repository.autocompleteSearch(term, limit);
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      slug: item.slug,
+      image: item.media[0]
+        ? {
+            storedName: item.media[0].file.storedName,
+            path: item.media[0].file.path,
+          }
+        : null,
+    }));
   }
 
   async getFacets(categorySlug?: string) {
@@ -346,8 +356,6 @@ export class CatalogueService {
       minOrderQty: variant.minOrderQty,
       leadTimeDays: variant.leadTimeDays,
       isDefault: variant.isDefault,
-      stockStatus: variant.inventory?.stockStatus ?? 'OUT_OF_STOCK',
-      inStock: (variant.inventory?.quantity ?? 0) > 0,
       // Axis values keyed by slug — what the selector reads.
       axisValues: Object.fromEntries(
         variant.attributeValues
@@ -426,7 +434,6 @@ export class CatalogueService {
       description: product.description,
       priceFrom: product.minPrice === null ? null : Number(product.minPrice),
       priceTo: product.maxPrice === null ? null : Number(product.maxPrice),
-      hasStock: product.hasStock,
       variantCount: product._count.variants,
       defaultVariant: (() => {
         const preferred =
@@ -465,7 +472,6 @@ export class CatalogueService {
     shortDescription: string | null;
     minPrice: unknown;
     maxPrice: unknown;
-    hasStock: boolean;
     variantAxes: unknown;
     isSeedData: boolean;
     category: { name: string; slug: string } | null;
@@ -485,7 +491,6 @@ export class CatalogueService {
       shortDescription: product.shortDescription,
       priceFrom: product.minPrice === null ? null : Number(product.minPrice),
       priceTo: product.maxPrice === null ? null : Number(product.maxPrice),
-      hasStock: product.hasStock,
       variantCount: product._count.variants,
       defaultVariant: product.variants[0]
         ? { id: product.variants[0].id, minOrderQty: product.variants[0].minOrderQty }

@@ -76,7 +76,7 @@ export class DemoModeRepository {
     };
   }
 
-  /** Settings still holding a PLACEHOLDER value (company details, HSN, etc.). */
+  /** Settings still holding a PLACEHOLDER value (company details, etc.). */
   async findPlaceholderSettings(): Promise<string[]> {
     const rows = await this.prisma.raw.setting.findMany({
       where: { value: { contains: 'PLACEHOLDER' } },

@@ -1,20 +1,10 @@
-import {
-  TaxTreatment,
-  calculateLine,
-  calculateQuoteTotals,
-  formatInr,
-  fromPaise,
-  resolveTaxTreatment,
-  roundHalfUp,
-  toPaise,
-} from '@lei/shared';
+import { calculateLine, calculateQuoteTotals, formatInr, fromPaise, roundHalfUp, toPaise } from '@lei/shared';
 
 /**
- * Money and GST arithmetic.
+ * Money arithmetic.
  *
  * These tests exist because a quote that shows one total in the admin panel and
- * a different one on the PDF is a commercial credibility problem, and because
- * charging the wrong GST split leaves the customer unable to claim input credit.
+ * a different one on the PDF is a commercial credibility problem.
  */
 describe('paise conversion', () => {
   it('parses rupee strings without floating-point drift', () => {
@@ -50,31 +40,27 @@ describe('paise conversion', () => {
 
 describe('line calculation', () => {
   it('computes a simple line', () => {
-    // 2 x ₹890 nozzle at 18% GST
+    // 2 x ₹890 nozzle
     const line = calculateLine({
       unitPricePaise: toPaise('890.00'),
       quantityMilli: 2000,
-      gstRatePercent: 18,
     });
 
     expect(fromPaise(line.grossPaise)).toBe('1780.00');
     expect(fromPaise(line.lineSubtotalPaise)).toBe('1780.00');
-    expect(fromPaise(line.gstAmountPaise)).toBe('320.40');
-    expect(fromPaise(line.lineTotalPaise)).toBe('2100.40');
+    expect(fromPaise(line.lineTotalPaise)).toBe('1780.00');
   });
 
-  it('applies a discount before tax', () => {
+  it('applies a discount', () => {
     const line = calculateLine({
       unitPricePaise: toPaise('1000.00'),
       quantityMilli: 1000,
       discountPercent: 10,
-      gstRatePercent: 18,
     });
 
     expect(fromPaise(line.discountPaise)).toBe('100.00');
     expect(fromPaise(line.lineSubtotalPaise)).toBe('900.00');
-    expect(fromPaise(line.gstAmountPaise)).toBe('162.00');
-    expect(fromPaise(line.lineTotalPaise)).toBe('1062.00');
+    expect(fromPaise(line.lineTotalPaise)).toBe('900.00');
   });
 
   it('supports fractional quantities for metred goods', () => {
@@ -82,94 +68,44 @@ describe('line calculation', () => {
     const line = calculateLine({
       unitPricePaise: toPaise('340.00'),
       quantityMilli: 2500,
-      gstRatePercent: 18,
     });
     expect(fromPaise(line.grossPaise)).toBe('850.00');
   });
 });
 
-describe('GST treatment by place of supply', () => {
-  it('splits CGST/SGST within the same state', () => {
-    expect(resolveTaxTreatment('27', '27')).toBe(TaxTreatment.CGST_SGST);
-  });
-
-  it('charges IGST across states', () => {
-    expect(resolveTaxTreatment('27', '33')).toBe(TaxTreatment.IGST);
-  });
-
-  it('defaults to IGST when the customer state is unknown', () => {
-    // Charging IGST when CGST+SGST was due is correctable. The reverse leaves
-    // the customer unable to claim credit, so this is the safe default.
-    expect(resolveTaxTreatment('27', null)).toBe(TaxTreatment.IGST);
-  });
-});
-
-describe('quote totals — the same basket, both tax treatments', () => {
+describe('quote totals', () => {
   // Rajesh's three parts: nozzle, protective window, ceramic ring.
   const lines = [
-    { unitPricePaise: toPaise('890.00'), quantityMilli: 2000, gstRatePercent: 18 },
-    { unitPricePaise: toPaise('420.00'), quantityMilli: 3000, gstRatePercent: 18 },
-    { unitPricePaise: toPaise('180.00'), quantityMilli: 1000, gstRatePercent: 18 },
+    { unitPricePaise: toPaise('890.00'), quantityMilli: 2000 },
+    { unitPricePaise: toPaise('420.00'), quantityMilli: 3000 },
+    { unitPricePaise: toPaise('180.00'), quantityMilli: 1000 },
   ];
 
-  it('intra-state: CGST + SGST, split exactly in half', () => {
-    const totals = calculateQuoteTotals({ lines, treatment: TaxTreatment.CGST_SGST });
-
-    expect(fromPaise(totals.taxableAmountPaise)).toBe('3220.00');
-    expect(fromPaise(totals.totalGstPaise)).toBe('579.60');
-    expect(fromPaise(totals.cgstPaise)).toBe('289.80');
-    expect(fromPaise(totals.sgstPaise)).toBe('289.80');
-    expect(totals.igstPaise).toBe(0);
-    // CGST + SGST must reconstruct the total GST exactly.
-    expect(totals.cgstPaise + totals.sgstPaise).toBe(totals.totalGstPaise);
+  it('sums line subtotals into the grand total', () => {
+    const totals = calculateQuoteTotals({ lines });
+    expect(fromPaise(totals.subtotalPaise)).toBe('3220.00');
+    expect(fromPaise(totals.totalPaise)).toBe('3220.00');
   });
 
-  it('inter-state: IGST at the full rate, same grand total', () => {
-    const intra = calculateQuoteTotals({ lines, treatment: TaxTreatment.CGST_SGST });
-    const inter = calculateQuoteTotals({ lines, treatment: TaxTreatment.IGST });
-
-    expect(fromPaise(inter.igstPaise)).toBe('579.60');
-    expect(inter.cgstPaise).toBe(0);
-    expect(inter.sgstPaise).toBe(0);
-    // The customer pays the same either way — only the split differs.
-    expect(inter.totalPaise).toBe(intra.totalPaise);
+  it('adds freight to the total', () => {
+    const totals = calculateQuoteTotals({
+      lines: [{ unitPricePaise: toPaise('1000.00'), quantityMilli: 1000 }],
+      freightPaise: toPaise('250.00'),
+    });
+    expect(fromPaise(totals.totalPaise)).toBe('1250.00');
   });
 
   it('rounds the grand total to whole rupees and records the adjustment', () => {
-    const totals = calculateQuoteTotals({ lines, treatment: TaxTreatment.IGST });
+    const totals = calculateQuoteTotals({
+      lines: [{ unitPricePaise: toPaise('100.05'), quantityMilli: 1000 }],
+    });
 
-    // 3220.00 + 579.60 = 3799.60 -> 3800.00, round-off +0.40
-    expect(fromPaise(totals.totalPaise)).toBe('3800.00');
-    expect(fromPaise(totals.roundOffPaise)).toBe('0.40');
+    expect(fromPaise(totals.totalPaise)).toBe('100.00');
+    expect(fromPaise(totals.roundOffPaise)).toBe('-0.05');
 
-    // The printed lines plus tax plus round-off must equal the printed total.
-    expect(totals.taxableAmountPaise + totals.totalGstPaise + totals.roundOffPaise).toBe(
+    // The printed lines plus round-off must equal the printed total.
+    expect(totals.subtotalPaise - totals.discountPaise + totals.freightPaise + totals.roundOffPaise).toBe(
       totals.totalPaise,
     );
-  });
-
-  it('splits an odd paise of GST without losing it', () => {
-    const totals = calculateQuoteTotals({
-      lines: [{ unitPricePaise: toPaise('100.05'), quantityMilli: 1000, gstRatePercent: 18 }],
-      treatment: TaxTreatment.CGST_SGST,
-    });
-    expect(totals.cgstPaise + totals.sgstPaise).toBe(totals.totalGstPaise);
-  });
-
-  it('taxes freight at the highest rate on the document', () => {
-    const totals = calculateQuoteTotals({
-      lines: [{ unitPricePaise: toPaise('1000.00'), quantityMilli: 1000, gstRatePercent: 18 }],
-      freightPaise: toPaise('250.00'),
-      treatment: TaxTreatment.IGST,
-    });
-
-    expect(fromPaise(totals.taxableAmountPaise)).toBe('1250.00');
-    expect(fromPaise(totals.igstPaise)).toBe('225.00');
-  });
-
-  it('charges no tax when exempt', () => {
-    const totals = calculateQuoteTotals({ lines, treatment: TaxTreatment.EXEMPT });
-    expect(totals.totalGstPaise).toBe(0);
-    expect(fromPaise(totals.totalPaise)).toBe('3220.00');
   });
 });

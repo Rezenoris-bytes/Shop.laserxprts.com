@@ -24,7 +24,6 @@ export class CustomersService {
       'contactName',
       'email',
       'phone',
-      'gstin',
       'stateCode',
       'city',
       'status',

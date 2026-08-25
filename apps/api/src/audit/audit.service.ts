@@ -36,7 +36,6 @@ const NEVER_LOG = new Set([
   'refreshToken',
   'secret',
   'apiKey',
-  'gstin',
 ]);
 
 /**
@@ -52,8 +51,6 @@ const AUDITABLE_FIELDS: Record<string, string[]> = {
     'categoryId',
     'partBrandId',
     'productType',
-    'hsnCode',
-    'gstRate',
     'isActive',
     'isFeatured',
   ],

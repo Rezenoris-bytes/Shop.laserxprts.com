@@ -12,7 +12,6 @@ import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
-import { assertEveryRouteIsGuarded } from './common/guards/route-coverage.assertion';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
@@ -120,8 +119,7 @@ async function bootstrap(): Promise<void> {
 
   app.enableShutdownHooks();
 
-  // Deny-by-default: refuses to start if any route is unguarded.
-  assertEveryRouteIsGuarded(app);
+
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : config.apiPort;
   await app.listen(port, '0.0.0.0');

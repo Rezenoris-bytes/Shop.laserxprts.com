@@ -26,11 +26,7 @@
     "db:generate": "npm run db:generate -w @lei/api",
     "db:migrate": "npm run db:migrate -w @lei/api",
     "db:seed": "npm run db:seed -w @lei/api",
-    "db:studio": "npm run db:studio -w @lei/api",
-    "docker:up": "docker compose up -d",
-    "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f",
-    "docker:reset": "docker compose down -v && docker compose up -d"
+    "db:studio": "npm run db:studio -w @lei/api"
   },
   "devDependencies": {
     "prettier": "^3.3.3",

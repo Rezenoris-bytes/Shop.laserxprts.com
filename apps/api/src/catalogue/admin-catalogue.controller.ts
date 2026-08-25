@@ -10,17 +10,17 @@ import {
   Post,
   Query,
   Req,
+  Res,
 } from '@nestjs/common';
-import type { FastifyRequest } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
-  PermissionAction,
-  PermissionModule,
+
+
   adminListQuerySchema,
   createAttributeSchema,
   createMachineBrandSchema,
   createMachineModelSchema,
   createMachineVariantSchema,
-  updateInventorySchema,
   upsertCategorySchema,
   upsertCompatibilitySchema,
   upsertPartBrandSchema,
@@ -32,7 +32,6 @@ import {
   type CreateMachineBrandInput,
   type CreateMachineModelInput,
   type CreateMachineVariantInput,
-  type UpdateInventoryInput,
   type UpsertCategoryInput,
   type UpsertCompatibilityInput,
   type UpsertPartBrandInput,
@@ -40,29 +39,32 @@ import {
   type UpsertProductInput,
   type UpsertVariantInput,
 } from '@lei/shared';
-import { RequirePermission } from '../common/decorators/require-permission.decorator';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodBody, ZodQuery } from '../common/pipes/zod-validation.pipe';
 import { AdminCatalogueService } from './admin-catalogue.service';
+import { BulkProductUploadService } from './import/bulk-product-upload.service';
 
-const CAT = PermissionModule.CATALOGUE;
-const INV = PermissionModule.INVENTORY;
-const MACH = PermissionModule.MACHINES;
+
+
 
 @Controller('admin')
 export class AdminCatalogueController {
-  constructor(private readonly service: AdminCatalogueService) {}
+  constructor(
+    private readonly service: AdminCatalogueService,
+    private readonly bulkUpload: BulkProductUploadService,
+  ) {}
 
   // ── Categories ────────────────────────────────────────────────────────
 
   @Get('categories')
-  @RequirePermission(CAT, PermissionAction.VIEW)
+
   listCategories() {
     return this.service.listCategories();
   }
 
   @Post('categories')
-  @RequirePermission(CAT, PermissionAction.CREATE)
+
   createCategory(
     @Body(ZodBody(upsertCategorySchema)) body: UpsertCategoryInput,
     @CurrentUser('id') actorId: number,
@@ -71,7 +73,7 @@ export class AdminCatalogueController {
   }
 
   @Patch('categories/:id')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   updateCategory(
     @Param('id', ParseIntPipe) id: number,
     @Body(ZodBody(upsertCategorySchema.partial())) body: Partial<UpsertCategoryInput>,
@@ -81,7 +83,7 @@ export class AdminCatalogueController {
   }
 
   @Delete('categories/:id')
-  @RequirePermission(CAT, PermissionAction.DELETE)
+
   deleteCategory(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.service.deleteCategory(id, actorId);
   }
@@ -89,13 +91,13 @@ export class AdminCatalogueController {
   // ── Part brands ───────────────────────────────────────────────────────
 
   @Get('part-brands')
-  @RequirePermission(CAT, PermissionAction.VIEW)
+
   listPartBrands() {
     return this.service.listPartBrands();
   }
 
   @Post('part-brands')
-  @RequirePermission(CAT, PermissionAction.CREATE)
+
   createPartBrand(
     @Body(ZodBody(upsertPartBrandSchema)) body: UpsertPartBrandInput,
     @CurrentUser('id') actorId: number,
@@ -104,7 +106,7 @@ export class AdminCatalogueController {
   }
 
   @Patch('part-brands/:id')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   updatePartBrand(
     @Param('id', ParseIntPipe) id: number,
     @Body(ZodBody(upsertPartBrandSchema.partial())) body: Partial<UpsertPartBrandInput>,
@@ -116,7 +118,7 @@ export class AdminCatalogueController {
   // ── Products ──────────────────────────────────────────────────────────
 
   @Get('products')
-  @RequirePermission(CAT, PermissionAction.VIEW)
+
   listProducts(
     @Query(ZodQuery(adminListQuerySchema)) query: AdminListQuery,
     @Query('categoryId') categoryId?: string,
@@ -125,13 +127,13 @@ export class AdminCatalogueController {
   }
 
   @Get('products/:id')
-  @RequirePermission(CAT, PermissionAction.VIEW)
+
   getProduct(@Param('id', ParseIntPipe) id: number) {
     return this.service.getProduct(id);
   }
 
   @Post('products')
-  @RequirePermission(CAT, PermissionAction.CREATE)
+
   createProduct(
     @Body(ZodBody(upsertProductSchema)) body: UpsertProductInput,
     @CurrentUser('id') actorId: number,
@@ -140,7 +142,7 @@ export class AdminCatalogueController {
   }
 
   @Patch('products/:id')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   updateProduct(
     @Param('id', ParseIntPipe) id: number,
     @Body(ZodBody(upsertProductSchema.partial())) body: Partial<UpsertProductInput>,
@@ -150,15 +152,39 @@ export class AdminCatalogueController {
   }
 
   @Delete('products/:id')
-  @RequirePermission(CAT, PermissionAction.DELETE)
+
   deleteProduct(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.service.deleteProduct(id, actorId);
+  }
+
+  // ── Bulk upload (CSV / Excel) ────────────────────────────────────────────
+
+  @Get('products/bulk-upload/template')
+
+  async downloadBulkUploadTemplate(@Res() reply: FastifyReply) {
+    const buffer = await this.bulkUpload.generateTemplate();
+    reply
+      .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .header('Content-Disposition', 'attachment; filename="product-upload-template.xlsx"')
+      .send(buffer);
+  }
+
+  @Post('products/bulk-upload')
+
+  async bulkUploadProducts(@Req() request: FastifyRequest, @CurrentUser('id') actorId: number) {
+    const uploads = await this.collectUploads(request);
+    const first = uploads[0];
+    if (!first) throw new BadRequestException('No file was uploaded');
+    if (!/\.(csv|xlsx)$/i.test(first.filename)) {
+      throw new BadRequestException('Upload a .csv or .xlsx file');
+    }
+    return this.bulkUpload.importFile(first.buffer, first.filename, actorId);
   }
 
   // ── Product media ──────────────────────────────────────────────────────
 
   @Get('products/:id/media')
-  @RequirePermission(CAT, PermissionAction.VIEW)
+
   listProductMedia(@Param('id', ParseIntPipe) id: number) {
     return this.service.listProductMedia(id);
   }
@@ -172,7 +198,7 @@ export class AdminCatalogueController {
    * per-request ceilings are enforced by the multipart plugin in main.ts.
    */
   @Post('products/:id/media')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   async uploadProductMedia(
     @Param('id', ParseIntPipe) id: number,
     @Req() request: FastifyRequest,
@@ -183,7 +209,7 @@ export class AdminCatalogueController {
   }
 
   @Patch('products/:id/media/order')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   reorderProductMedia(
     @Param('id', ParseIntPipe) id: number,
     @Body(ZodBody(reorderMediaSchema)) body: ReorderMediaInput,
@@ -193,7 +219,7 @@ export class AdminCatalogueController {
   }
 
   @Patch('products/:id/media/:mediaId/primary')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   setPrimaryProductMedia(
     @Param('id', ParseIntPipe) id: number,
     @Param('mediaId', ParseIntPipe) mediaId: number,
@@ -203,7 +229,7 @@ export class AdminCatalogueController {
   }
 
   @Post('products/:id/media/:mediaId/replace')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   async replaceProductMedia(
     @Param('id', ParseIntPipe) id: number,
     @Param('mediaId', ParseIntPipe) mediaId: number,
@@ -217,7 +243,7 @@ export class AdminCatalogueController {
   }
 
   @Delete('products/:id/media/:mediaId')
-  @RequirePermission(CAT, PermissionAction.DELETE)
+
   deleteProductMedia(
     @Param('id', ParseIntPipe) id: number,
     @Param('mediaId', ParseIntPipe) mediaId: number,
@@ -249,7 +275,7 @@ export class AdminCatalogueController {
   // ── Variants ──────────────────────────────────────────────────────────
 
   @Post('variants')
-  @RequirePermission(CAT, PermissionAction.CREATE)
+
   createVariant(
     @Body(ZodBody(upsertVariantSchema)) body: UpsertVariantInput,
     @CurrentUser('id') actorId: number,
@@ -258,7 +284,7 @@ export class AdminCatalogueController {
   }
 
   @Patch('variants/:id')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   updateVariant(
     @Param('id', ParseIntPipe) id: number,
     @Body(
@@ -272,29 +298,22 @@ export class AdminCatalogueController {
     return this.service.updateVariant(id, body.productId, body, actorId);
   }
 
-  // ── Inventory ─────────────────────────────────────────────────────────
+  @Delete('variants/:id')
 
-  @Patch('variants/:id/inventory')
-  @RequirePermission(INV, PermissionAction.UPDATE)
-  updateInventory(
+  deleteVariant(
     @Param('id', ParseIntPipe) id: number,
-    @Body(ZodBody(updateInventorySchema.extend({ productId: upsertVariantSchema.shape.productId })))
-    body: UpdateInventoryInput & { productId: number },
+    @Query('productId', ParseIntPipe) productId: number,
     @CurrentUser('id') actorId: number,
   ) {
-    return this.service.updateInventory(id, body.productId, body, actorId);
+    return this.service.deleteVariant(id, productId, actorId);
   }
 
-  @Get('variants/:id/stock-movements')
-  @RequirePermission(INV, PermissionAction.VIEW)
-  stockMovements(@Param('id', ParseIntPipe) id: number) {
-    return this.service.stockMovements(id);
-  }
+
 
   // ── Compatibility ─────────────────────────────────────────────────────
 
   @Post('compatibility')
-  @RequirePermission(CAT, PermissionAction.CREATE)
+
   createCompatibility(
     @Body(ZodBody(upsertCompatibilitySchema)) body: UpsertCompatibilityInput,
     @CurrentUser('id') actorId: number,
@@ -303,13 +322,13 @@ export class AdminCatalogueController {
   }
 
   @Patch('compatibility/:id/verify')
-  @RequirePermission(CAT, PermissionAction.UPDATE)
+
   verifyCompatibility(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.service.verifyCompatibility(id, actorId);
   }
 
   @Delete('compatibility/:id')
-  @RequirePermission(CAT, PermissionAction.DELETE)
+
   deleteCompatibility(@Param('id', ParseIntPipe) id: number, @CurrentUser('id') actorId: number) {
     return this.service.deleteCompatibility(id, actorId);
   }
@@ -317,25 +336,25 @@ export class AdminCatalogueController {
   // ── Machines ──────────────────────────────────────────────────────────
 
   @Get('machines')
-  @RequirePermission(MACH, PermissionAction.VIEW)
+
   listMachines() {
     return this.service.listMachineBrands();
   }
 
   @Post('machines/brands')
-  @RequirePermission(MACH, PermissionAction.CREATE)
+
   createMachineBrand(@Body(ZodBody(createMachineBrandSchema)) body: CreateMachineBrandInput) {
     return this.service.createMachineBrand(body.name);
   }
 
   @Post('machines/models')
-  @RequirePermission(MACH, PermissionAction.CREATE)
+
   createMachineModel(@Body(ZodBody(createMachineModelSchema)) body: CreateMachineModelInput) {
     return this.service.createMachineModel(body.machineBrandId, body.name);
   }
 
   @Post('machines/variants')
-  @RequirePermission(MACH, PermissionAction.CREATE)
+
   createMachineVariant(@Body(ZodBody(createMachineVariantSchema)) body: CreateMachineVariantInput) {
     return this.service.createMachineVariant(
       body.machineModelId,
@@ -348,13 +367,13 @@ export class AdminCatalogueController {
   // ── Attributes ────────────────────────────────────────────────────────
 
   @Get('attributes')
-  @RequirePermission(CAT, PermissionAction.VIEW)
+
   listAttributes() {
     return this.service.listAttributes();
   }
 
   @Post('attributes')
-  @RequirePermission(CAT, PermissionAction.CREATE)
+
   createAttribute(@Body(ZodBody(createAttributeSchema)) body: CreateAttributeInput) {
     return this.service.createAttribute(body);
   }

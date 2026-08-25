@@ -166,15 +166,11 @@ export class AdminCatalogueService {
         name: before.name,
         isActive: before.isActive,
         categoryId: before.categoryId,
-        hsnCode: before.hsnCode,
-        gstRate: before.gstRate,
       },
       {
         name: product.name,
         isActive: product.isActive,
         categoryId: product.categoryId,
-        hsnCode: product.hsnCode,
-        gstRate: product.gstRate,
       },
     );
     await this.audit.record({
@@ -383,38 +379,23 @@ export class AdminCatalogueService {
     return variant;
   }
 
-  // ── Inventory ─────────────────────────────────────────────────────────
-
-  async updateInventory(
-    variantId: number,
-    productId: number,
-    data: {
-      quantity: number;
-      reorderLevel?: number;
-      stockStatus?: string;
-      reason: string;
-      notes?: string;
-    },
-    actorId: number,
-  ) {
-    const inventory = await this.repository.updateInventory(variantId, {
-      ...data,
-      performedById: actorId,
-    });
+  async deleteVariant(id: number, productId: number, actorId: number) {
+    const variant = await this.repository.softDeleteVariant(id);
+    // A product with variants must always have a default — promote the next
+    // one so the storefront's selector still has something to preselect.
+    if (variant.isDefault) await this.repository.promoteNextDefaultVariant(productId);
     await this.repository.recomputeProduct(productId);
     await this.audit.record({
       userId: actorId,
-      action: AuditAction.STOCK_ADJUST,
-      entityType: 'Inventory',
-      entityId: String(variantId),
-      newValues: { quantity: data.quantity, reason: data.reason },
+      action: AuditAction.SOFT_DELETE,
+      entityType: 'ProductVariant',
+      entityId: String(id),
+      oldValues: { sku: variant.sku, variantName: variant.variantName },
     });
-    return inventory;
+    return variant;
   }
 
-  stockMovements(variantId: number) {
-    return this.repository.stockMovements(variantId);
-  }
+
 
   // ── Compatibility ─────────────────────────────────────────────────────
 

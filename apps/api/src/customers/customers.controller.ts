@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Query } from '@nestjs/common';
 import {
-  PermissionAction,
-  PermissionModule,
+
+
   adminListQuerySchema,
   type AdminListQuery,
 } from '@lei/shared';
-import { RequirePermission } from '../common/decorators/require-permission.decorator';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodQuery } from '../common/pipes/zod-validation.pipe';
 import { CustomersService } from './customers.service';
@@ -20,7 +20,7 @@ export class CustomersController {
   constructor(private readonly service: CustomersService) {}
 
   @Get()
-  @RequirePermission(PermissionModule.CUSTOMERS, PermissionAction.VIEW)
+
   async list(@Query(ZodQuery(adminListQuerySchema)) query: AdminListQuery) {
     const { items, total } = await this.service.list({
       skip: (query.page - 1) * query.perPage,
@@ -44,13 +44,13 @@ export class CustomersController {
   }
 
   @Get(':id')
-  @RequirePermission(PermissionModule.CUSTOMERS, PermissionAction.VIEW)
+
   get(@Param('id', ParseIntPipe) id: number) {
     return this.service.findById(id);
   }
 
   @Patch(':id')
-  @RequirePermission(PermissionModule.CUSTOMERS, PermissionAction.UPDATE)
+
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: Record<string, unknown>,

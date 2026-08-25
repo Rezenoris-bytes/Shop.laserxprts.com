@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { QuoteRequestProvider } from '@/lib/quote-request';
 import { StorefrontChrome } from '@/components/storefront-chrome';
-import { demoMode, siteName, siteTagline, siteUrl } from '@/lib/site';
+import { api } from '@/lib/api';
+import { businessEmail, businessPhone, demoMode, siteName, siteTagline, siteUrl } from '@/lib/site';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -29,12 +30,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Falls back to the static defaults if Settings has not been configured yet
+  // (or the API is briefly unreachable) — an admin-set value always wins once
+  // one exists, but an empty Settings table must never blank the phone/email
+  // shown across the site.
+  const contact = await api.contact().catch(() => null);
+  const phone = contact?.phone || businessPhone;
+  const email = contact?.email || businessEmail;
+  const gstin = contact?.gstin || '';
+
   return (
     <html lang="en-IN">
       <body className="flex min-h-screen flex-col" suppressHydrationWarning>
         <QuoteRequestProvider>
-          <StorefrontChrome demoMode={demoMode}>{children}</StorefrontChrome>
+          <StorefrontChrome demoMode={demoMode} phone={phone} email={email} gstin={gstin}>
+            {children}
+          </StorefrontChrome>
         </QuoteRequestProvider>
       </body>
     </html>

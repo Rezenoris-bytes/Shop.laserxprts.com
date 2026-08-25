@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { siteName, siteTagline, businessPhone } from '@/lib/site';
+import { siteName, siteTagline } from '@/lib/site';
 
-export function SiteFooter() {
+export function SiteFooter({ phone }: { phone: string }) {
   return (
     <footer className="mt-20 bg-ink text-white">
       {/* ── Call to Action Banner ── */}
@@ -37,10 +37,10 @@ export function SiteFooter() {
           {/* Right: callback form */}
           <div className="flex w-full max-w-sm flex-col items-start gap-3 lg:items-end lg:text-right">
             <a
-              href={`tel:${businessPhone.replace(/\s/g, '')}`}
+              href={`tel:${phone.replace(/\s/g, '')}`}
               className="text-2xl font-black tracking-tight text-amber transition-colors hover:text-amber-dark sm:text-3xl"
             >
-              {businessPhone}
+              {phone}
             </a>
             <div className="w-full space-y-3">
               <div className="flex flex-col gap-3 sm:flex-row">

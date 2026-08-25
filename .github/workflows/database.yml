@@ -53,23 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # Never point CI at a developer's database. A throwaway service container
-    # is created and destroyed per run.
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: ci_root
-          MYSQL_DATABASE: lei_ci
-          MYSQL_USER: ci
-          MYSQL_PASSWORD: ci
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -pci_root"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+
 
     env:
       DATABASE_URL: mysql://ci:ci@127.0.0.1:3306/lei_ci
@@ -84,11 +68,14 @@ jobs:
 
       - run: npm ci
 
-      # The app user needs these for the shadow database and for the
-      # immutability triggers. Production grants them to the deploy user only.
-      - name: Grant migration privileges
+      # Use the pre-installed MySQL on the GitHub runner instead of a Docker container.
+      - name: Start and configure MySQL
         run: |
-          mysql -h 127.0.0.1 -P 3306 -uroot -pci_root -e "
+          sudo systemctl start mysql.service
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot -e "
+            CREATE DATABASE lei_ci;
+            CREATE USER 'ci'@'%' IDENTIFIED BY 'ci';
+            GRANT ALL PRIVILEGES ON \`lei_ci\`.* TO 'ci'@'%';
             GRANT ALL PRIVILEGES ON \`prisma_migrate_shadow_db%\`.* TO 'ci'@'%';
             GRANT TRIGGER ON \`lei_ci\`.* TO 'ci'@'%';
             SET GLOBAL log_bin_trust_function_creators = 1;
@@ -129,7 +116,7 @@ jobs:
       - name: Verify constraints, indexes and triggers landed
         run: |
           set -euo pipefail
-          RESULT=$(mysql -h 127.0.0.1 -P 3306 -uroot -pci_root -N -B -e "
+          RESULT=$(mysql -h 127.0.0.1 -P 3306 -uroot -proot -N -B -e "
             SELECT
               (SELECT COUNT(*) FROM information_schema.tables
                  WHERE table_schema='lei_ci'),

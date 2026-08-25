@@ -368,8 +368,6 @@ export class CatalogueImportService {
           productType: (row.values.product_type || 'SPARE_PART') as ProductType,
           shortDescription: row.values.short_description || null,
           description: row.values.description || null,
-          hsnCode: row.values.hsn_code || null,
-          gstRate: asNumber(row.values.gst_rate),
           // No site-name suffix — the frontend title template appends it.
           metaTitle: name,
           metaDescription: row.values.short_description?.slice(0, 300) || null,
@@ -467,30 +465,6 @@ export class CatalogueImportService {
           ? await db.productVariant.update({ where: { id: existing.id }, data })
           : await db.productVariant.create({ data });
 
-        // Inventory is 1:1 with the SELLABLE unit and is the single source of
-        // truth for stock. Products carry no stock columns at all.
-        const quantity = asInt(row.values.stock_qty, 0);
-        const reorderLevel = asInt(row.values.reorder_level, 0);
-        const explicitStatus = row.values.stock_status as StockStatus | undefined;
-        const isManual = explicitStatus === 'MADE_TO_ORDER' || explicitStatus === 'DISCONTINUED';
-
-        await db.inventory.upsert({
-          where: { variantId: variant.id },
-          update: {
-            quantity,
-            reorderLevel,
-            stockStatus: explicitStatus ?? this.deriveStockStatus(quantity, reorderLevel),
-            isManualOverride: isManual,
-          },
-          create: {
-            variantId: variant.id,
-            quantity,
-            reorderLevel,
-            stockStatus: explicitStatus ?? this.deriveStockStatus(quantity, reorderLevel),
-            isManualOverride: isManual,
-            lastCountedAt: new Date(),
-          },
-        });
 
         await this.writeAttributes(db, extractAttributes(row.values), { variantId: variant.id });
 
@@ -729,7 +703,6 @@ export class CatalogueImportService {
         select: {
           price: true,
           attributeValues: { select: { attribute: { select: { slug: true } }, valueString: true } },
-          inventory: { select: { quantity: true, stockStatus: true } },
         },
       });
 
@@ -750,11 +723,7 @@ export class CatalogueImportService {
         .map((v) => (v.price === null ? null : Number(v.price)))
         .filter((p): p is number => p !== null);
 
-      const hasStock = variants.some(
-        (v) =>
-          v.inventory !== null &&
-          (v.inventory.quantity > 0 || v.inventory.stockStatus === 'MADE_TO_ORDER'),
-      );
+
 
       await db.product.update({
         where: { id },
@@ -762,7 +731,6 @@ export class CatalogueImportService {
           variantAxes,
           minPrice: prices.length ? Math.min(...prices) : null,
           maxPrice: prices.length ? Math.max(...prices) : null,
-          hasStock,
         },
       });
     }

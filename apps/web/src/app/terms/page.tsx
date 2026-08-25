@@ -27,7 +27,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-base font-semibold text-ink">Pricing</h2>
           <p className="mt-1.5">
-            Prices shown are indicative, in INR, and exclusive of GST and freight unless stated. The
+            Prices shown are indicative, in INR, and exclusive of freight unless stated. The
             quotation we issue governs.
           </p>
         </section>

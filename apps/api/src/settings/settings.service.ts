@@ -4,7 +4,6 @@ import { SettingsRepository } from './settings.repository';
 export interface CompanyProfile {
   legalName: string;
   gstin: string;
-  stateCode: string;
   address: string;
   city: string;
   pincode: string;
@@ -16,7 +15,6 @@ export interface CompanyProfile {
 export interface QuoteDefaults {
   numberPrefix: string;
   validityDays: number;
-  defaultGstRate: number;
   paymentTerms: string;
   deliveryTerms: string;
   terms: string;
@@ -76,7 +74,6 @@ export class SettingsService {
     return {
       legalName: settings.get('company.legal_name') ?? '',
       gstin: settings.get('company.gstin') ?? '',
-      stateCode: settings.get('company.state_code') ?? '',
       address: settings.get('company.address') ?? '',
       city: settings.get('company.city') ?? '',
       pincode: settings.get('company.pincode') ?? '',
@@ -91,7 +88,6 @@ export class SettingsService {
     return {
       numberPrefix: settings.get('quote.number_prefix') ?? 'LEI/Q',
       validityDays: Number(settings.get('quote.validity_days') ?? 15),
-      defaultGstRate: Number(settings.get('quote.default_gst_rate') ?? 18),
       paymentTerms: settings.get('quote.payment_terms') ?? '',
       deliveryTerms: settings.get('quote.delivery_terms') ?? '',
       terms: settings.get('quote.terms') ?? '',
@@ -121,6 +117,7 @@ export class SettingsService {
       whatsappNumber: settings.get('whatsapp.number') ?? '',
       address: settings.get('company.address') ?? '',
       city: settings.get('company.city') ?? '',
+      gstin: settings.get('company.gstin') ?? '',
     };
   }
 

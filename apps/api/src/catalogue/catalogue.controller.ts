@@ -74,6 +74,12 @@ export class CatalogueController {
   }
 
   @Public()
+  @Get('search/autocomplete')
+  searchAutocomplete(@Query('q') query: string) {
+    return this.catalogue.searchAutocomplete(query || '');
+  }
+
+  @Public()
   @Get('search')
   search(@Query(ZodQuery(searchQuerySchema)) query: SearchQuery) {
     return this.catalogue.search(query.q, query.page, query.perPage);

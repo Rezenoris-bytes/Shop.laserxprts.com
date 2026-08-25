@@ -11,7 +11,6 @@ const CARD_SELECT = {
   shortDescription: true,
   minPrice: true,
   maxPrice: true,
-  hasStock: true,
   variantAxes: true,
   isSeedData: true,
   category: { select: { name: true, slug: true } },
@@ -61,7 +60,6 @@ const LISTING_SELECT = {
   description: true,
   minPrice: true,
   maxPrice: true,
-  hasStock: true,
   variantAxes: true,
   isSeedData: true,
   category: { select: { name: true, slug: true } },
@@ -99,7 +97,6 @@ const LISTING_SELECT = {
       minOrderQty: true,
       leadTimeDays: true,
       isDefault: true,
-      inventory: { select: { quantity: true, stockStatus: true } },
       attributeValues: {
         select: {
           valueString: true,
@@ -109,6 +106,18 @@ const LISTING_SELECT = {
     },
   },
   _count: { select: { variants: true } },
+} satisfies Prisma.ProductSelect;
+
+/** Lightweight payload for the global search bar dropdown. */
+const AUTOCOMPLETE_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  media: {
+    where: { isPrimary: true },
+    take: 1,
+    select: { file: { select: { storedName: true, path: true } } },
+  },
 } satisfies Prisma.ProductSelect;
 
 export interface AttributeFilter {
@@ -235,10 +244,6 @@ export class CatalogueRepository {
       where.partBrand = { slug: query.brand };
     }
 
-    if (query.inStock) {
-      where.hasStock = true;
-    }
-
     if (query.minPrice !== undefined || query.maxPrice !== undefined) {
       where.minPrice = {
         ...(query.minPrice !== undefined ? { gte: query.minPrice } : {}),
@@ -341,7 +346,7 @@ export class CatalogueRepository {
       default:
         // Featured first, then in-stock, then name. Always with an indexed
         // tiebreaker so pagination is stable and keyset-ready.
-        return [{ isFeatured: 'desc' }, { hasStock: 'desc' }, { name: 'asc' }, { id: 'asc' }];
+        return [{ isFeatured: 'desc' }, { name: 'asc' }, { id: 'asc' }];
     }
   }
 
@@ -357,11 +362,8 @@ export class CatalogueRepository {
         shortDescription: true,
         description: true,
         productType: true,
-        hsnCode: true,
-        gstRate: true,
         minPrice: true,
         maxPrice: true,
-        hasStock: true,
         variantAxes: true,
         isSeedData: true,
         metaTitle: true,
@@ -414,7 +416,6 @@ export class CatalogueRepository {
             minOrderQty: true,
             leadTimeDays: true,
             isDefault: true,
-            inventory: { select: { quantity: true, stockStatus: true } },
             attributeValues: {
               select: {
                 valueString: true,
@@ -458,7 +459,7 @@ export class CatalogueRepository {
       },
       select: CARD_SELECT,
       take: limit,
-      orderBy: [{ isFeatured: 'desc' }, { hasStock: 'desc' }, { id: 'asc' }],
+      orderBy: [{ isFeatured: 'desc' }, { id: 'asc' }],
     });
   }
 
@@ -486,7 +487,8 @@ export class CatalogueRepository {
         unitOfMeasure: true,
         packSize: true,
         minOrderQty: true,
-        inventory: { select: { stockStatus: true } },
+        leadTimeDays: true,
+        isDefault: true,
         product: {
           select: {
             id: true,
@@ -671,7 +673,7 @@ export class CatalogueRepository {
       this.prisma.client.product.findMany({
         where,
         select: CARD_SELECT,
-        orderBy: [{ isFeatured: 'desc' }, { hasStock: 'desc' }, { name: 'asc' }],
+        orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }, { id: 'asc' }],
         skip: offset,
         take: limit,
       }),
@@ -693,6 +695,61 @@ export class CatalogueRepository {
     await this.prisma.raw.searchQueryLog.create({ data });
   }
 
+  async autocompleteSearch(term: string, limit: number) {
+    const key = normalizeSearchKey(term);
+
+    // Stage 1: Exact/prefix match on part numbers/SKUs
+    if (key.length > 0) {
+      const exact = await this.prisma.client.productVariant.findMany({
+        where: { searchKey: { startsWith: key }, isActive: true },
+        select: { productId: true, searchKey: true },
+        take: limit * 2, // Take a few more to deduplicate to product level
+      });
+
+      if (exact.length > 0) {
+        const exactIds = exact
+          .filter((v) => v.searchKey.split(' ').includes(key))
+          .map((v) => v.productId);
+        const prefixIds = exact.map((v) => v.productId);
+        const ordered = [...new Set([...exactIds, ...prefixIds])];
+
+        const items = await this.prisma.client.product.findMany({
+          where: { id: { in: ordered }, isActive: true, deletedAt: null },
+          select: AUTOCOMPLETE_SELECT,
+        });
+
+        const byId = new Map(items.map((item) => [item.id, item]));
+        const ranked = ordered
+          .map((id) => byId.get(id))
+          .filter((p): p is NonNullable<typeof p> => Boolean(p));
+
+        if (ranked.length > 0) {
+          return ranked.slice(0, limit);
+        }
+      }
+    }
+
+    // Stage 2: Fallback to full text over product names
+    const words = term.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return [];
+
+    const where: Prisma.ProductWhereInput = {
+      isActive: true,
+      deletedAt: null,
+      OR: words.flatMap((word) => [
+        { name: { contains: word } },
+        { shortDescription: { contains: word } },
+      ]),
+    };
+
+    return this.prisma.client.product.findMany({
+      where,
+      select: AUTOCOMPLETE_SELECT,
+      orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
+      take: limit,
+    });
+  }
+
   // ── Homepage ──────────────────────────────────────────────────────────
 
   async findFeaturedProducts(limit = 10) {
@@ -700,7 +757,7 @@ export class CatalogueRepository {
       where: { isActive: true, isFeatured: true, deletedAt: null },
       select: CARD_SELECT,
       take: limit,
-      orderBy: [{ hasStock: 'desc' }, { name: 'asc' }],
+      orderBy: [{ name: 'asc' }],
     });
   }
 
@@ -713,7 +770,7 @@ export class CatalogueRepository {
       where: { isActive: true, deletedAt: null },
       select: CARD_SELECT,
       take: limit,
-      orderBy: [{ isFeatured: 'desc' }, { hasStock: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
     });
   }
 }

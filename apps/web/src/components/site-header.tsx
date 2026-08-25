@@ -5,16 +5,18 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQuoteRequest } from '@/lib/quote-request';
-import {
-  primaryNav,
-  siteName,
-  businessPhone,
-  businessEmail,
-  businessLocation,
-  businessGst,
-} from '@/lib/site';
+import { primaryNav, siteName, businessLocation } from '@/lib/site';
+import { SearchAutocomplete } from './search-autocomplete';
 
-export function SiteHeader() {
+export function SiteHeader({
+  phone,
+  email,
+  gstin,
+}: {
+  phone: string;
+  email: string;
+  gstin: string;
+}) {
   const router = useRouter();
   const { count, open } = useQuoteRequest();
   const [scrolled, setScrolled] = useState(false);
@@ -59,10 +61,12 @@ export function SiteHeader() {
                     <PinIcon />
                     {businessLocation}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <CardIcon />
-                    GST No. <span className="font-semibold text-white">{businessGst}</span>
-                  </span>
+                  {gstin && (
+                    <span className="flex items-center gap-1">
+                      <CardIcon />
+                      GST No. <span className="font-semibold text-white">{gstin}</span>
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 font-medium text-amber">
                     <ShieldCheckIcon />
                     Payment Protected
@@ -74,15 +78,15 @@ export function SiteHeader() {
             {/* CTA buttons */}
             <div className="flex items-center gap-2">
               <a
-                href={`tel:${businessPhone.replace(/\s/g, '')}`}
+                href={`tel:${phone.replace(/\s/g, '')}`}
                 className="flex items-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
               >
                 <PhoneIcon />
                 <span className="hidden sm:inline">Call </span>
-                {businessPhone}
+                {phone}
               </a>
               <a
-                href={`mailto:${businessEmail}`}
+                href={`mailto:${email}`}
                 className="flex items-center gap-2 rounded-md bg-amber px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-amber/80"
               >
                 <MailIcon />
@@ -120,22 +124,12 @@ export function SiteHeader() {
 
             <div className="ml-auto flex items-center gap-2">
               {/* Always-visible search */}
-              <form onSubmit={submit} className="flex items-center gap-2" role="search">
-                <label htmlFor="header-search" className="sr-only">
-                  Search parts
-                </label>
-                <input
-                  id="header-search"
-                  name="q"
-                  type="search"
-                  defaultValue=""
-                  placeholder="Part number, model or brand"
-                  className="field w-44 sm:w-64"
+              <div className="flex items-center gap-2">
+                <SearchAutocomplete 
+                  id="header-search" 
+                  className="w-44 sm:w-64" 
                 />
-                <button type="submit" className="btn-primary px-3 py-2">
-                  Search
-                </button>
-              </form>
+              </div>
 
               <button
                 type="button"
@@ -223,19 +217,19 @@ export function SiteHeader() {
           {/* Call + Email */}
           <div className="hidden shrink-0 items-center gap-2 xl:flex">
             <a
-              href={`tel:${businessPhone.replace(/\s/g, '')}`}
+              href={`tel:${phone.replace(/\s/g, '')}`}
               className="flex items-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
             >
               <PhoneIcon />
               <div className="text-left leading-none">
-                <div>Call {businessPhone}</div>
+                <div>Call {phone}</div>
                 <div className="text-[10px] text-white/60 font-normal">
                   Quick response guaranteed
                 </div>
               </div>
             </a>
             <a
-              href={`mailto:${businessEmail}`}
+              href={`mailto:${email}`}
               className="flex items-center gap-2 rounded-md bg-amber px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-amber/80"
             >
               <MailIcon />

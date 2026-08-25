@@ -132,7 +132,6 @@ export class AdminCatalogueRepository {
           slug: true,
           isActive: true,
           isFeatured: true,
-          hasStock: true,
           minPrice: true,
           maxPrice: true,
           isSeedData: true,
@@ -160,7 +159,7 @@ export class AdminCatalogueRepository {
     return this.prisma.client.product.findUnique({
       where: { id },
       include: {
-        variants: { include: { inventory: true }, orderBy: { position: 'asc' } },
+        variants: { where: { deletedAt: null }, orderBy: { position: 'asc' } },
         attributeValues: { include: { attribute: true } },
         media: { include: { file: true }, orderBy: { sortOrder: 'asc' } },
         compatibility: {
@@ -178,8 +177,6 @@ export class AdminCatalogueRepository {
     productType: string;
     shortDescription?: string;
     description?: string;
-    hsnCode?: string;
-    gstRate?: number;
     isFeatured: boolean;
     isActive: boolean;
     metaTitle?: string;
@@ -194,8 +191,6 @@ export class AdminCatalogueRepository {
         productType: data.productType as never,
         shortDescription: data.shortDescription ?? null,
         description: data.description ?? null,
-        hsnCode: data.hsnCode ?? null,
-        gstRate: data.gstRate ?? null,
         isFeatured: data.isFeatured,
         isActive: data.isActive,
         metaTitle: data.metaTitle ?? data.name,
@@ -265,9 +260,7 @@ export class AdminCatalogueRepository {
       },
     });
 
-    await this.prisma.raw.inventory.create({
-      data: { variantId: variant.id, quantity: 0, reorderLevel: 0, stockStatus: 'OUT_OF_STOCK' },
-    });
+
 
     if (data.attributes) {
       await this.writeVariantAttributes(variant.id, data.attributes);
@@ -292,6 +285,40 @@ export class AdminCatalogueRepository {
       });
     }
     return this.prisma.raw.productVariant.update({ where: { id }, data });
+  }
+
+  /**
+   * Soft delete with sku renaming — same convention as
+   * softDeleteProduct/softDeleteCategory. The unique index on `sku` would
+   * otherwise block that code being re-used once soft-deleted.
+   *
+   * `sku` is VarChar(64), and generated skus already run long — appending the
+   * suffix without budgeting for it lets MySQL silently truncate the id back
+   * off, so two variants under the same original sku could collide. Truncate
+   * the base first instead.
+   */
+  async softDeleteVariant(id: number) {
+    const variant = await this.prisma.raw.productVariant.findUniqueOrThrow({ where: { id } });
+    const suffix = `--deleted-${id}`;
+    const sku = `${variant.sku.slice(0, 64 - suffix.length)}${suffix}`;
+    return this.prisma.raw.productVariant.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false, sku },
+    });
+  }
+
+  /** Hands isDefault to the next live variant, so a product never ends up with none. */
+  async promoteNextDefaultVariant(productId: number): Promise<void> {
+    const next = await this.prisma.raw.productVariant.findFirst({
+      where: { productId, deletedAt: null },
+      orderBy: [{ position: 'asc' }, { id: 'asc' }],
+    });
+    if (next) {
+      await this.prisma.raw.productVariant.update({
+        where: { id: next.id },
+        data: { isDefault: true },
+      });
+    }
   }
 
   async writeVariantAttributes(
@@ -326,75 +353,7 @@ export class AdminCatalogueRepository {
     }
   }
 
-  // ── Inventory ─────────────────────────────────────────────────────────
 
-  async updateInventory(
-    variantId: number,
-    data: {
-      quantity: number;
-      reorderLevel?: number;
-      stockStatus?: string;
-      reason: string;
-      notes?: string;
-      performedById?: number;
-    },
-  ) {
-    const current = await this.prisma.raw.inventory.findUnique({ where: { variantId } });
-    const before = current?.quantity ?? 0;
-    const isManual = data.stockStatus === 'MADE_TO_ORDER' || data.stockStatus === 'DISCONTINUED';
-
-    const inventory = await this.prisma.raw.inventory.upsert({
-      where: { variantId },
-      update: {
-        quantity: data.quantity,
-        ...(data.reorderLevel !== undefined ? { reorderLevel: data.reorderLevel } : {}),
-        stockStatus: (data.stockStatus ??
-          this.deriveStatus(data.quantity, current?.reorderLevel ?? 0)) as never,
-        isManualOverride: isManual,
-        lastCountedAt: new Date(),
-        updatedById: data.performedById ?? null,
-      },
-      create: {
-        variantId,
-        quantity: data.quantity,
-        reorderLevel: data.reorderLevel ?? 0,
-        stockStatus: (data.stockStatus ?? this.deriveStatus(data.quantity, 0)) as never,
-        isManualOverride: isManual,
-        lastCountedAt: new Date(),
-      },
-    });
-
-    // Append-only ledger — Inventory.quantity alone cannot answer "why did
-    // stock change", which makes disputes unresolvable.
-    await this.prisma.raw.stockMovement.create({
-      data: {
-        variantId,
-        quantityBefore: before,
-        quantityChange: data.quantity - before,
-        quantityAfter: data.quantity,
-        reason: data.reason,
-        notes: data.notes ?? null,
-        performedById: data.performedById ?? null,
-      },
-    });
-
-    return inventory;
-  }
-
-  async stockMovements(variantId: number, take = 20) {
-    return this.prisma.client.stockMovement.findMany({
-      where: { variantId },
-      orderBy: { createdAt: 'desc' },
-      take,
-      include: { performedBy: { select: { name: true } } },
-    });
-  }
-
-  private deriveStatus(quantity: number, reorderLevel: number): string {
-    if (quantity <= 0) return 'OUT_OF_STOCK';
-    if (reorderLevel > 0 && quantity <= reorderLevel) return 'LOW_STOCK';
-    return 'IN_STOCK';
-  }
 
   // ── Compatibility ─────────────────────────────────────────────────────
 
@@ -627,7 +586,6 @@ export class AdminCatalogueRepository {
       select: {
         price: true,
         attributeValues: { select: { attribute: { select: { slug: true } }, valueString: true } },
-        inventory: { select: { quantity: true, stockStatus: true } },
       },
     });
 
@@ -648,11 +606,7 @@ export class AdminCatalogueRepository {
       .map((v) => (v.price === null ? null : Number(v.price)))
       .filter((p): p is number => p !== null);
 
-    const hasStock = variants.some(
-      (v) =>
-        v.inventory !== null &&
-        (v.inventory.quantity > 0 || v.inventory.stockStatus === 'MADE_TO_ORDER'),
-    );
+
 
     await this.prisma.raw.product.update({
       where: { id: productId },
@@ -660,7 +614,6 @@ export class AdminCatalogueRepository {
         variantAxes,
         minPrice: prices.length ? Math.min(...prices) : null,
         maxPrice: prices.length ? Math.max(...prices) : null,
-        hasStock,
       },
     });
   }

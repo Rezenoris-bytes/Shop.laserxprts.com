@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { canonical, siteName, offices } from '@/lib/site';
+import { canonical, siteName, offices, businessPhone, businessEmail, businessAddress } from '@/lib/site';
+import { api } from '@/lib/api';
 import { ContactForm } from './contact-form';
 import { OfficesMap } from './offices-map';
-import { businessPhone, businessEmail, businessAddress } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
@@ -24,6 +24,9 @@ interface PageProps {
 
 export default async function ContactPage({ searchParams }: PageProps) {
   const { subject } = await searchParams;
+  const contact = await api.contact().catch(() => null);
+  const phone = contact?.phone || businessPhone;
+  const email = contact?.email || businessEmail;
 
   return (
     <main>
@@ -48,7 +51,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
           <aside className="lg:col-span-2 space-y-6">
             {/* Phone */}
             <a
-              href={`tel:${businessPhone.replace(/\s/g, '')}`}
+              href={`tel:${phone.replace(/\s/g, '')}`}
               className="card flex items-start gap-4 p-5 transition-shadow hover:shadow-md"
             >
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-amber/10 text-amber">
@@ -58,14 +61,14 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Phone / WhatsApp
                 </p>
-                <p className="mt-1 text-base font-bold text-ink">{businessPhone}</p>
+                <p className="mt-1 text-base font-bold text-ink">{phone}</p>
                 <p className="mt-0.5 text-xs text-ink-muted">Mon – Sat, 9 am – 6 pm IST</p>
               </div>
             </a>
 
             {/* Email */}
             <a
-              href={`mailto:${businessEmail}`}
+              href={`mailto:${email}`}
               className="card flex items-start gap-4 p-5 transition-shadow hover:shadow-md"
             >
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-amber/10 text-amber">
@@ -75,7 +78,7 @@ export default async function ContactPage({ searchParams }: PageProps) {
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   Email
                 </p>
-                <p className="mt-1 text-base font-bold text-ink">{businessEmail}</p>
+                <p className="mt-1 text-base font-bold text-ink">{email}</p>
                 <p className="mt-0.5 text-xs text-ink-muted">We reply within one working day</p>
               </div>
             </a>

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { PhoneInput } from '@/components/phone-input';
 
 interface Props {
   prefillSubject?: string;
@@ -14,6 +15,7 @@ export function ContactForm({ prefillSubject }: Props) {
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [publicRef, setPublicRef] = useState('');
+  const [phone, setPhone] = useState('');
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,21 +27,19 @@ export function ContactForm({ prefillSubject }: Props) {
     const body = {
       contactName: data.get('name') as string,
       contactEmail: data.get('email') as string,
-      contactPhone: data.get('phone') as string,
+      contactPhone: phone,
       contactCompany: data.get('company') as string,
       subject: data.get('subject') as string,
       message: data.get('message') as string,
-      type: 'GENERAL',
-      consentGiven: true,
-      consentText: 'I agree to be contacted about my enquiry.',
-      items: [],
+      consent: true,
     };
 
     try {
-      const result = await api.submitQuoteRequest(body);
+      const result = await api.submitContactForm(body);
       setPublicRef(result.publicRef);
       setStatus('success');
       formRef.current?.reset();
+      setPhone('');
     } catch {
       setStatus('error');
       setErrorMsg('Something went wrong. Please try again or call us directly.');
@@ -121,13 +121,13 @@ export function ContactForm({ prefillSubject }: Props) {
           <label htmlFor="contact-phone" className="label">
             Phone / WhatsApp
           </label>
-          <input
+          <PhoneInput
             id="contact-phone"
-            name="phone"
-            type="tel"
+            value={phone}
+            onChange={setPhone}
+            className="field"
             autoComplete="tel"
             placeholder="+91 98765 43210"
-            className="field"
           />
         </div>
       </div>

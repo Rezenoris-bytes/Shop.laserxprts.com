@@ -10,6 +10,7 @@ import {
 import { Public } from '../common/decorators/public.decorator';
 import { ZodQuery } from '../common/pipes/zod-validation.pipe';
 import { CatalogueService } from './catalogue.service';
+import { NozzleFamilyService } from './nozzle-family.service';
 
 /**
  * Public catalogue API.
@@ -21,7 +22,10 @@ import { CatalogueService } from './catalogue.service';
  */
 @Controller()
 export class CatalogueController {
-  constructor(private readonly catalogue: CatalogueService) {}
+  constructor(
+    private readonly catalogue: CatalogueService,
+    private readonly nozzleFamily: NozzleFamilyService,
+  ) {}
 
   /** Everything the homepage needs, in one request. */
   @Public()
@@ -90,5 +94,21 @@ export class CatalogueController {
   @Get('machines/tree')
   machineTree() {
     return this.catalogue.getMachineTree();
+  }
+
+  /**
+   * Product family view for categories that benefit from grouped selectors.
+   *
+   * Returns products clustered into families with option groups (e.g. Layer,
+   * Cut Type, Size) so the storefront can render a single card per family
+   * instead of one card per DB product. The variantMap in each family
+   * resolves any valid option combination to the exact original SKU.
+   *
+   * ?category= is required; the caller must pass a category slug.
+   */
+  @Public()
+  @Get('products/families')
+  productFamilies(@Query('category') category: string) {
+    return this.nozzleFamily.getFamilies(category ?? '');
   }
 }

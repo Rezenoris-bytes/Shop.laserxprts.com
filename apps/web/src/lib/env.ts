@@ -27,8 +27,8 @@ function readEnv() {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
   });
 
-  const apiUrl = (parsed.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000').replace(/\/+$/, '');
-  const siteUrl = (parsed.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
+  const apiUrl = (parsed.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
+  const siteUrl = (parsed.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
 
   for (const [key, value] of Object.entries({
     NEXT_PUBLIC_API_URL: apiUrl,

@@ -6,6 +6,15 @@ import { ProductRow } from '@/components/product-row';
 import { CatalogueFilters } from '@/components/catalogue-filters';
 import { CategoryIndex } from '@/components/category-index';
 import { Pagination } from '@/components/pagination';
+import { NozzleFamilyCard } from '@/components/nozzle-family-card';
+import { fetchProductFamilies, type ProductFamily } from '@/lib/nozzle-family';
+
+
+/**
+ * Category slugs that use the family-view presentation instead of flat rows.
+ * Add new slugs here as more category types benefit from grouped selectors.
+ */
+const FAMILY_VIEW_CATEGORIES = new Set(['cutting-nozzles']);
 
 /** Any of these present means the visitor has narrowed the catalogue. */
 const FILTER_KEYS = [
@@ -113,6 +122,15 @@ export default async function CataloguePage({ searchParams }: PageProps) {
     ? await api.category(single('category')!).catch(() => null)
     : null;
 
+  // Family-view: fetch grouped families when the active category supports it.
+  const showFamilyView =
+    activeCategory !== null && FAMILY_VIEW_CATEGORIES.has(activeCategory.slug);
+
+  const apiBase = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
+  const families: ProductFamily[] = showFamilyView
+    ? await fetchProductFamilies(activeCategory.slug, apiBase)
+    : [];
+
   return (
     <div className="container-lei py-8">
       <nav aria-label="Breadcrumb" className="mb-4 text-xs text-ink-muted">
@@ -159,7 +177,21 @@ export default async function CataloguePage({ searchParams }: PageProps) {
         // No sidebar here: there is nothing to filter yet, and the categories
         // it would list are the page itself.
         <CategoryIndex categories={categories} />
+      ) : showFamilyView ? (
+        // ── Family view ───────────────────────────────────────────────────────
+        // Groups related DB products (e.g. Single + Double Layer) into one card
+        // with interactive option selectors.
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {families.length === 0 ? (
+            <NoResults />
+          ) : (
+            families.map((family) => (
+              <NozzleFamilyCard key={family.familyKey} family={family} />
+            ))
+          )}
+        </div>
       ) : (
+        // ── Standard row view ─────────────────────────────────────────────────
         <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:items-start">
           {/*
             Sticky on desktop so the filters stay reachable while the rows
@@ -206,7 +238,7 @@ function emptyListing() {
 }
 
 async function fetchProducts(search: URLSearchParams) {
-  const base = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const base = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
   const response = await fetch(`${base}/api/v1/products?${search.toString()}`, {
     next: { revalidate: 300 },
   });

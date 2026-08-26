@@ -40,6 +40,6 @@ export function formatDateTime(value: string | Date): string {
  * so a URL always denotes the same image and is cached immutably.
  */
 export function mediaUrl(path: string): string {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const base = process.env.NEXT_PUBLIC_API_URL ?? '';
   return `${base.replace(/\/$/, '')}/uploads/${path.replace(/^\//, '')}`;
 }

@@ -8,6 +8,7 @@ import { AdminCatalogueService } from './admin-catalogue.service';
 import { CatalogueImportService } from './import/catalogue-import.service';
 import { BulkProductUploadService } from './import/bulk-product-upload.service';
 import { StorefrontRevalidationService } from './storefront-revalidation.service';
+import { NozzleFamilyService } from './nozzle-family.service';
 
 @Module({
   controllers: [CatalogueController, AdminCatalogueController],
@@ -19,7 +20,8 @@ import { StorefrontRevalidationService } from './storefront-revalidation.service
     CatalogueImportService,
     BulkProductUploadService,
     StorefrontRevalidationService,
+    NozzleFamilyService,
   ],
-  exports: [CatalogueService, CatalogueRepository, CatalogueImportService],
+  exports: [CatalogueService, CatalogueRepository, CatalogueImportService, NozzleFamilyService],
 })
 export class CatalogueModule {}

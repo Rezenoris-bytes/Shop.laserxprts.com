@@ -7,6 +7,8 @@ import { CatalogueFilters } from '@/components/catalogue-filters';
 import { CategoryIndex } from '@/components/category-index';
 import { Pagination } from '@/components/pagination';
 import { NozzleFamilyRow } from '@/components/nozzle-family-row';
+import { MobileCatalogueControls } from '@/components/mobile-catalogue-controls';
+import { MobileFilterDrawer } from '@/components/mobile-filter-drawer';
 import { fetchProductFamilies, type ProductFamily } from '@/lib/nozzle-family';
 
 
@@ -184,22 +186,19 @@ export default async function CataloguePage({ searchParams }: PageProps) {
         // Used for ALL categories. Family-view categories just swap ProductRow
         // for NozzleFamilyRow in the same layout — sidebar, sticky filters,
         // pagination all remain identical.
-        <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:items-start">
+        <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:items-start pb-20 lg:pb-0">
           {/*
             Sticky on desktop so the filters stay reachable while the rows
             scroll — a category of twenty products is a long way back to the
-            top otherwise.
-
-            `lg:items-start` on the grid is what makes it work: grid children
-            stretch to the row height by default, and a full-height element has
-            nothing to stick against. The max-height and its own scrollbar keep
-            a long facet list from running off the bottom of the screen.
+            top otherwise. Hidden on mobile in favor of the drawer.
           */}
-          <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
+          <aside className="hidden lg:block lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:pr-1">
             <CatalogueFilters facets={facets} categories={categories} />
           </aside>
 
           <div>
+            <MobileCatalogueControls facets={facets} />
+
             {showFamilyView ? (
               // Nozzle families: same row layout, option selectors replace the
               // flat variant list inside each row.
@@ -227,6 +226,9 @@ export default async function CataloguePage({ searchParams }: PageProps) {
           </div>
         </div>
       )}
+
+      {/* Mobile filter drawer (only renders its FAB and overlay on < lg screens) */}
+      {!showIndex && <MobileFilterDrawer facets={facets} categories={categories} />}
     </div>
   );
 }
@@ -270,19 +272,32 @@ async function fetchProducts(search: URLSearchParams) {
  */
 function NoResults() {
   return (
-    <div className="card px-6 py-14 text-center">
-      <p className="text-base font-semibold">No products match these filters</p>
-      <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-muted">
-        Try removing a filter, or tell us what you are looking for — we source parts that are not
-        listed.
-      </p>
-      <div className="mt-5 flex flex-wrap justify-center gap-3">
-        <Link href="/catalogue" className="btn-secondary text-sm">
-          Clear all filters
-        </Link>
-        <Link href="/contact" className="btn-primary text-sm">
-          Request a part
-        </Link>
+    <div className="card grid aspect-[4/3] place-items-center bg-ink-wash text-center">
+      <div className="flex flex-col items-center justify-center p-6">
+        <svg
+          viewBox="0 0 200 150"
+          className="mb-6 h-32 w-32"
+          role="img"
+          aria-hidden="true"
+        >
+          <g fill="none" stroke="#b9c2cc" strokeWidth="2">
+            <circle cx="100" cy="75" r="46" />
+            <circle cx="100" cy="75" r="30" />
+            <circle cx="100" cy="75" r="14" />
+            <path d="M100 20v110M45 75h110" strokeWidth="1" opacity="0.4" />
+          </g>
+        </svg>
+        <p className="max-w-[200px] text-base leading-snug text-ink-muted">
+          Select filters to find the right products
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link href="/catalogue" className="btn-secondary text-sm">
+            Clear all filters
+          </Link>
+          <Link href="/contact" className="btn-primary text-sm">
+            Request a part
+          </Link>
+        </div>
       </div>
     </div>
   );

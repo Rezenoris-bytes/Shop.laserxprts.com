@@ -6,7 +6,7 @@ import { ProductRow } from '@/components/product-row';
 import { CatalogueFilters } from '@/components/catalogue-filters';
 import { CategoryIndex } from '@/components/category-index';
 import { Pagination } from '@/components/pagination';
-import { NozzleFamilyCard } from '@/components/nozzle-family-card';
+import { NozzleFamilyRow } from '@/components/nozzle-family-row';
 import { fetchProductFamilies, type ProductFamily } from '@/lib/nozzle-family';
 
 
@@ -169,7 +169,9 @@ export default async function CataloguePage({ searchParams }: PageProps) {
         <p className="mt-2 text-sm text-ink-muted">
           {showIndex
             ? `${categories.filter((category) => category.productCount > 0).length} categories`
-            : `${meta.pagination.total} ${meta.pagination.total === 1 ? 'product' : 'products'}`}
+            : showFamilyView
+              ? `${families.length} ${families.length === 1 ? 'product family' : 'product families'}`
+              : `${meta.pagination.total} ${meta.pagination.total === 1 ? 'product' : 'products'}`}
         </p>
       </header>
 
@@ -177,21 +179,11 @@ export default async function CataloguePage({ searchParams }: PageProps) {
         // No sidebar here: there is nothing to filter yet, and the categories
         // it would list are the page itself.
         <CategoryIndex categories={categories} />
-      ) : showFamilyView ? (
-        // ── Family view ───────────────────────────────────────────────────────
-        // Groups related DB products (e.g. Single + Double Layer) into one card
-        // with interactive option selectors.
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {families.length === 0 ? (
-            <NoResults />
-          ) : (
-            families.map((family) => (
-              <NozzleFamilyCard key={family.familyKey} family={family} />
-            ))
-          )}
-        </div>
       ) : (
-        // ── Standard row view ─────────────────────────────────────────────────
+        // ── Standard sidebar + row layout ───────────────────────────────────────────
+        // Used for ALL categories. Family-view categories just swap ProductRow
+        // for NozzleFamilyRow in the same layout — sidebar, sticky filters,
+        // pagination all remain identical.
         <div className="grid gap-8 lg:grid-cols-[240px_1fr] lg:items-start">
           {/*
             Sticky on desktop so the filters stay reachable while the rows
@@ -208,7 +200,19 @@ export default async function CataloguePage({ searchParams }: PageProps) {
           </aside>
 
           <div>
-            {products.length === 0 ? (
+            {showFamilyView ? (
+              // Nozzle families: same row layout, option selectors replace the
+              // flat variant list inside each row.
+              families.length === 0 ? (
+                <NoResults />
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {families.map((family) => (
+                    <NozzleFamilyRow key={family.familyKey} family={family} />
+                  ))}
+                </div>
+              )
+            ) : products.length === 0 ? (
               <NoResults />
             ) : (
               <>

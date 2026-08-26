@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useState, useMemo } from 'react';
 import {
   type ProductFamily,
@@ -9,7 +8,7 @@ import {
   resolveVariant,
 } from '@/lib/nozzle-family';
 import { SingleOrderModal } from '@/components/single-order-modal';
-import { mediaUrl } from '@/lib/format';
+import { ProductGallery } from '@/components/product-gallery';
 
 interface Props {
   family: ProductFamily;
@@ -17,11 +16,8 @@ interface Props {
 
 /**
  * Renders a nozzle family using the same card + two-column layout as
- * ProductRow, so the nozzle category page looks identical to all other
- * category pages — same sidebar, same layout, same "Add to Quote" flow.
- *
- * The only difference from ProductRow is that the right column shows
- * option selectors (Layer, Cut Type, Size) instead of a flat variant list.
+ * ProductRow. The right column uses the same fieldset/legend/chip pattern
+ * as VariantSelector, and the price box is identical to VariantSelector's.
  */
 export function NozzleFamilyRow({ family }: Props) {
   // ── Option selection ──────────────────────────────────────────────────────
@@ -60,118 +56,111 @@ export function NozzleFamilyRow({ family }: Props) {
         className="card scroll-mt-24 p-4 sm:p-6"
       >
         <div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
-          {/* Left: image — same slot as ProductGallery */}
-          <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-ink-wash">
-            {family.imagePath ? (
-              <Image
-                src={mediaUrl(family.imagePath)}
-                alt={family.imageAlt ?? family.familyName}
-                fill
-                className="object-contain p-6"
-                sizes="(max-width: 1024px) 100vw, 380px"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-ink-muted/30">
-                <svg className="h-16 w-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden>
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-                </svg>
-              </div>
-            )}
-          </div>
+          {/* Left: image — identical to ProductRow via ProductGallery */}
+          <ProductGallery
+            product={{
+              name: family.familyName,
+              images: family.imagePath
+                ? [
+                    {
+                      id: 0,
+                      alt: family.imageAlt,
+                      isPrimary: true,
+                      storedName: '',
+                      path: family.imagePath,
+                      width: null,
+                      height: null,
+                    },
+                  ]
+                : [],
+            }}
+          />
 
-          {/* Right: title + selectors + CTA — same slot as the right column in ProductRow */}
-          <div className="min-w-0">
-            {family.brand && (
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-                {family.brand}
-              </p>
-            )}
-
-            <h2 className="mt-1 text-lg font-bold leading-snug">{family.familyName}</h2>
-
-            {family.shortDescription && (
-              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                {family.shortDescription}
-              </p>
-            )}
-
-            {/* Option selectors */}
-            <div className="mt-4 space-y-4">
-              {family.optionGroups.map((group) => (
-                <div key={group.key}>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-                    {group.label}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {group.values.map((value) => {
-                      const isSelected = selections[group.key] === value;
-                      const available = isOptionAvailable(family, group.key, value, selections);
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          disabled={!available}
-                          onClick={() => select(group.key, value)}
-                          className={[
-                            'rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors',
-                            isSelected
-                              ? 'border-ink bg-ink text-white'
-                              : available
-                                ? 'border-ink-line bg-white text-ink hover:border-ink hover:bg-ink-wash'
-                                : 'cursor-not-allowed border-ink-line/40 bg-white/50 text-ink-muted/40 line-through',
-                          ].join(' ')}
-                          aria-pressed={isSelected}
-                        >
-                          {value}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Price + CTA — same layout as ProductRow */}
-            <div className="mt-5">
-              <p className="text-sm font-semibold text-amber-dark">Price on request</p>
-
-              {/* Selected variant readout */}
-              {selectedVariant ? (
-                <p className="mt-1 font-mono text-[11px] text-ink-muted">
-                  {selectedVariant.variantName} &nbsp;·&nbsp; {selectedVariant.sku}
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-amber-dark/80">
-                  Select options above to continue
+          {/* Right: title + selectors + price box — mirrors VariantSelector layout */}
+          <div className="space-y-5">
+            {/* Header */}
+            <div>
+              {family.brand && (
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                  {family.brand}
                 </p>
               )}
+              <h2 className="mt-1 text-lg font-bold leading-snug">{family.familyName}</h2>
+              {family.shortDescription && (
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                  {family.shortDescription}
+                </p>
+              )}
+            </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={!selectedVariant}
-                  onClick={() => setModalOpen(true)}
-                  className="btn-primary disabled:opacity-50"
-                >
-                  Add to Quote
-                </button>
-              </div>
+            {/* Option selectors — same fieldset/legend/chip pattern as VariantSelector */}
+            {family.optionGroups.map((group) => (
+              <fieldset key={group.key}>
+                <legend className="label">{group.label}</legend>
+                <div className="flex flex-wrap gap-2">
+                  {group.values.map((value) => {
+                    const active = selections[group.key] === value;
+                    const available = isOptionAvailable(family, group.key, value, selections);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={!available}
+                        aria-pressed={active}
+                        onClick={() => select(group.key, value)}
+                        className={[
+                          'min-w-[3.25rem] rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                          active
+                            ? 'border-ink bg-ink text-white'
+                            : available
+                              ? 'border-ink-line bg-white hover:border-ink'
+                              : 'cursor-not-allowed border-ink-line bg-ink-wash text-ink-muted line-through',
+                        ].join(' ')}
+                      >
+                        {value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
 
-              <div className="mt-4 flex flex-wrap gap-5 text-xs text-ink-muted">
-                <span className="flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/><path d="M6 8l1.5 1.5L10 6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  Genuine Parts
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="M2 5h12l-1 8H3L2 5Z"/><path d="M5 5V3.5a3 3 0 0 1 6 0V5" strokeLinecap="round"/></svg>
-                  Fast Shipping
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><circle cx="8" cy="8" r="6.5"/><path d="M8 5v3.5l2 2" strokeLinecap="round"/></svg>
-                  Expert Support
-                </span>
-              </div>
+            {/* Price / order box — identical to VariantSelector */}
+            <div className="rounded-card border border-ink-line bg-white p-5">
+              {selectedVariant ? (
+                <>
+                  <p className="inline-flex items-center gap-2 rounded-lg bg-amber-wash px-4 py-2 text-base font-bold text-warn">
+                    <TagIcon />
+                    Price on Request
+                  </p>
+
+                  <p className="mt-3 text-lg font-bold text-ink">
+                    {selectedVariant.variantName}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(true)}
+                    className="mt-5 flex h-12 w-full items-center justify-center gap-2.5 rounded-lg bg-amber
+                               px-6 text-base font-bold text-ink transition-colors hover:bg-amber-dark"
+                  >
+                    <QuoteIcon />
+                    Add to Quote
+                  </button>
+
+                  <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink-line pt-4 text-sm text-ink-muted">
+                    <span className="flex items-center gap-2"><ShieldIcon /> Genuine Parts</span>
+                    <span aria-hidden className="text-ink-line">|</span>
+                    <span className="flex items-center gap-2"><TruckIcon /> Fast Shipping</span>
+                    <span aria-hidden className="text-ink-line">|</span>
+                    <span className="flex items-center gap-2"><SupportIcon /> Expert Support</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-ink-muted">
+                  That combination is not available. Try a different option.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -184,4 +173,30 @@ export function NozzleFamilyRow({ family }: Props) {
       />
     </>
   );
+}
+
+// ── Icons (identical copies from VariantSelector) ─────────────────────────────
+
+function Icon({ size = 18, children }: { size?: number; children: React.ReactNode }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+      {children}
+    </svg>
+  );
+}
+function TagIcon() {
+  return <Icon><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z" /><circle cx="7" cy="7" r="1.5" /></Icon>;
+}
+function QuoteIcon() {
+  return <Icon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" /></Icon>;
+}
+function ShieldIcon() {
+  return <Icon size={16}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></Icon>;
+}
+function TruckIcon() {
+  return <Icon size={16}><path d="M10 17h4V5H2v12h3" /><path d="M14 9h4l4 4v4h-3" /><circle cx="7.5" cy="17.5" r="2" /><circle cx="17.5" cy="17.5" r="2" /></Icon>;
+}
+function SupportIcon() {
+  return <Icon size={16}><path d="M4 14v-3a8 8 0 0 1 16 0v3" /><path d="M4 15a2 2 0 0 1 2-2h1v5H6a2 2 0 0 1-2-2Z" /><path d="M20 15a2 2 0 0 0-2-2h-1v5h1a2 2 0 0 0 2-2Z" /><path d="M18 18v1a3 3 0 0 1-3 3h-2" /></Icon>;
 }

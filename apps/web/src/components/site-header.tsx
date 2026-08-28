@@ -67,10 +67,6 @@ export function SiteHeader({
                       GST No. <span className="font-semibold text-white">{gstin}</span>
                     </span>
                   )}
-                  <span className="flex items-center gap-1 font-medium text-amber">
-                    <ShieldCheckIcon />
-                    Payment Protected
-                  </span>
                 </div>
               </div>
             </Link>
@@ -135,7 +131,7 @@ export function SiteHeader({
                 type="button"
                 onClick={open}
                 className="relative grid h-11 w-11 place-items-center rounded-md hover:bg-ink-wash"
-                aria-label={`Quote request, ${count} item${count === 1 ? '' : 's'}`}
+                aria-label={`Your enquiry, ${count} item${count === 1 ? '' : 's'}`}
               >
                 <ListIcon />
                 {count > 0 && (
@@ -242,7 +238,7 @@ export function SiteHeader({
             type="button"
             onClick={open}
             className="relative grid h-10 w-10 shrink-0 place-items-center rounded-md hover:bg-white/10"
-            aria-label={`Quote request, ${count} item${count === 1 ? '' : 's'}`}
+            aria-label={`Your enquiry, ${count} item${count === 1 ? '' : 's'}`}
           >
             <ListIcon className="text-white" />
             {count > 0 && (

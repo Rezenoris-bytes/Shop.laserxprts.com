@@ -112,6 +112,26 @@ export const api = {
 
   machineTree: () => request<MachineBrandNode[]>('/machines/tree', { revalidate: CATALOGUE_TTL }),
 
+  /** Any component kind's brand -> model tree (§8). */
+  componentTree: (kind: ComponentKindSlug) =>
+    request<MachineBrandNode[]>(`/components/${kind}/tree`, { revalidate: CATALOGUE_TTL }),
+
+  /** §14 brand directory / brand page. */
+  componentBrands: (kind: ComponentKindSlug) =>
+    request<BrandSummary[]>(`/components/${kind}/brands`, { revalidate: CATALOGUE_TTL }),
+
+  componentBrand: (kind: ComponentKindSlug, brand: string) =>
+    request<BrandDetail>(`/components/${kind}/brands/${encodeURIComponent(brand)}`, {
+      revalidate: CATALOGUE_TTL,
+    }),
+
+  /** §15 component model page. */
+  componentModel: (kind: ComponentKindSlug, brand: string, model: string) =>
+    request<ComponentModelDetail>(
+      `/components/${kind}/brands/${encodeURIComponent(brand)}/${encodeURIComponent(model)}`,
+      { revalidate: CATALOGUE_TTL },
+    ),
+
   search: async (q: string, page = 1) => {
     const response = await fetch(
       `${base()}/api/v1/search?${toQuery({ q, page })}`,
@@ -144,6 +164,29 @@ export const api = {
       method: 'POST',
       body,
     }),
+
+  /**
+   * Uploads part photos ahead of the enquiry itself (§24).
+   *
+   * Goes through fetch directly rather than `request`, because this is
+   * multipart: `request` sets a JSON content-type, and setting it manually on
+   * a FormData body strips the boundary the server needs to parse the parts.
+   */
+  uploadEnquiryPhotos: async (files: File[]) => {
+    const form = new FormData();
+    for (const file of files) form.append('photos', file);
+
+    const response = await fetch(`${base()}/api/v1/enquiries/attachments`, {
+      method: 'POST',
+      body: form,
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      throw new ApiRequestError(response.status, 'INTERNAL_ERROR', 'Photo upload failed');
+    }
+    const payload = (await response.json()) as { files: Array<{ fileId: number; name: string }> };
+    return payload.files;
+  },
 
   submitContactForm: (body: unknown) =>
     request<{ publicRef: string }>('/contact', {
@@ -242,6 +285,10 @@ export interface ProductListing extends ProductCard {
     id: number;
     alt: string | null;
     isPrimary: boolean;
+    /** Attribution, present only for images LEI does not own outright. */
+    credit?: string | null;
+    licence?: string | null;
+    sourceUrl?: string | null;
     storedName: string;
     path: string;
     width: number | null;
@@ -280,8 +327,6 @@ export interface CategoryDetail {
 
 export interface ProductVariantView {
   id: number;
-  sku: string;
-  partNumber: string;
   mpn: string | null;
   name: string;
   price: number | null;
@@ -323,6 +368,10 @@ export interface ProductDetail {
     id: number;
     alt: string | null;
     isPrimary: boolean;
+    /** Attribution, present only for images LEI does not own outright. */
+    credit?: string | null;
+    licence?: string | null;
+    sourceUrl?: string | null;
     storedName: string;
     path: string;
     width: number | null;
@@ -353,6 +402,44 @@ export interface Facet {
   values: string[];
 }
 
+/** URL segments accepted by the component endpoints (§8). */
+export type ComponentKindSlug =
+  | 'machines'
+  | 'cutting-heads'
+  | 'laser-sources'
+  | 'chillers'
+  | 'controllers'
+  | 'servo';
+
+export interface BrandSummary {
+  id: number;
+  name: string;
+  slug: string;
+  kind: string;
+  modelCount: number;
+}
+
+export interface BrandDetail extends Omit<BrandSummary, 'modelCount'> {
+  models: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    /** Verified compatible products only — 0 means "not yet confirmed". */
+    productCount: number;
+  }>;
+  products: ProductCard[];
+  compatibilityVerified: boolean;
+}
+
+export interface ComponentModelDetail {
+  brand: { id: number; name: string; slug: string; kind: string };
+  model: { id: number; name: string; slug: string; description: string | null };
+  groups: Array<{ name: string; slug: string; products: ProductCard[] }>;
+  productCount: number;
+  compatibilityVerified: boolean;
+}
+
 export interface MachineBrandNode {
   id: number;
   name: string;
@@ -378,8 +465,6 @@ export interface HomePayload {
 
 export interface ResolvedBasketItem {
   id: number;
-  sku: string;
-  partNumber: string;
   name: string;
   price: number | null;
   priceType: string;

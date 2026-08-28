@@ -41,7 +41,6 @@ export function NozzleFamilyCard({ family }: Props) {
     ? {
         variantId: selectedVariant.variantId,
         variantName: `${family.familyName} — ${selectedVariant.variantName}`,
-        sku: selectedVariant.sku,
         minOrderQty: selectedVariant.minOrderQty,
       }
     : null;
@@ -128,11 +127,14 @@ export function NozzleFamilyCard({ family }: Props) {
           {/* Selected variant badge */}
           <div className="flex-1" />
           {selectedVariant ? (
-            <div className="flex items-center gap-2 rounded-lg border border-ink-line bg-ink-wash px-3 py-2">
-              <span className="font-mono text-[11px] text-ink-muted">{selectedVariant.sku}</span>
-              <span className="ml-auto text-[11px] font-semibold text-amber-dark">
-                Price on Request
-              </span>
+            /*
+              Confirms the chosen combination WITHOUT the SKU or a price line.
+              The SKU is an internal code (§21) and was previously rendered
+              here; it still travels with the enquiry so sales can identify the
+              exact item.
+            */
+            <div className="rounded-lg border border-ink-line bg-ink-wash px-3 py-2 text-[11px] text-ink-muted">
+              Selected: <span className="font-semibold text-ink">{selectedVariant.variantName}</span>
             </div>
           ) : (
             <div className="rounded-lg border border-amber/40 bg-amber-wash px-3 py-2 text-[11px] text-amber-dark">
@@ -147,7 +149,7 @@ export function NozzleFamilyCard({ family }: Props) {
             onClick={() => setModalOpen(true)}
             className="btn-primary w-full justify-center disabled:opacity-50"
           >
-            Add to Quote
+            Enquire Now
           </button>
         </div>
       </article>

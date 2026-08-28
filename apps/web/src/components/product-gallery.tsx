@@ -71,6 +71,22 @@ export function ProductGallery({ product }: { product: GalleryProduct }) {
           // eagerly and flagged for LCP rather than lazily like the thumbnails.
           priority
         />
+
+        {/*
+          Attribution for images LEI does not own.
+
+          Renders ONLY when a credit is stored, so LEI's own photography shows
+          nothing. It exists because every lawful route to a third-party image —
+          Creative Commons, a manufacturer's written permission, licensed stock
+          — carries a credit obligation, and an uncredited licensed image is as
+          much a breach as an uncredited copied one.
+        */}
+        {active.credit && (
+          <p className="absolute inset-x-0 bottom-0 bg-white/85 px-3 py-1 text-[10px] leading-snug text-ink-muted backdrop-blur-sm">
+            Image: {active.credit}
+            {active.licence ? ` · ${active.licence}` : ''}
+          </p>
+        )}
       </div>
 
       {images.length > 1 && (

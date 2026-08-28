@@ -67,8 +67,8 @@ export function ProductRow({ product }: { product: ProductListing }) {
           )}
 
           <div className="mt-5">
-            {/* LEI quotes per customer, so no figure is shown anywhere. */}
-            <p className="text-sm font-semibold text-amber-dark">Price on request</p>
+            {/* No price line — see product-card.tsx for why the element goes
+                entirely rather than being reworded. */}
             <VariantSelector product={product} />
           </div>
         </div>

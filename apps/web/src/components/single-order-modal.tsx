@@ -9,7 +9,6 @@ import { PhoneInput } from '@/components/phone-input';
 export interface SingleOrderItem {
   variantId: number;
   variantName: string;
-  sku: string;
   minOrderQty: number;
 }
 
@@ -158,9 +157,8 @@ export function SingleOrderModal({
               {step === 'contact' && (orderType === 'single' ? 'Single order — your details' : `Bulk order — ${bulkQty} pcs`)}
               {step === 'success' && 'Order request sent!'}
             </h2>
-            <p className="mt-0.5 text-xs text-ink-muted">
-              {item.variantName} &nbsp;·&nbsp; SKU: {item.sku}
-            </p>
+            {/* SKU withheld from customers; it still reaches sales with the order. */}
+            <p className="mt-0.5 text-xs text-ink-muted">{item.variantName}</p>
           </div>
           <button
             type="button"
@@ -205,8 +203,8 @@ export function SingleOrderModal({
                 10+
               </span>
               <div>
-                <p className="text-base font-bold text-ink">Bulk order</p>
-                <p className="mt-0.5 text-sm text-ink-muted">Set your quantity for a bulk quote with better pricing</p>
+                <p className="text-base font-bold text-ink">Bulk enquiry</p>
+                <p className="mt-0.5 text-sm text-ink-muted">Tell us how many you need and our team will come back to you</p>
               </div>
               <ChevronIcon className="ml-auto shrink-0 text-ink-muted" />
             </button>
@@ -281,7 +279,9 @@ export function SingleOrderModal({
               </span>
               <div>
                 <p className="text-sm font-semibold text-ink">{item.variantName}</p>
-                <p className="font-mono text-xs text-ink-muted">{item.sku} · {finalQty} {finalQty === 1 ? 'pc' : 'pcs'}</p>
+                <p className="text-xs text-ink-muted">
+                  {finalQty} {finalQty === 1 ? 'pc' : 'pcs'}
+                </p>
               </div>
             </div>
 

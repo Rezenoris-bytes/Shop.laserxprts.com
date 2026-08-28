@@ -6,9 +6,20 @@
  * error. Formatting is pure and belongs to both sides.
  */
 
-/** Indian rupee formatting, with the lakh/crore digit grouping. */
+/**
+ * Indian rupee formatting, with the lakh/crore digit grouping.
+ *
+ * Retained for the admin side, which legitimately shows money. It has NO
+ * callers on the storefront and must not gain any: the public site is
+ * enquiry-led and shows no figure and no pricing language anywhere.
+ *
+ * The old null branch returned the string "Price on request", which is why
+ * that phrase could reappear on any page that formatted a missing price. It
+ * now returns an em dash — a formatter should not be a place where public
+ * copy is decided.
+ */
 export function formatInr(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return 'Price on request';
+  if (amount === null || amount === undefined) return '—';
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',

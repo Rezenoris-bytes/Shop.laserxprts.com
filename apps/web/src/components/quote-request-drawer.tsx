@@ -42,11 +42,11 @@ export function QuoteRequestDrawer() {
       className="fixed inset-0 z-50 flex justify-end"
       role="dialog"
       aria-modal="true"
-      aria-label="Quote request"
+      aria-label="Your enquiry"
     >
       <button
         type="button"
-        aria-label="Close quote request"
+        aria-label="Close enquiry"
         onClick={close}
         className="absolute inset-0 bg-ink/40"
       />
@@ -57,7 +57,7 @@ export function QuoteRequestDrawer() {
       >
         <div className="flex items-center justify-between border-b border-ink-line px-5 py-4">
           <h2 className="text-base font-bold">
-            Quote Request
+            Your Enquiry
             {count > 0 && (
               <span className="ml-2 text-sm font-normal text-ink-muted">{count} item(s)</span>
             )}
@@ -97,9 +97,9 @@ export function QuoteRequestDrawer() {
                         >
                           {line.resolved.product.name}
                         </Link>
-                        <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
-                          {line.resolved.partNumber} · {line.resolved.name}
-                        </p>
+                        {/* partNumber mirrors the internal SKU, so it is not
+                            shown either — only the option the customer chose. */}
+                        <p className="mt-0.5 text-[11px] text-ink-muted">{line.resolved.name}</p>
                       </>
                     ) : (
                       /* Resolved to nothing: deactivated or withdrawn since it
@@ -161,7 +161,7 @@ export function QuoteRequestDrawer() {
 function EmptyState() {
   return (
     <div className="py-10 text-center">
-      <p className="text-sm font-semibold">Your quote request is empty</p>
+      <p className="text-sm font-semibold">Your enquiry is empty</p>
       <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-ink-muted">
         Add the parts you need and send them as one request — no need to enquire about each item
         separately.

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { CategoryNode, Facet } from '@/lib/api';
+import { FAMILY_VIEW_CATEGORIES } from '@/lib/nozzle-family';
 
 /**
  * Catalogue filters.
@@ -83,17 +84,7 @@ export function CatalogueFilters({
         />
       </FilterGroup>
 
-      <FilterGroup title="Availability">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={params.get('inStock') === 'true'}
-            onChange={(event) => setParam('inStock', event.target.checked ? 'true' : null)}
-            className="h-4 w-4 rounded border-ink-line"
-          />
-          In stock only
-        </label>
-      </FilterGroup>
+
 
       {visibleFacets.map((facet) => (
         <FilterGroup
@@ -201,7 +192,14 @@ function CategoryAccordion({
   // added it. TypeScript cannot see across that boundary — without these
   // fallbacks a stale cache entry takes the whole catalogue page down with it.
   const childrenOf = (node: CategoryNode) => node.children ?? [];
-  const productsOf = (node: CategoryNode) => node.products ?? [];
+  // Empty for a family-view category: those show grouped family cards, not
+  // one row per DB product, so a raw product-name quick-link here would
+  // re-expose e.g. "Amada Single Layer Cutting Nozzle" as its own clickable
+  // item next to the merged "Amada Cutting Nozzle" family card. The "View
+  // more" link below still appears (product count is unaffected) and sends
+  // the visitor straight to the grouped view instead.
+  const productsOf = (node: CategoryNode) =>
+    FAMILY_VIEW_CATEGORIES.has(node.slug) ? [] : (node.products ?? []);
 
   const containsActive = (node: CategoryNode): boolean =>
     node.slug === activeSlug || childrenOf(node).some(containsActive);

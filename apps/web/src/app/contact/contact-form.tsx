@@ -148,7 +148,7 @@ export function ContactForm({ prefillSubject }: Props) {
             Select a subject…
           </option>
           <option value="Product Enquiry">Product / Part enquiry</option>
-          <option value="Quote Request">Quote request</option>
+          <option value="Quote Request">Pricing / commercial enquiry</option>
           <option value="Technical Support">Technical support</option>
           <option value="Service Request">Service / Repair request</option>
           <option value="Bulk Order">Bulk / OEM order</option>

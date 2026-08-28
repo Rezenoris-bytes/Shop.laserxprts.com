@@ -108,7 +108,7 @@ export function SiteFooter({ phone }: { phone: string }) {
                 href="/quote-request"
                 className="text-sm text-white/80 transition-colors hover:text-amber"
               >
-                Quote request
+                Your enquiry
               </Link>
             </li>
           </ul>

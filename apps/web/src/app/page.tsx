@@ -30,9 +30,11 @@ export default async function HomePage() {
     build honest, and ISR plus the admin's on-demand revalidation fill the page
     in as soon as the API answers.
   */
-  const [home, machines] = await Promise.all([
+  const [home, machines, heads] = await Promise.all([
     api.home().catch(() => ({ categories: [], featured: [], topProducts: [] }) as HomePayload),
     api.machineTree().catch(() => []),
+    // Separate tree — a cutting head is not a machine (§3).
+    api.componentTree('cutting-heads').catch(() => []),
   ]);
 
   return (
@@ -83,7 +85,7 @@ export default async function HomePage() {
               </p>
 
               <div className="mt-8 mb-6">
-                <CompatibilityFinder machines={machines} categories={home.categories} />
+                <CompatibilityFinder machines={machines} heads={heads} />
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -147,7 +149,7 @@ export default async function HomePage() {
       {/* ── Products ─────────────────────────────────────────────────── */}
       <section className="container-lei pb-14">
         <div className="flex items-end justify-between">
-          <h2 className="text-xl font-bold">Top selling products</h2>
+          <h2 className="text-xl font-bold">Featured Products</h2>
           <Link
             href="/catalogue"
             className="text-sm font-medium text-ink-muted hover:text-amber-dark"
@@ -196,7 +198,7 @@ export default async function HomePage() {
               need to enquire about each part separately.
             </p>
             <Link href="/catalogue" className="btn-primary mt-6">
-              Start a quote request
+              Enquire Now
             </Link>
           </div>
         </div>

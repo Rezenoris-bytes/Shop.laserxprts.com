@@ -20,10 +20,10 @@ export function QuoteButton({ product }: { product: ProductCard }) {
         type="button"
         onClick={() => setOpen(true)}
         className="btn-primary mt-3 w-full text-xs"
-        aria-label={`Get a quote for ${product.name}`}
+        aria-label={`Enquire about ${product.name}`}
         aria-haspopup="dialog"
       >
-        Get a Quote
+        Enquire Now
       </button>
 
       <QuickQuoteModal product={product} open={open} onClose={() => setOpen(false)} />

@@ -119,10 +119,20 @@ export const demoBannerText =
  * Top navigation follows LEI's business lines rather than the entity model.
  * Customers think "I need remanufacturing", not "I need a service record".
  */
+/**
+ * §22 main navigation.
+ *
+ * "Find My Part" sits third rather than last because it is the entry point for
+ * the customer who knows their machine but not the part number — which is most
+ * of them. /compatibility stays as the canonical URL so existing links, and
+ * anything already indexed, keep working.
+ */
 export const primaryNav = [
   { label: 'Home', href: '/' },
-  { label: 'Spares & Consumables', href: '/catalogue' },
-  { label: 'Find Parts', href: '/compatibility' },
+  { label: 'Products', href: '/catalogue' },
+  { label: 'Brands', href: '/brands' },
+  { label: 'Find My Part', href: '/compatibility' },
+  { label: 'Services', href: '/services' },
   { label: 'Contact', href: '/contact' },
 ];
 

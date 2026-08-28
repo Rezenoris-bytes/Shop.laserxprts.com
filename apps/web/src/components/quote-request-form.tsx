@@ -5,8 +5,8 @@ import { useMemo, useRef, useState } from 'react';
 import { quoteRequestSchema } from '@lei/shared';
 import { ApiRequestError, api, type MachineBrandNode } from '@/lib/api';
 import { useQuoteRequest } from '@/lib/quote-request';
-import { formatInr } from '@/lib/format';
 import { PhoneInput } from '@/components/phone-input';
+import { PartPhotoUpload, type UploadedPhoto } from '@/components/part-photo-upload';
 
 /**
  * Quote Request review and submission.
@@ -17,7 +17,14 @@ import { PhoneInput } from '@/components/phone-input';
  * Validation uses the same Zod schema the API validates against, imported from
  * @lei/shared — so client and server rules cannot drift.
  */
-export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] }) {
+export function QuoteRequestForm({
+  machines,
+  heads = [],
+}: {
+  machines: MachineBrandNode[];
+  /** Cutting-head tree (§11). Defaults to empty so existing callers still compile. */
+  heads?: MachineBrandNode[];
+}) {
   const { resolved, unavailable, setQuantity, setNote, remove, clear, isLoading } =
     useQuoteRequest();
 
@@ -30,9 +37,12 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
     message: '',
     machineBrandId: '',
     machineModelId: '',
+    cuttingHeadBrandId: '',
+    cuttingHeadModelId: '',
     consent: false,
     website: '', // honeypot
   });
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ publicRef: string; itemCount: number } | null>(null);
@@ -47,17 +57,11 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
     [machines, values.machineBrandId],
   );
 
-  const estimate = resolved.reduce((sum, line) => {
-    const price = line.resolved?.price;
-    return price === null || price === undefined ? sum : sum + price * line.quantity;
-  }, 0);
-
-  // With nothing in the basket carrying a price, an "indicative total" of zero
-  // is not an indication — it is a quoted price of nothing. Show the total only
-  // when at least one line actually has a figure behind it.
-  const hasPricedLine = resolved.some(
-    (line) => line.resolved?.priceType === 'FIXED' && line.resolved.price !== null,
+  const headModels = useMemo(
+    () => heads.find((brand) => String(brand.id) === values.cuttingHeadBrandId)?.models ?? [],
+    [heads, values.cuttingHeadBrandId],
   );
+
 
   const set = (key: keyof typeof values, value: string | boolean) =>
     setValues((current) => ({ ...current, [key]: value }));
@@ -75,6 +79,16 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
       message: values.message || undefined,
       machineBrandId: values.machineBrandId ? Number(values.machineBrandId) : undefined,
       machineModelId: values.machineModelId ? Number(values.machineModelId) : undefined,
+      cuttingHeadBrandId: values.cuttingHeadBrandId
+        ? Number(values.cuttingHeadBrandId)
+        : undefined,
+      cuttingHeadModelId: values.cuttingHeadModelId
+        ? Number(values.cuttingHeadModelId)
+        : undefined,
+      // Where the customer was when they enquired, so sales sees the intent.
+      productContextUrl:
+        typeof window !== 'undefined' ? window.location.href.slice(0, 500) : undefined,
+      attachmentFileIds: photos.length > 0 ? photos.map((photo) => photo.fileId) : undefined,
       items: resolved
         .filter((line) => line.resolved !== null)
         .map((line) => ({
@@ -124,7 +138,7 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
   if (!isLoading && resolved.length === 0) {
     return (
       <div className="card px-6 py-14 text-center">
-        <p className="text-base font-semibold">Your quote request is empty</p>
+        <p className="text-base font-semibold">Your enquiry is empty</p>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-muted">
           Add the parts you need and send them as one request.
         </p>
@@ -164,8 +178,10 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
                     >
                       {line.resolved.product.name}
                     </Link>
-                    <p className="mt-0.5 font-mono text-[11px] text-ink-muted">
-                      {line.resolved.partNumber} · {line.resolved.name}
+                    {/* partNumber mirrors the internal SKU, so it is not shown
+                        either — only the option the customer chose. */}
+                    <p className="mt-0.5 text-[11px] text-ink-muted">
+                      {line.resolved.name}
                       {line.resolved.packSize > 1 && ` · pack of ${line.resolved.packSize}`}
                     </p>
 
@@ -195,11 +211,6 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
                       }
                       className="field h-9 w-20 py-1"
                     />
-                    <p className="w-24 text-right text-sm font-semibold">
-                      {line.resolved.priceType === 'FIXED' && line.resolved.price !== null
-                        ? formatInr(line.resolved.price * line.quantity)
-                        : 'On request'}
-                    </p>
                     <button
                       type="button"
                       onClick={() => remove(line.variantId)}
@@ -217,22 +228,16 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
           ))}
         </ul>
 
-        {hasPricedLine ? (
-          <>
-            <div className="mt-4 flex items-baseline justify-between">
-              <span className="text-sm text-ink-muted">Indicative total</span>
-              <span className="text-lg font-bold">{formatInr(estimate)}</span>
-            </div>
-            <p className="mt-1 text-[11px] text-ink-muted">
-              Excluding freight. Your quotation will confirm final pricing.
-            </p>
-          </>
-        ) : (
-          <p className="mt-4 text-[11px] text-ink-muted">
-            Every item here is quoted individually. We will send pricing and freight in your
-            quotation.
-          </p>
-        )}
+        {/*
+          No line prices and no "indicative total".
+          This previously rendered a running figure whenever any variant carried
+          a FIXED price. Nothing does today, so it was invisible — but it was a
+          public price surface waiting for the first priced variant to switch it
+          on. The storefront states quantities; the quotation states money.
+        */}
+        <p className="mt-4 text-[11px] text-ink-muted">
+          Our team confirms the exact part and sends your quotation, including freight, by email.
+        </p>
       </div>
 
       <div className="card h-fit p-5">
@@ -329,6 +334,55 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
             </div>
           </fieldset>
 
+          {/*
+            Cutting-head context (§11). Separate from the machine because the
+            head is what actually decides which nozzle, window or ceramic fits
+            — asking for it here saves sales a phone call on almost every
+            consumable enquiry. Hidden entirely when no head tree loaded, so a
+            failed fetch shows nothing rather than two dead dropdowns.
+          */}
+          {heads.length > 0 && (
+            <fieldset className="rounded-md border border-ink-line p-3">
+              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                Your cutting head (optional)
+              </legend>
+              <div className="space-y-2">
+                <select
+                  aria-label="Cutting head brand"
+                  value={values.cuttingHeadBrandId}
+                  onChange={(event) => {
+                    set('cuttingHeadBrandId', event.target.value);
+                    set('cuttingHeadModelId', '');
+                  }}
+                  className="field text-sm"
+                >
+                  <option value="">Select brand</option>
+                  {heads.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Cutting head model"
+                  value={values.cuttingHeadModelId}
+                  onChange={(event) => set('cuttingHeadModelId', event.target.value)}
+                  disabled={!values.cuttingHeadBrandId}
+                  className="field text-sm disabled:bg-ink-wash"
+                >
+                  <option value="">Select model</option>
+                  {headModels.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </fieldset>
+          )}
+
+          <PartPhotoUpload photos={photos} onChange={setPhotos} />
+
           <Field label="Message" name="message" errors={errors.message}>
             <textarea
               id="message"
@@ -382,7 +436,7 @@ export function QuoteRequestForm({ machines }: { machines: MachineBrandNode[] })
             disabled={submitting || usableLines.length === 0}
             className="btn-primary w-full"
           >
-            {submitting ? 'Sending…' : 'Send quote request'}
+            {submitting ? 'Sending…' : 'Send enquiry'}
           </button>
 
           <p className="text-center text-[11px] text-ink-muted">

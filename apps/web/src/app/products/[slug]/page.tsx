@@ -5,6 +5,7 @@ import { ApiRequestError, api } from '@/lib/api';
 import { canonical, demoMode, siteName } from '@/lib/site';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductCardTile } from '@/components/product-card';
+import { CompatibilityEmpty } from '@/components/compatibility-empty';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -147,6 +148,18 @@ export default async function ProductPage({ params }: PageProps) {
         )}
 
         {/* ── Compatibility ──────────────────────────────────────────── */}
+        {/*
+          Renders in BOTH states. §7 requires the empty case to say so out
+          loud: silently omitting the section leaves the customer to assume
+          either that it fits everything or that we simply forgot, and both
+          assumptions end in a returned part.
+        */}
+        {product.compatibility.length === 0 && (
+          <section className="mt-14">
+            <h2 className="text-lg font-bold">Machine compatibility</h2>
+            <CompatibilityEmpty className="mt-4" context={`the ${product.name}`} />
+          </section>
+        )}
         {product.compatibility.length > 0 && (
           <section className="mt-14">
             <h2 className="text-lg font-bold">Machine compatibility</h2>
@@ -239,7 +252,9 @@ function StructuredData({ product }: { product: Awaited<ReturnType<typeof api.pr
     '@type': 'Product',
     name: product.name,
     description: product.shortDescription ?? undefined,
-    sku: product.variants[0]?.sku,
+    // No `sku`: these are internally generated codes, not manufacturer part
+    // numbers, so publishing them in the page source would leak an internal
+    // identifier while telling search engines nothing useful.
     brand: product.brand ? { '@type': 'Brand', name: product.brand.name } : undefined,
     category: product.category?.name,
   };
@@ -305,3 +320,4 @@ function groupCompatibility(
 
   return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
+

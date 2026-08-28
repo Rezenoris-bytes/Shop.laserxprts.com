@@ -44,7 +44,6 @@ export function NozzleFamilyRow({ family }: Props) {
     ? {
         variantId: selectedVariant.variantId,
         variantName: `${family.familyName} — ${selectedVariant.variantName}`,
-        sku: selectedVariant.sku,
         minOrderQty: selectedVariant.minOrderQty,
       }
     : null;
@@ -129,14 +128,8 @@ export function NozzleFamilyRow({ family }: Props) {
             <div className="rounded-card border border-ink-line bg-white p-5">
               {selectedVariant ? (
                 <>
-                  <p className="inline-flex items-center gap-2 rounded-lg bg-amber-wash px-4 py-2 text-base font-bold text-warn">
-                    <TagIcon />
-                    Price on Request
-                  </p>
-
-                  <p className="mt-3 text-lg font-bold text-ink">
-                    {selectedVariant.variantName}
-                  </p>
+                  {/* No price badge — see product-card.tsx. */}
+                  <p className="text-lg font-bold text-ink">{selectedVariant.variantName}</p>
 
                   <button
                     type="button"
@@ -145,7 +138,7 @@ export function NozzleFamilyRow({ family }: Props) {
                                px-6 text-base font-bold text-ink transition-colors hover:bg-amber-dark"
                   >
                     <QuoteIcon />
-                    Add to Quote
+                    Enquire Now
                   </button>
 
                   <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink-line pt-4 text-sm text-ink-muted">

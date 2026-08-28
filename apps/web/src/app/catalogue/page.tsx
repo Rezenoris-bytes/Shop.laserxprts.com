@@ -9,14 +9,26 @@ import { Pagination } from '@/components/pagination';
 import { NozzleFamilyRow } from '@/components/nozzle-family-row';
 import { MobileCatalogueControls } from '@/components/mobile-catalogue-controls';
 import { MobileFilterDrawer } from '@/components/mobile-filter-drawer';
-import { fetchProductFamilies, type ProductFamily } from '@/lib/nozzle-family';
+import {
+  fetchProductFamilies,
+  FAMILY_VIEW_CATEGORIES,
+  type ProductFamily,
+} from '@/lib/nozzle-family';
 
-
-/**
- * Category slugs that use the family-view presentation instead of flat rows.
- * Add new slugs here as more category types benefit from grouped selectors.
+/*
+ * FAMILY_VIEW_CATEGORIES lives in lib/nozzle-family.ts, not here — the
+ * sidebar category accordion needs to agree with this page on which
+ * categories are family-grouped, or it re-exposes ungrouped product names
+ * (see the docblock on the export for the concrete symptom this caused).
+ *
+ * It used to hold the pre-migration slug 'cutting-nozzles', which was retired
+ * and soft-deleted when the canonical taxonomy (§3) replaced it with
+ * 'nozzles'. That stale slug never matched again, so this whole feature
+ * silently stopped firing: the catalogue fell back to one flat row per DB
+ * product, which is exactly why 'Amada Single Layer Cutting Nozzle' and
+ * 'Amada Double Layer Cutting Nozzle' were showing as two separate cards
+ * instead of one 'Amada Cutting Nozzle' family with a Layer selector.
  */
-const FAMILY_VIEW_CATEGORIES = new Set(['cutting-nozzles']);
 
 /** Any of these present means the visitor has narrowed the catalogue. */
 const FILTER_KEYS = [

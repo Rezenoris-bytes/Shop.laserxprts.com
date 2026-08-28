@@ -14,7 +14,7 @@ export function MobileCatalogueControls({ facets }: { facets: Facet[] }) {
 
   const activeAttrs = params.getAll('attr');
   const activeCount =
-    activeAttrs.length + ['brand', 'inStock'].filter((key) => params.get(key)).length;
+    activeAttrs.length + (params.get('brand') ? 1 : 0);
 
   const push = (next: URLSearchParams) => {
     next.delete('page');
@@ -94,22 +94,7 @@ export function MobileCatalogueControls({ facets }: { facets: Facet[] }) {
                 </button>
               );
             })}
-            {params.get('inStock') && (
-              <button
-                type="button"
-                onClick={() => {
-                  const next = new URLSearchParams(params.toString());
-                  next.delete('inStock');
-                  push(next);
-                }}
-                className="flex items-center gap-1.5 rounded bg-amber-wash px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-amber-wash/70"
-              >
-                In stock only
-                <svg className="ml-0.5 h-3 w-3 text-ink-muted" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-                </svg>
-              </button>
-            )}
+
             {params.get('brand') && (
               <button
                 type="button"

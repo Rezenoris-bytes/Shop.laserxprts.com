@@ -79,7 +79,7 @@ export function QuickQuoteModal({
     setErrors({});
 
     if (!product.defaultVariant) {
-      setFormError('This product cannot be quoted online yet. Please contact us directly.');
+      setFormError('We cannot take an online enquiry for this part yet. Please contact us directly.');
       return;
     }
 
@@ -169,8 +169,6 @@ export function QuickQuoteModal({
               {product.name}
             </p>
 
-            <p className="mt-1 text-sm font-semibold text-amber-dark">Price on request</p>
-
             {product.specs.length > 0 && (
               <dl className="mt-4">
                 {/* Four rows is what sits beside the form without the column
@@ -226,7 +224,7 @@ export function QuickQuoteModal({
               </div>
             ) : (
               <form onSubmit={submit}>
-                <h2 className="pr-8 text-lg font-bold leading-snug">Request a quote</h2>
+                <h2 className="pr-8 text-lg font-bold leading-snug">Enquire about this part</h2>
                 <p className="mt-1 text-sm leading-relaxed text-ink-muted">
                   Tell us how to reach you and we will send pricing and availability.
                 </p>
@@ -330,7 +328,7 @@ export function QuickQuoteModal({
                   disabled={submitting}
                   className="btn-primary mt-4 w-full text-sm"
                 >
-                  {submitting ? 'Sending…' : 'Request a quote'}
+                  {submitting ? 'Sending…' : 'Send enquiry'}
                 </button>
               </form>
             )}

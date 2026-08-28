@@ -6,6 +6,19 @@
  * + the fetch call.
  */
 
+/**
+ * Category slugs presented as grouped families (one card per family, with
+ * Layer/Cut Type/Size selectors) instead of one flat row per DB product.
+ *
+ * Re-exported from @lei/shared, not defined here — the API's category-tree
+ * sidebar preview needs the exact same set (a parent category borrows sample
+ * products from its descendants, and a family-view descendant must be
+ * excluded from that borrowing too, or an individual product name leaks into
+ * an ancestor's quick-link panel). Two independently-maintained copies is
+ * exactly how that leak happened the first time.
+ */
+export { FAMILY_VIEW_CATEGORY_SLUGS as FAMILY_VIEW_CATEGORIES } from '@lei/shared';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13,7 +26,6 @@
 /** A resolved leaf — always maps 1-to-1 to one DB variant and SKU. */
 export interface NozzleVariantLeaf {
   variantId: number;
-  sku: string;
   /** Original DB variantName — never modified. */
   variantName: string;
   /** Numeric orifice size as a display label, e.g. "1.2". */

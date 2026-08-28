@@ -53,12 +53,14 @@ export function ProductCardTile({ product }: { product: ProductCardData }) {
         )}
 
         <div className="mt-auto pt-3">
-          {/* Same wording as the catalogue rows — LEI quotes per customer, so
-              no figure appears anywhere on the storefront. */}
-          <p className="text-sm font-semibold text-amber-dark">Price on request</p>
-          <p className="mt-0.5 text-[11px] text-ink-muted">
+          {/*
+            No price line at all — not even "Price on request".
+            A price-shaped element trains the eye to look for a figure and
+            makes the card read as a shop listing with the number missing.
+            The card carries what identifies the part; the CTA carries intent.
+          */}
+          <p className="text-[11px] text-ink-muted">
             {product.variantCount === 1 ? '1 option' : `${product.variantCount} options`}
-
           </p>
 
           <QuoteButton product={product} />

@@ -4,6 +4,9 @@ import { useMemo, useState } from 'react';
 import type { ProductDetail, ProductVariantView } from '@/lib/api';
 import { SingleOrderModal } from '@/components/single-order-modal';
 
+/** How many no-axis variant chips to show before "Show more". */
+const SHOW_LIMIT = 12;
+
 type SelectableProduct = Pick<ProductDetail, 'axes' | 'variants'>;
 
 export function VariantSelector({ product }: { product: SelectableProduct }) {
@@ -16,6 +19,9 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
 
   // ── Modal ─────────────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
+
+  // ── No-axis chip list collapse ────────────────────────────────────────────
+  const [showAll, setShowAll] = useState(false);
 
   // ── Derive selected variant ───────────────────────────────────────────────
   const selected: ProductVariantView | null = useMemo(() => {
@@ -83,9 +89,16 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
       {/* ── No-axis fallback: select by variant name ── */}
       {product.axes.length === 0 && product.variants.length > 1 && (
         <fieldset>
-          <legend className="label">Option</legend>
+          <legend className="label">
+            Option
+            {product.variants.length > SHOW_LIMIT && (
+              <span className="ml-2 font-normal text-ink-muted">
+                ({product.variants.length} options)
+              </span>
+            )}
+          </legend>
           <div className="flex flex-wrap gap-2">
-            {product.variants.map((variant) => {
+            {(showAll ? product.variants : product.variants.slice(0, SHOW_LIMIT)).map((variant) => {
               const active = selectedId === variant.id;
               return (
                 <button
@@ -105,6 +118,19 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
               );
             })}
           </div>
+
+          {/* Show more / Show less toggle */}
+          {product.variants.length > SHOW_LIMIT && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="mt-2 text-xs font-semibold text-amber underline-offset-2 hover:underline"
+            >
+              {showAll
+                ? 'Show less'
+                : `Show ${product.variants.length - SHOW_LIMIT} more options`}
+            </button>
+          )}
         </fieldset>
       )}
 
@@ -112,16 +138,13 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
       <div className="rounded-card border border-ink-line bg-white p-5">
         {selected ? (
           <>
-            <p className="inline-flex items-center gap-2 rounded-lg bg-amber-wash px-4 py-2 text-base font-bold text-warn">
-              <TagIcon />
-              Price on Request
-            </p>
+            {/* No price badge. The box states the selected option and the
+                action; pricing language of any kind is off the storefront. */}
 
-            <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-lg">
-              <span className="font-bold text-ink">{selected.name || selected.partNumber}</span>
-              <span aria-hidden className="text-ink-line">|</span>
-              <span className="text-base text-ink-muted">SKU: {selected.sku}</span>
-            </p>
+            {/* The SKU is an internal code and is deliberately not shown to
+                customers. It still travels with the enquiry, so sales can
+                identify the exact item from the request. */}
+            <p className="text-lg font-bold text-ink">{selected.name}</p>
 
             {selected.packSize > 1 && (
               <p className="mt-2 text-xs text-ink-muted">
@@ -134,7 +157,7 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
               </p>
             )}
 
-            {/* Single "Add to Quote" button — no qty stepper on the page */}
+            {/* Single "Enquire Now" button — no qty stepper on the page */}
             <button
               type="button"
               onClick={() => setModalOpen(true)}
@@ -144,7 +167,7 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
                          disabled:cursor-not-allowed disabled:opacity-50"
             >
               <QuoteIcon />
-              Add to Quote
+              Enquire Now
             </button>
 
             <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-ink-line pt-4 text-sm text-ink-muted">
@@ -177,8 +200,7 @@ export function VariantSelector({ product }: { product: SelectableProduct }) {
           selected
             ? {
                 variantId: selected.id,
-                variantName: selected.name || selected.partNumber,
-                sku: selected.sku,
+                variantName: selected.name,
                 minOrderQty: selected.minOrderQty,
               }
             : null

@@ -21,10 +21,18 @@ async function bootstrap(): Promise<void> {
   // NestJS + Prisma initialization can take longer, causing a PANIC timeout.
   // We bind the port immediately with a raw server to satisfy the timeout.
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
+  
+  let isReady = false;
+  let appHandler: any = null;
+
   const server = createServer((req, res) => {
-    res.statusCode = 503;
-    res.setHeader('Retry-After', '5');
-    res.end('API is starting up. Please try again in a few seconds.');
+    if (isReady && appHandler) {
+      appHandler(req, res);
+    } else {
+      res.statusCode = 503;
+      res.setHeader('Retry-After', '5');
+      res.end('API is starting up. Please try again in a few seconds.');
+    }
   });
   server.listen(port, '0.0.0.0');
   logger.log(`Early listener started on port ${port} to satisfy Hostinger timeout.`);
@@ -32,8 +40,7 @@ async function bootstrap(): Promise<void> {
   // 2. Provide this existing server to Fastify.
   const adapter = new FastifyAdapter({
     serverFactory: (handler: any) => {
-      server.removeAllListeners('request');
-      server.on('request', handler);
+      appHandler = handler;
       
       // Prevent Fastify from throwing EADDRINUSE when Nest calls app.listen()
       // But we MUST invoke the callback Fastify passes, or its internal state corrupts.
@@ -152,6 +159,7 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(port, '0.0.0.0');
 
+  isReady = true;
   logger.log(`LEI API listening on ${config.apiUrl}`);
   logger.log(`Environment: ${config.nodeEnv}  |  DEMO_MODE: ${config.demoMode ? 'ON' : 'OFF'}`);
   logger.log(`Allowed origins: ${config.allowedOrigins.join(', ')}`);

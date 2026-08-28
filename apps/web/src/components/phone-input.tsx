@@ -11,6 +11,7 @@ interface PhoneInputProps {
   autoComplete?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const PhoneInput = forwardRef<any, PhoneInputProps>(
   ({ id, value, onChange, className, placeholder, autoComplete }, ref) => {
     return (

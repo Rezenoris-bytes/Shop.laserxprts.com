@@ -187,7 +187,7 @@ export function SingleOrderModal({
               </span>
               <div>
                 <p className="text-base font-bold text-ink">Single order</p>
-                <p className="mt-0.5 text-sm text-ink-muted">Order 1 piece — we'll confirm pricing and delivery</p>
+                <p className="mt-0.5 text-sm text-ink-muted">Order 1 piece — we&apos;ll confirm pricing and delivery</p>
               </div>
               <ChevronIcon className="ml-auto shrink-0 text-ink-muted" />
             </button>
@@ -285,7 +285,7 @@ export function SingleOrderModal({
               </div>
             </div>
 
-            <p className="text-sm text-ink-muted">Fill in your details and we'll confirm pricing.</p>
+            <p className="text-sm text-ink-muted">Fill in your details and we&apos;ll confirm pricing.</p>
 
             <Field label="Your name" htmlFor="so-name" required error={errors.contactName}>
               <input
@@ -384,7 +384,7 @@ export function SingleOrderModal({
             </div>
 
             <p className="text-center text-[11px] text-ink-muted">
-              No payment now. We'll confirm pricing &amp; delivery first.
+              No payment now. We&apos;ll confirm pricing &amp; delivery first.
             </p>
           </form>
         )}

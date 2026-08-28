@@ -7,6 +7,7 @@ import fastifyHelmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import fastifyMultipart from '@fastify/multipart';
 import { resolve } from 'node:path';
+import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
@@ -16,7 +17,28 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
 
+  // 1. Phusion Passenger (Hostinger) requires listen() within 3 seconds.
+  // NestJS + Prisma initialization can take longer, causing a PANIC timeout.
+  // We bind the port immediately with a raw server to satisfy the timeout.
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
+  const server = createServer((req, res) => {
+    res.statusCode = 503;
+    res.setHeader('Retry-After', '5');
+    res.end('API is starting up. Please try again in a few seconds.');
+  });
+  server.listen(port, '0.0.0.0');
+  logger.log(`Early listener started on port ${port} to satisfy Hostinger timeout.`);
+
+  // 2. Provide this existing server to Fastify.
   const adapter = new FastifyAdapter({
+    serverFactory: (handler: any) => {
+      server.removeAllListeners('request');
+      server.on('request', handler);
+      
+      // Prevent Fastify from throwing EADDRINUSE when Nest calls app.listen()
+      server.listen = () => server as any;
+      return server;
+    },
     // Real client IP. Behind Cloudflare every request otherwise appears to come
     // from a Cloudflare address, which would make a per-IP rate limiter block
     // every visitor at once the moment any single one tripped a limit.
@@ -121,7 +143,6 @@ async function bootstrap(): Promise<void> {
 
 
 
-  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : config.apiPort;
   await app.listen(port, '0.0.0.0');
 
   logger.log(`LEI API listening on ${config.apiUrl}`);

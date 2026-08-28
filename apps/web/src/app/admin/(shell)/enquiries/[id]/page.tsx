@@ -5,14 +5,19 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import type { AdminEnquiryDetail } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
-import { AdminPageHeader, DemoBadge } from '@/components/admin/data-table';
+import { AdminBreadcrumb, AdminPageHeader, DemoBadge } from '@/components/admin/data-table';
 
 /** Ordered pipeline stages — drive both the select and the quick-action buttons. */
 const PIPELINE_STAGES = [
   { value: 'NEW', label: 'New', tone: 'warn' },
-  { value: 'CALLED', label: 'Called', tone: 'ok' },
-  { value: 'CONFIRMED', label: 'Confirmed', tone: 'ok' },
-  { value: 'CLOSED', label: 'Closed', tone: 'muted' },
+  { value: 'ASSIGNED', label: 'Assigned', tone: 'warn' },
+  { value: 'CONTACTED', label: 'Contacted', tone: 'ok' },
+  { value: 'TECHNICAL_VERIFICATION', label: 'Technical verification', tone: 'warn' },
+  { value: 'QUOTE_REQUIRED', label: 'Quote required', tone: 'warn' },
+  { value: 'QUOTED', label: 'Quoted', tone: 'ok' },
+  { value: 'FOLLOW_UP', label: 'Follow-up', tone: 'warn' },
+  { value: 'WON', label: 'Won', tone: 'ok' },
+  { value: 'LOST', label: 'Lost', tone: 'muted' },
 ] as const;
 
 type Stage = (typeof PIPELINE_STAGES)[number]['value'];
@@ -56,6 +61,13 @@ export default function EnquiryDetailPage() {
 
   return (
     <div>
+      <AdminBreadcrumb
+        items={[
+          { label: 'Admin', href: '/admin/dashboard' },
+          { label: 'Enquiries', href: '/admin/enquiries' },
+          { label: enquiry.publicRef },
+        ]}
+      />
       <AdminPageHeader
         title={
           <>

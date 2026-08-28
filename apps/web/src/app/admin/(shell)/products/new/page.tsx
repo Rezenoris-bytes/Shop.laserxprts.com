@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { adminApi, type AdminCategory, type AdminPartBrand } from '@/lib/admin-api';
-import { AdminPageHeader } from '@/components/admin/data-table';
+import { AdminBreadcrumb, AdminPageHeader } from '@/components/admin/data-table';
 import { ApiRequestError } from '@/lib/api';
 
 export default function NewProductPage() {
@@ -52,6 +52,13 @@ export default function NewProductPage() {
 
   return (
     <div className="max-w-xl">
+      <AdminBreadcrumb
+        items={[
+          { label: 'Admin', href: '/admin/dashboard' },
+          { label: 'Products', href: '/admin/products' },
+          { label: 'New product' },
+        ]}
+      />
       <AdminPageHeader
         title="New product"
         description="Add variants and compatibility after creating the product."

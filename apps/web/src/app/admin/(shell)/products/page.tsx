@@ -223,6 +223,21 @@ export default function AdminProductsPage() {
                   ))}
                 </ul>
               )}
+              {/*
+                Rows that imported fine but look wrong — e.g. a size code like
+                "18*2" sitting in the name column with the real name ("O-Ring")
+                in short_description instead. Never blocks the upload; a
+                mis-fire here would refuse a legitimately numeric-looking name.
+              */}
+              {uploadResult.warnings.length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-warn">
+                  {uploadResult.warnings.map((warning, index) => (
+                    <li key={index}>
+                      ⚠ Row {warning.row}: {warning.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </section>

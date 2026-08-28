@@ -9,7 +9,7 @@ import {
   type AdminPartBrand,
   type AdminProductDetail,
 } from '@/lib/admin-api';
-import { AdminPageHeader, StatusChip } from '@/components/admin/data-table';
+import { AdminBreadcrumb, AdminPageHeader, StatusChip } from '@/components/admin/data-table';
 import { ProductDetailsForm } from '@/components/admin/product-details-form';
 import { ProductMediaManager } from '@/components/admin/product-media-manager';
 import { useAdminAuth } from '@/lib/admin-auth';
@@ -46,6 +46,13 @@ export default function ProductDetailPage() {
 
   return (
     <div>
+      <AdminBreadcrumb
+        items={[
+          { label: 'Admin', href: '/admin/dashboard' },
+          { label: 'Products', href: '/admin/products' },
+          { label: product.name },
+        ]}
+      />
       <AdminPageHeader
         title={product.name}
         description={`${product.variants.length} variant(s)`}

@@ -16,16 +16,26 @@ import { formatDateTime } from '@/lib/format';
 const PIPELINE_STAGES = [
   { value: '', label: 'All' },
   { value: 'NEW', label: 'New' },
-  { value: 'CALLED', label: 'Called' },
-  { value: 'CONFIRMED', label: 'Confirmed' },
-  { value: 'CLOSED', label: 'Closed' },
+  { value: 'ASSIGNED', label: 'Assigned' },
+  { value: 'CONTACTED', label: 'Contacted' },
+  { value: 'TECHNICAL_VERIFICATION', label: 'Technical verification' },
+  { value: 'QUOTE_REQUIRED', label: 'Quote required' },
+  { value: 'QUOTED', label: 'Quoted' },
+  { value: 'FOLLOW_UP', label: 'Follow-up' },
+  { value: 'WON', label: 'Won' },
+  { value: 'LOST', label: 'Lost' },
 ];
 
 const STATUS_TONE: Record<string, 'ok' | 'warn' | 'bad' | 'muted'> = {
   NEW: 'warn',
-  CALLED: 'ok',
-  CONFIRMED: 'ok',
-  CLOSED: 'muted',
+  ASSIGNED: 'warn',
+  CONTACTED: 'ok',
+  TECHNICAL_VERIFICATION: 'warn',
+  QUOTE_REQUIRED: 'warn',
+  QUOTED: 'ok',
+  FOLLOW_UP: 'warn',
+  WON: 'ok',
+  LOST: 'muted',
 };
 
 export default function EnquiriesPage() {

@@ -20,7 +20,7 @@ function toQuery(params: Record<string, string | number | undefined>): string {
 }
 
 export interface DashboardData {
-  enquiries: { new: number; called: number; confirmed: number; total: number };
+  enquiries: { new: number; contacted: number; quoted: number; won: number; total: number };
   quotes: { draft: number; sent: number; expiringSoon: number };
   products: { active: number; inactive: number };
   searchNoResults: Array<{ normalized: string; count: number }>;
@@ -67,9 +67,13 @@ export interface BulkUploadResult {
   created: number;
   updated: number;
   imagesAttached: number;
+  restored: number;
+  attributesCreated: number;
   categoriesCreated: number;
   brandsCreated: number;
   errors: Array<{ row: number; message: string }>;
+  /** Non-blocking flags — the row imported, but something looks worth a check. */
+  warnings: Array<{ row: number; message: string }>;
 }
 
 export interface AdminProductMedia {

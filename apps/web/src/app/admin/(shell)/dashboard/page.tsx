@@ -60,9 +60,9 @@ export default function DashboardPage() {
           tone={data.enquiries.new > 0 ? 'warn' : 'ok'}
         />
         <Tile
-          label="Called"
-          value={data.enquiries.called}
-          href="/admin/enquiries?status=CALLED"
+          label="Contacted"
+          value={data.enquiries.contacted}
+          href="/admin/enquiries?status=CONTACTED"
           tone="muted"
         />
         <Tile

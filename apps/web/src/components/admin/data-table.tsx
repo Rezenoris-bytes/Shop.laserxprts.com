@@ -150,3 +150,55 @@ export function AdminPageHeader({
     </div>
   );
 }
+
+/**
+ * Breadcrumb trail for admin pages.
+ *
+ * Usage:
+ *   <AdminBreadcrumb items={[
+ *     { label: 'Products', href: '/admin/products' },
+ *     { label: product.name },          // last item has no href — it's the current page
+ *   ]} />
+ */
+export function AdminBreadcrumb({ items }: { items: { label: string; href?: string }[] }) {
+  return (
+    <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
+      <ol className="flex flex-wrap items-center gap-1 text-xs text-ink-muted">
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
+          return (
+            <li key={index} className="flex items-center gap-1">
+              {index > 0 && (
+                <svg
+                  className="h-3 w-3 shrink-0 text-ink-line"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden
+                >
+                  <path d="M4 2l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+              {isLast || !item.href ? (
+                <span
+                  className={isLast ? 'font-medium text-ink' : ''}
+                  aria-current={isLast ? 'page' : undefined}
+                >
+                  {item.label}
+                </span>
+              ) : (
+                <Link
+                  href={item.href}
+                  className="hover:text-ink hover:underline underline-offset-2"
+                >
+                  {item.label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}

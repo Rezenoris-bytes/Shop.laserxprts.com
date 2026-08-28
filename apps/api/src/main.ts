@@ -36,7 +36,14 @@ async function bootstrap(): Promise<void> {
       server.on('request', handler);
       
       // Prevent Fastify from throwing EADDRINUSE when Nest calls app.listen()
-      server.listen = () => server as any;
+      // But we MUST invoke the callback Fastify passes, or its internal state corrupts.
+      server.listen = (...args: any[]) => {
+        const cb = args.find((arg) => typeof arg === 'function');
+        if (cb) {
+          process.nextTick(cb);
+        }
+        return server as any;
+      };
       return server;
     },
     // Real client IP. Behind Cloudflare every request otherwise appears to come

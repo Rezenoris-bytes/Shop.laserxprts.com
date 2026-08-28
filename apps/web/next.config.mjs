@@ -38,14 +38,16 @@ const nextConfig = {
   },
 
   async redirects() {
-    // Product pages existed until the catalogue moved to inline rows. Anything
-    // already linked or indexed at /products/<slug> is sent to the catalogue
-    // rather than left on a 404; the fragment cannot be set from a redirect, so
-    // this lands on the listing rather than the exact row.
-    return [
-      { source: '/products/:slug', destination: '/catalogue', permanent: true },
-      { source: '/products', destination: '/catalogue', permanent: true },
-    ];
+    // NOTE: /products/:slug used to redirect here, from when the catalogue
+    // moved to inline rows. That redirect is gone because §9 and §30 of the
+    // aftermarket specification require a real product page — it is the step
+    // between discovery and enquiry, and it is where compatibility, related
+    // parts and Enquire Now live. With the redirect in place all three were
+    // unreachable code.
+    //
+    // The bare /products index still redirects: there is no index page, and
+    // the catalogue is what it was always meant to show.
+    return [{ source: '/products', destination: '/catalogue', permanent: true }];
   },
 
   async headers() {

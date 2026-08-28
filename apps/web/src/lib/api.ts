@@ -40,6 +40,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const response = await fetch(`${base()}/api/v1${path}`, {
     ...rest,
+    signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined,
     headers: {
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
@@ -93,6 +94,7 @@ export const api = {
 
   productsWithMeta: async (query: Record<string, string | number | undefined>) => {
     const response = await fetch(`${base()}/api/v1/products?${toQuery(query)}`, {
+      signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined,
       ...(typeof window === 'undefined' ? { next: { revalidate: 300 } } : {}),
     });
     if (!response.ok)

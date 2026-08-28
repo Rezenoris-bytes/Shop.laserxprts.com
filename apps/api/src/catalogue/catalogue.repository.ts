@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { normalizeSearchKey, type ProductListQuery } from '@lei/shared';
+import { normalizeSearchKey, type ComponentKind, type ProductListQuery } from '@lei/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Only the fields a product card needs — never the description blob. */
@@ -131,7 +131,7 @@ export interface AttributeFilter {
 
 @Injectable()
 export class CatalogueRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // ── Categories ────────────────────────────────────────────────────────
 
@@ -387,6 +387,12 @@ export class CatalogueRepository {
             type: true,
             altText: true,
             isPrimary: true,
+            // Attribution travels with the image. A licence that requires a
+            // credit and does not get one is a breached licence, so the credit
+            // must reach the page alongside the picture.
+            credit: true,
+            licence: true,
+            sourceUrl: true,
             file: { select: { storedName: true, path: true, width: true, height: true } },
           },
         },
@@ -433,7 +439,9 @@ export class CatalogueRepository {
             notes: true,
             isVerified: true,
             isSeedData: true,
-            machineBrand: { select: { id: true, name: true, slug: true } },
+            // `kind` lets the product page separate "fits these machines" from
+            // "fits these cutting heads" — the same table carries both.
+            machineBrand: { select: { id: true, name: true, slug: true, kind: true } },
             machineModel: { select: { id: true, name: true, slug: true } },
             machineVariant: { select: { id: true, name: true, powerWatts: true } },
           },
@@ -543,11 +551,11 @@ export class CatalogueRepository {
           attributeId: attribute.id,
           ...(productIds
             ? {
-                OR: [
-                  { productId: { in: productIds } },
-                  { variant: { productId: { in: productIds } } },
-                ],
-              }
+              OR: [
+                { productId: { in: productIds } },
+                { variant: { productId: { in: productIds } } },
+              ],
+            }
             : {}),
         },
         select: { valueString: true, valueDecimal: true },
@@ -582,9 +590,12 @@ export class CatalogueRepository {
    * remove. The tree is small and changes rarely, so it ships as one cacheable
    * response.
    */
-  async findMachineTree() {
+  async findMachineTree(kind: ComponentKind = 'MACHINE') {
     return this.prisma.client.machineBrand.findMany({
-      where: { isActive: true },
+      // Scoped by component kind: "which machine do you have?" must not offer
+      // chillers and servo brands as answers. Cutting heads are a separate
+      // step in Find My Part and so are fetched separately.
+      where: { isActive: true, kind },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: {
         id: true,
@@ -605,6 +616,94 @@ export class CatalogueRepository {
           },
         },
       },
+    });
+  }
+
+  // ── Brand & component-model pages (§14, §15) ──────────────────────────
+
+  /**
+   * Brand directory for one kind.
+   *
+   * `_count.models` is enough for the listing tile; the compatible-product
+   * count is deliberately NOT computed here. It would need a join per brand,
+   * and while compatibility is empty every number would read "0 products",
+   * which looks like a broken catalogue rather than absent fitment data.
+   */
+  async findBrandsByKind(kind: ComponentKind) {
+    return this.prisma.client.machineBrand.findMany({
+      where: { isActive: true, kind },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        kind: true,
+        _count: { select: { models: { where: { isActive: true } } } },
+      },
+    });
+  }
+
+  /** One brand plus its models. Returns null when the (kind, slug) pair misses. */
+  async findBrandDetail(kind: ComponentKind, slug: string) {
+    return this.prisma.client.machineBrand.findUnique({
+      where: { kind_slug: { kind, slug } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        kind: true,
+        models: {
+          where: { isActive: true },
+          orderBy: { name: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            // Verified only — an unverified row must never inflate a count the
+            // customer reads as "we stock 12 parts for this head" (§7).
+            _count: { select: { compatibility: { where: { isVerified: true } } } },
+          },
+        },
+      },
+    });
+  }
+
+  /** One component model, for /cutting-heads/<brand>/<model> and friends. */
+  async findComponentModel(kind: ComponentKind, brandSlug: string, modelSlug: string) {
+    const brand = await this.prisma.client.machineBrand.findUnique({
+      where: { kind_slug: { kind, slug: brandSlug } },
+      select: { id: true, name: true, slug: true, kind: true },
+    });
+    if (!brand) return null;
+
+    const model = await this.prisma.client.machineModel.findUnique({
+      where: { machineBrandId_slug: { machineBrandId: brand.id, slug: modelSlug } },
+      select: { id: true, name: true, slug: true, description: true, isActive: true },
+    });
+    if (!model || !model.isActive) return null;
+
+    return { brand, model };
+  }
+
+  /**
+   * Products verified as fitting a set of component models.
+   *
+   * Only `isVerified` rows are returned. §7 is explicit that an unverified
+   * claim must not reach the storefront, and the safest place to enforce that
+   * is here — one filter every caller inherits — rather than in each page.
+   */
+  async findProductsForModels(modelIds: number[], limit = 60) {
+    if (modelIds.length === 0) return [];
+    return this.prisma.client.product.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        compatibility: { some: { machineModelId: { in: modelIds }, isVerified: true } },
+      },
+      select: { ...CARD_SELECT, category: { select: { name: true, slug: true } } },
+      take: limit,
+      orderBy: [{ isFeatured: 'desc' }, { name: 'asc' }],
     });
   }
 

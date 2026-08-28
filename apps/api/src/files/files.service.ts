@@ -65,6 +65,34 @@ export class FilesService {
     originalName: string,
     uploadedById: number | null,
   ): Promise<StoredFile> {
+    return this.storeImage(buffer, originalName, uploadedById, {
+      context: 'PRODUCT',
+      isPublic: true,
+      folder: 'products',
+    });
+  }
+
+  /**
+   * A customer's photo of their broken part (§24).
+   *
+   * Private and kept in its own folder: this is a photograph taken inside
+   * someone's workshop, submitted so sales can identify a part. It is not
+   * catalogue artwork and must never be served from a guessable public path.
+   */
+  async storeEnquiryPhoto(buffer: Buffer, originalName: string): Promise<StoredFile> {
+    return this.storeImage(buffer, originalName, null, {
+      context: 'ENQUIRY',
+      isPublic: false,
+      folder: 'enquiries',
+    });
+  }
+
+  private async storeImage(
+    buffer: Buffer,
+    originalName: string,
+    uploadedById: number | null,
+    target: { context: 'PRODUCT' | 'ENQUIRY'; isPublic: boolean; folder: string },
+  ): Promise<StoredFile> {
     if (buffer.length === 0) throw new BadRequestException('The uploaded file is empty');
     if (buffer.length > MAX_UPLOAD_BYTES) {
       throw new BadRequestException(
@@ -93,18 +121,18 @@ export class FilesService {
 
     const checksum = createHash('sha256').update(buffer).digest('hex');
     const storedName = `${checksum}.${extension}`;
-    const relativePath = `products/${storedName}`;
+    const relativePath = `${target.folder}/${storedName}`;
 
-    const existing = await this.repository.findByChecksum(checksum);
+    const existing = await this.repository.findByChecksum(checksum, target.context);
     if (existing) {
       // The row exists, but the bytes may have been cleared from disk by a
       // deploy that did not carry storage across. Rewrite rather than hand back
       // a record pointing at nothing.
-      await this.writeToDisk(storedName, buffer, false);
+      await this.writeToDisk(target.folder, storedName, buffer, false);
       return this.toStored(existing);
     }
 
-    await this.writeToDisk(storedName, buffer, true);
+    await this.writeToDisk(target.folder, storedName, buffer, true);
 
     const file = await this.repository.create({
       originalName: originalName.slice(0, 255) || storedName,
@@ -117,6 +145,8 @@ export class FilesService {
       width: meta.width ?? null,
       height: meta.height ?? null,
       uploadedById,
+      context: target.context,
+      isPublic: target.isPublic,
     });
 
     return this.toStored(file);
@@ -152,9 +182,15 @@ export class FilesService {
     return true;
   }
 
-  private async writeToDisk(storedName: string, buffer: Buffer, required: boolean): Promise<void> {
-    await mkdir(this.productsDir, { recursive: true });
-    const target = join(this.productsDir, storedName);
+  private async writeToDisk(
+    folder: string,
+    storedName: string,
+    buffer: Buffer,
+    required: boolean,
+  ): Promise<void> {
+    const dir = join(resolve(this.config.storageRoot), folder);
+    await mkdir(dir, { recursive: true });
+    const target = join(dir, storedName);
     if (!required && existsSync(target)) return;
     await writeFile(target, buffer);
   }

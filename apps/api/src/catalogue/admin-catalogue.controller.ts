@@ -29,6 +29,7 @@ import {
   upsertVariantSchema,
   type AdminListQuery,
   type CreateAttributeInput,
+  type ComponentKind,
   type CreateMachineBrandInput,
   type CreateMachineModelInput,
   type CreateMachineVariantInput,
@@ -44,6 +45,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ZodBody, ZodQuery } from '../common/pipes/zod-validation.pipe';
 import { AdminCatalogueService } from './admin-catalogue.service';
 import { BulkProductUploadService } from './import/bulk-product-upload.service';
+import { CompatibilityImportService } from './import/compatibility-import.service';
 
 
 
@@ -53,7 +55,8 @@ export class AdminCatalogueController {
   constructor(
     private readonly service: AdminCatalogueService,
     private readonly bulkUpload: BulkProductUploadService,
-  ) {}
+    private readonly compatibilityImport: CompatibilityImportService,
+  ) { }
 
   // ── Categories ────────────────────────────────────────────────────────
 
@@ -179,6 +182,44 @@ export class AdminCatalogueController {
       throw new BadRequestException('Upload a .csv or .xlsx file');
     }
     return this.bulkUpload.importFile(first.buffer, first.filename, actorId);
+  }
+
+  // ── Compatibility import (Phase 2) ──────────────────────────────────────
+
+  @Get('compatibility/template')
+
+  async downloadCompatibilityTemplate(@Res() reply: FastifyReply) {
+    const buffer = await this.compatibilityImport.generateTemplate();
+    reply
+      .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .header('Content-Disposition', 'attachment; filename="compatibility-import-template.xlsx"')
+      .send(buffer);
+  }
+
+  /**
+   * Imports verified fitment.
+   *
+   * `?dryRun=true` validates and reports without writing, which is how a file
+   * prepared by somebody else should always be run the first time — the
+   * rejection list tells you what is wrong before anything reaches the table
+   * that drives public compatibility claims.
+   */
+  @Post('compatibility/import')
+
+  async importCompatibility(
+    @Req() request: FastifyRequest,
+    @CurrentUser('id') actorId: number,
+    @Query('dryRun') dryRun?: string,
+  ) {
+    const uploads = await this.collectUploads(request);
+    const first = uploads[0];
+    if (!first) throw new BadRequestException('No file was uploaded');
+    return this.compatibilityImport.importFile(
+      first.buffer,
+      first.filename,
+      actorId,
+      dryRun === 'true',
+    );
   }
 
   // ── Product media ──────────────────────────────────────────────────────
@@ -337,14 +378,16 @@ export class AdminCatalogueController {
 
   @Get('machines')
 
-  listMachines() {
-    return this.service.listMachineBrands();
+  listMachines(@Query('kind') kind?: string) {
+    // Unscoped by default so the admin directory shows all six kinds; pass
+    // ?kind= for any picker that must offer only one.
+    return this.service.listMachineBrands(kind as ComponentKind | undefined);
   }
 
   @Post('machines/brands')
 
   createMachineBrand(@Body(ZodBody(createMachineBrandSchema)) body: CreateMachineBrandInput) {
-    return this.service.createMachineBrand(body.name);
+    return this.service.createMachineBrand(body.name, body.kind);
   }
 
   @Post('machines/models')

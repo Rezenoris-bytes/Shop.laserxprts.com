@@ -7,6 +7,7 @@ import { CatalogueService } from './catalogue.service';
 import { AdminCatalogueService } from './admin-catalogue.service';
 import { CatalogueImportService } from './import/catalogue-import.service';
 import { BulkProductUploadService } from './import/bulk-product-upload.service';
+import { CompatibilityImportService } from './import/compatibility-import.service';
 import { StorefrontRevalidationService } from './storefront-revalidation.service';
 import { NozzleFamilyService } from './nozzle-family.service';
 
@@ -19,6 +20,7 @@ import { NozzleFamilyService } from './nozzle-family.service';
     AdminCatalogueRepository,
     CatalogueImportService,
     BulkProductUploadService,
+    CompatibilityImportService,
     StorefrontRevalidationService,
     NozzleFamilyService,
   ],

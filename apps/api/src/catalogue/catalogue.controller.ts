@@ -1,8 +1,10 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
 import {
+  COMPONENT_KIND_SLUGS,
   productListQuerySchema,
   resolveVariantsSchema,
   searchQuerySchema,
+  type ComponentKindSlug,
   type ProductListQuery,
   type ResolveVariantsInput,
   type SearchQuery,
@@ -59,6 +61,26 @@ export class CatalogueController {
     return this.catalogue.getFacets(category);
   }
 
+  /**
+   * Product family view for categories that benefit from grouped selectors.
+   *
+   * Returns products clustered into families with option groups (e.g. Layer,
+   * Cut Type, Size) so the storefront can render a single card per family
+   * instead of one card per DB product. The variantMap in each family
+   * resolves any valid option combination to the exact original SKU.
+   *
+   * ?category= is required; the caller must pass a category slug.
+   *
+   * MUST stay above `products/:slug`: Nest matches in declaration order, so
+   * with the specific route second, /products/families is swallowed by the
+   * slug handler and 404s looking for a product named "families".
+   */
+  @Public()
+  @Get('products/families')
+  productFamilies(@Query('category') category: string) {
+    return this.nozzleFamily.getFamilies(category ?? '');
+  }
+
   @Public()
   @Get('products/:slug')
   product(@Param('slug') slug: string) {
@@ -89,26 +111,76 @@ export class CatalogueController {
     return this.catalogue.search(query.q, query.page, query.perPage);
   }
 
-  /** Brand -> model -> variant tree for the compatibility finder, in one call. */
+  /** Machine brand -> model -> variant tree for the compatibility finder. */
   @Public()
   @Get('machines/tree')
   machineTree() {
-    return this.catalogue.getMachineTree();
+    return this.catalogue.getMachineTree('MACHINE');
   }
 
   /**
-   * Product family view for categories that benefit from grouped selectors.
-   *
-   * Returns products clustered into families with option groups (e.g. Layer,
-   * Cut Type, Size) so the storefront can render a single card per family
-   * instead of one card per DB product. The variantMap in each family
-   * resolves any valid option combination to the exact original SKU.
-   *
-   * ?category= is required; the caller must pass a category slug.
+   * The same tree for cutting heads, which Find My Part asks for after the
+   * machine. A cutting head brand is a different entity from a machine brand —
+   * the same head fits machines from many makers — so it is its own endpoint
+   * rather than a filter the caller might forget to apply.
    */
   @Public()
-  @Get('products/families')
-  productFamilies(@Query('category') category: string) {
-    return this.nozzleFamily.getFamilies(category ?? '');
+  @Get('cutting-heads/tree')
+  cuttingHeadTree() {
+    return this.catalogue.getMachineTree('CUTTING_HEAD');
   }
+
+  /**
+   * The remaining component trees (§8), one route per kind.
+   *
+   * A single `/components/:kind/tree` rather than four more copies of the two
+   * above: the kind is validated against the URL-segment map, so an unknown
+   * segment 404s instead of silently falling back to MACHINE and offering a
+   * chiller owner a list of press brakes.
+   */
+  @Public()
+  @Get('components/:kind/tree')
+  componentTree(@Param('kind') kind: string) {
+    return this.catalogue.getMachineTree(this.resolveKind(kind));
+  }
+
+  /** §14 — brand directory for one kind, e.g. /components/cutting-heads/brands. */
+  @Public()
+  @Get('components/:kind/brands')
+  componentBrands(@Param('kind') kind: string) {
+    return this.catalogue.getBrands(this.resolveKind(kind));
+  }
+
+  @Public()
+  @Get('components/:kind/brands/:brand')
+  componentBrand(@Param('kind') kind: string, @Param('brand') brand: string) {
+    return this.catalogue.getBrand(this.resolveKind(kind), brand);
+  }
+
+  /** §15 — a component model page, e.g. /components/cutting-heads/brands/raytools/bm111. */
+  @Public()
+  @Get('components/:kind/brands/:brand/:model')
+  componentModel(
+    @Param('kind') kind: string,
+    @Param('brand') brand: string,
+    @Param('model') model: string,
+  ) {
+    return this.catalogue.getComponentModel(this.resolveKind(kind), brand, model);
+  }
+
+  /**
+   * URL segment -> ComponentKind, or 404.
+   *
+   * Rejecting an unknown segment matters more than it looks: without it, a
+   * typo would fall through to the MACHINE default and confidently answer a
+   * chiller question with a list of press brakes.
+   */
+  private resolveKind(kind: string) {
+    const resolved = COMPONENT_KIND_SLUGS[kind as ComponentKindSlug];
+    if (!resolved) {
+      throw new NotFoundException(`Unknown component kind: ${kind}`);
+    }
+    return resolved;
+  }
+
 }

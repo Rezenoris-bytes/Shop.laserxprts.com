@@ -1,5 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { normalizeSearchKey, type ProductListQuery } from '@lei/shared';
+import {
+  normalizeSearchKey,
+  FAMILY_VIEW_CATEGORY_SLUGS,
+  type ComponentKind,
+  type ProductListQuery,
+} from '@lei/shared';
 import { CatalogueRepository, type AttributeFilter } from './catalogue.repository';
 
 /** A specification value as both the listing and detail selects return it. */
@@ -41,6 +46,9 @@ interface ListingRow {
     id: number;
     altText: string | null;
     isPrimary: boolean;
+    credit?: string | null;
+    licence?: string | null;
+    sourceUrl?: string | null;
     file: { storedName: string; path: string; width: number | null; height: number | null };
   }>;
   attributeValues: ListingAttributeValue[];
@@ -57,7 +65,7 @@ interface CategoryPreviewProduct {
 
 @Injectable()
 export class CatalogueService {
-  constructor(private readonly repository: CatalogueRepository) {}
+  constructor(private readonly repository: CatalogueRepository) { }
 
   /**
    * Parses `attr=slug:value` and `attr=slug:1.0..3.0` filter params.
@@ -135,11 +143,13 @@ export class CatalogueService {
       byCategory.set(product.categoryId, bucket);
     }
 
+    const slugById = new Map(flat.map((category) => [category.id, category.slug]));
+
     const build = (parentId: number | null): unknown[] =>
       (byParent.get(parentId) ?? []).map((category) => {
         // A parent's panel would otherwise look empty when every product sits
         // on a leaf, so it borrows its descendants' names.
-        const products = this.previewFor(category.id, byParent, byCategory);
+        const products = this.previewFor(category.id, byParent, byCategory, slugById);
         return {
           ...category,
           products: products.map(({ name, slug }) => ({ name, slug })),
@@ -155,13 +165,27 @@ export class CatalogueService {
     categoryId: number,
     byParent: Map<number | null, Array<{ id: number }>>,
     byCategory: Map<number, CategoryPreviewProduct[]>,
+    slugById: Map<number, string>,
   ): CategoryPreviewProduct[] {
     const collected: CategoryPreviewProduct[] = [];
     const frontier = [categoryId];
 
     while (frontier.length > 0 && collected.length < CatalogueService.CATEGORY_PREVIEW_SIZE) {
       const current = frontier.shift()!;
-      collected.push(...(byCategory.get(current) ?? []));
+      // A family-view category (nozzles, o-rings-seals, ...) presents its
+      // products as grouped family cards, never as individual product-name
+      // links. That holds for its OWN sidebar panel (the web app already
+      // skips rendering it there) — but without this check it still held
+      // individual product names, and a PARENT with too few products of its
+      // own borrows from exactly this bucket. Skip borrowing from a
+      // family-view descendant; still allow the current id through when the
+      // caller asked for that category directly, so the "families" endpoint
+      // and any other direct consumer keeps seeing the real membership.
+      const isFamilyViewDescendant =
+        current !== categoryId && FAMILY_VIEW_CATEGORY_SLUGS.has(slugById.get(current) ?? '');
+      if (!isFamilyViewDescendant) {
+        collected.push(...(byCategory.get(current) ?? []));
+      }
       frontier.push(...(byParent.get(current) ?? []).map((child) => child.id));
     }
 
@@ -214,6 +238,9 @@ export class CatalogueService {
         id: media.id,
         alt: media.altText,
         isPrimary: media.isPrimary,
+        credit: media.credit ?? null,
+        licence: media.licence ?? null,
+        sourceUrl: media.sourceUrl ?? null,
         storedName: media.file.storedName,
         path: media.file.path,
         width: media.file.width,
@@ -237,7 +264,12 @@ export class CatalogueService {
         brand: row.machineBrand,
         model: row.machineModel,
         machineVariant: row.machineVariant,
-        notes: row.notes,
+        // `notes` is deliberately NOT exposed. Since the compatibility import
+        // began recording provenance there ("Source: RayTools BM111 manual
+        // p.24"), that field carries internal sourcing detail — and anything
+        // in this payload ends up readable in the page source whether or not a
+        // component renders it. Staff read notes in admin; the public does not.
+        //
         // Claimed vs engineer-confirmed. Wrong fitment costs more than missing
         // fitment, so the UI must show the difference.
         isVerified: row.isVerified,
@@ -254,8 +286,8 @@ export class CatalogueService {
     return {
       items: variants.map((variant) => ({
         id: variant.id,
-        sku: variant.sku,
-        partNumber: variant.partNumber,
+        // Withheld for the same reason as toVariantView: the basket resolves
+        // by variant id, so the internal code never needs to reach the client.
         name: variant.variantName,
         price: variant.price === null ? null : Number(variant.price),
         priceType: variant.priceType,
@@ -305,9 +337,9 @@ export class CatalogueService {
       slug: item.slug,
       image: item.media[0]
         ? {
-            storedName: item.media[0].file.storedName,
-            path: item.media[0].file.path,
-          }
+          storedName: item.media[0].file.storedName,
+          path: item.media[0].file.path,
+        }
         : null,
     }));
   }
@@ -316,8 +348,89 @@ export class CatalogueService {
     return this.repository.facetsForCategory(categorySlug);
   }
 
-  async getMachineTree() {
-    return this.repository.findMachineTree();
+  async getMachineTree(kind: ComponentKind = 'MACHINE') {
+    return this.repository.findMachineTree(kind);
+  }
+
+  /** §14 — the brand directory for one component kind. */
+  async getBrands(kind: ComponentKind) {
+    const brands = await this.repository.findBrandsByKind(kind);
+    return brands.map((brand) => ({
+      id: brand.id,
+      name: brand.name,
+      slug: brand.slug,
+      kind: brand.kind,
+      modelCount: brand._count.models,
+    }));
+  }
+
+  /**
+   * §14 — one brand, its models, and the products verified to fit them.
+   *
+   * `products` comes back empty while no compatibility has been verified. That
+   * is the intended result, not a failure: the page renders its empty state
+   * and invites an enquiry rather than inventing a parts list.
+   */
+  async getBrand(kind: ComponentKind, slug: string) {
+    const brand = await this.repository.findBrandDetail(kind, slug);
+    if (!brand) throw new NotFoundException('Brand not found');
+
+    const modelIds = brand.models.map((model) => model.id);
+    const products = await this.repository.findProductsForModels(modelIds);
+
+    return {
+      id: brand.id,
+      name: brand.name,
+      slug: brand.slug,
+      kind: brand.kind,
+      models: brand.models.map((model) => ({
+        id: model.id,
+        name: model.name,
+        slug: model.slug,
+        description: model.description,
+        productCount: model._count.compatibility,
+      })),
+      products,
+      compatibilityVerified: products.length > 0,
+    };
+  }
+
+  /**
+   * §15 — a single component model page, e.g. /cutting-heads/raytools/bm111.
+   *
+   * Products are grouped by category so the page can show "Nozzles / Windows /
+   * Ceramics / Optics" sections instead of one undifferentiated grid.
+   */
+  async getComponentModel(kind: ComponentKind, brandSlug: string, modelSlug: string) {
+    const found = await this.repository.findComponentModel(kind, brandSlug, modelSlug);
+    if (!found) throw new NotFoundException('Model not found');
+
+    const products = await this.repository.findProductsForModels([found.model.id]);
+
+    const groups = new Map<string, { name: string; slug: string; products: typeof products }>();
+    for (const product of products) {
+      const key = product.category?.slug ?? 'other';
+      const group = groups.get(key) ?? {
+        name: product.category?.name ?? 'Other',
+        slug: key,
+        products: [],
+      };
+      group.products.push(product);
+      groups.set(key, group);
+    }
+
+    return {
+      brand: found.brand,
+      model: {
+        id: found.model.id,
+        name: found.model.name,
+        slug: found.model.slug,
+        description: found.model.description,
+      },
+      groups: [...groups.values()],
+      productCount: products.length,
+      compatibilityVerified: products.length > 0,
+    };
   }
 
   async getHomepage() {
@@ -344,8 +457,10 @@ export class CatalogueService {
   private toVariantView(variant: ListingVariant, axes: string[]) {
     return {
       id: variant.id,
-      sku: variant.sku,
-      partNumber: variant.partNumber,
+      // sku and partNumber are withheld from the public API on purpose. They
+      // are internally generated codes, not manufacturer part numbers, and the
+      // storefront identifies a variant by id — sending them would publish an
+      // internal identifier in the page source for no benefit.
       mpn: variant.mpn,
       name: variant.variantName,
       price: variant.price === null ? null : Number(variant.price),
@@ -445,15 +560,18 @@ export class CatalogueService {
       brand: product.partBrand,
       image: product.media[0]
         ? {
-            storedName: product.media[0].file.storedName,
-            path: product.media[0].file.path,
-            alt: product.media[0].altText,
-          }
+          storedName: product.media[0].file.storedName,
+          path: product.media[0].file.path,
+          alt: product.media[0].altText,
+        }
         : null,
       images: product.media.map((media) => ({
         id: media.id,
         alt: media.altText,
         isPrimary: media.isPrimary,
+        credit: media.credit ?? null,
+        licence: media.licence ?? null,
+        sourceUrl: media.sourceUrl ?? null,
         storedName: media.file.storedName,
         path: media.file.path,
         width: media.file.width,
@@ -500,10 +618,10 @@ export class CatalogueService {
       brand: product.partBrand,
       image: product.media[0]
         ? {
-            storedName: product.media[0].file.storedName,
-            path: product.media[0].file.path,
-            alt: product.media[0].altText,
-          }
+          storedName: product.media[0].file.storedName,
+          path: product.media[0].file.path,
+          alt: product.media[0].altText,
+        }
         : null,
       specs: product.attributeValues
         .filter((value) => value.valueString !== null && value.valueString !== '')

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
-import { buildVariantSearchKey, slugify } from '@lei/shared';
+import { buildVariantSearchKey, slugify, type ComponentKind } from '@lei/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class AdminCatalogueRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // ── Categories ────────────────────────────────────────────────────────
 
@@ -202,6 +202,27 @@ export class AdminCatalogueRepository {
 
   async updateProduct(id: number, data: Prisma.ProductUncheckedUpdateInput) {
     return this.prisma.raw.product.update({ where: { id }, data });
+  }
+
+  /**
+   * Undoes a soft delete, including the slug rename the delete applied, so the
+   * product returns on its original URL.
+   */
+  async restoreProduct(id: number) {
+    const product = await this.prisma.raw.product.findUniqueOrThrow({ where: { id } });
+    const slug = product.slug.replace(new RegExp(`--deleted-${id}$`), '');
+    const slugTaken = await this.prisma.raw.product.findFirst({
+      where: { slug, id: { not: id } },
+      select: { id: true },
+    });
+    return this.prisma.raw.product.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+        isActive: true,
+        ...(slugTaken ? {} : { slug }),
+      },
+    });
   }
 
   async softDeleteProduct(id: number) {
@@ -405,15 +426,23 @@ export class AdminCatalogueRepository {
 
   // ── Machines ──────────────────────────────────────────────────────────
 
-  async listMachineBrands() {
+  /**
+   * Brand list for admin, optionally scoped to one kind.
+   *
+   * Unscoped it returns all six kinds, which is right for an admin directory
+   * but wrong for a picker labelled "machine" — pass the kind there, or the
+   * user is offered chillers and servo makers as machines.
+   */
+  async listMachineBrands(kind?: ComponentKind) {
     return this.prisma.client.machineBrand.findMany({
-      orderBy: { name: 'asc' },
+      where: kind ? { kind } : undefined,
+      orderBy: [{ kind: 'asc' }, { name: 'asc' }],
       include: { models: { include: { variants: true }, orderBy: { name: 'asc' } } },
     });
   }
 
-  async createMachineBrand(name: string) {
-    return this.prisma.raw.machineBrand.create({ data: { name, slug: slugify(name) } });
+  async createMachineBrand(name: string, kind: ComponentKind = 'MACHINE') {
+    return this.prisma.raw.machineBrand.create({ data: { name, kind, slug: slugify(name) } });
   }
 
   async createMachineModel(machineBrandId: number, name: string) {

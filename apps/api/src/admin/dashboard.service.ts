@@ -47,8 +47,9 @@ export class DashboardService {
     return {
       enquiries: {
         new: byStatus(enquiryCounts, 'NEW'),
-        called: byStatus(enquiryCounts, 'CALLED'),
-        confirmed: byStatus(enquiryCounts, 'CONFIRMED'),
+        contacted: byStatus(enquiryCounts, 'CONTACTED'),
+        quoted: byStatus(enquiryCounts, 'QUOTED'),
+        won: byStatus(enquiryCounts, 'WON'),
         total: enquiryCounts.reduce((sum: number, row: { _count: { _all: number } }) => sum + row._count._all, 0),
       },
       quotes: {

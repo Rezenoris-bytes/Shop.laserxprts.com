@@ -97,10 +97,18 @@ export class CatalogueImportService {
           continue;
         }
 
+        // Brands in the machines CSV are machine makers, so the lookup is
+        // scoped to that kind — the slug alone is no longer unique now that a
+        // maker can appear under several component kinds.
         const brand = await db.machineBrand.upsert({
-          where: { slug: slugify(brandName) },
+          where: { kind_slug: { kind: 'MACHINE', slug: slugify(brandName) } },
           update: {},
-          create: { name: brandName, slug: slugify(brandName), isSeedData: options.isSeedData },
+          create: {
+            kind: 'MACHINE',
+            name: brandName,
+            slug: slugify(brandName),
+            isSeedData: options.isSeedData,
+          },
         });
 
         const model = await db.machineModel.upsert({
@@ -603,7 +611,7 @@ export class CatalogueImportService {
         }
 
         const brand = await db.machineBrand.findUnique({
-          where: { slug: slugify(this.required(row, 'machine_brand')) },
+          where: { kind_slug: { kind: 'MACHINE', slug: slugify(this.required(row, 'machine_brand')) } },
         });
         if (!brand) throw new Error(`Machine brand "${row.values.machine_brand}" not found`);
 

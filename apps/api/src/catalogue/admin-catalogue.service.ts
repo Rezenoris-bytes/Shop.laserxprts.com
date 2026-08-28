@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { AuditAction, type AdminListQuery } from '@lei/shared';
+import { AuditAction, type AdminListQuery, type ComponentKind } from '@lei/shared';
 import { AuditService } from '../audit/audit.service';
 import { FilesService } from '../files/files.service';
 import { AdminCatalogueRepository } from './admin-catalogue.repository';
@@ -12,7 +12,7 @@ export class AdminCatalogueService {
     private readonly audit: AuditService,
     private readonly files: FilesService,
     private readonly revalidation: StorefrontRevalidationService,
-  ) {}
+  ) { }
 
   // ── Categories ────────────────────────────────────────────────────────
 
@@ -442,12 +442,12 @@ export class AdminCatalogueService {
 
   // ── Machines ──────────────────────────────────────────────────────────
 
-  listMachineBrands() {
-    return this.repository.listMachineBrands();
+  listMachineBrands(kind?: ComponentKind) {
+    return this.repository.listMachineBrands(kind);
   }
 
-  createMachineBrand(name: string) {
-    return this.repository.createMachineBrand(name);
+  createMachineBrand(name: string, kind: ComponentKind = 'MACHINE') {
+    return this.repository.createMachineBrand(name, kind);
   }
 
   createMachineModel(machineBrandId: number, name: string) {

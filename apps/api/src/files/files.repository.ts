@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { FileContext } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /** Database access for stored files. */
@@ -6,9 +7,17 @@ import { PrismaService } from '../prisma/prisma.service';
 export class FilesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByChecksum(checksum: string) {
+  /**
+   * Dedup lookup, scoped by context.
+   *
+   * Scoped rather than global because the contexts differ in privacy: a
+   * product image is public, an enquiry photo is not. A global match would
+   * hand back the public row for identical bytes and silently publish a
+   * customer's photograph.
+   */
+  findByChecksum(checksum: string, context: FileContext) {
     return this.prisma.client.file.findFirst({
-      where: { checksumSha256: checksum, deletedAt: null },
+      where: { checksumSha256: checksum, context, deletedAt: null },
     });
   }
 
@@ -27,10 +36,10 @@ export class FilesRepository {
     width: number | null;
     height: number | null;
     uploadedById: number | null;
+    context: FileContext;
+    isPublic: boolean;
   }) {
-    return this.prisma.client.file.create({
-      data: { ...data, context: 'PRODUCT', isPublic: true },
-    });
+    return this.prisma.client.file.create({ data });
   }
 
   /** How many product galleries still point at this file. */

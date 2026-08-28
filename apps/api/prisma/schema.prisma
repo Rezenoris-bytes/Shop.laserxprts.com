@@ -120,11 +120,22 @@ enum EnquiryType {
   GENERAL
 }
 
+/// The sales workflow, not a display label set. Every state here is one a
+/// salesperson actually moves an enquiry through, and the terminal states are
+/// split (WON / LOST) so conversion is a query rather than a guess.
+///
+/// None of this is ever exposed publicly — a customer sees "we have your
+/// enquiry", never "you are in TECHNICAL_VERIFICATION".
 enum EnquiryStatus {
   NEW
-  CALLED
-  CONFIRMED
-  CLOSED
+  ASSIGNED
+  CONTACTED
+  TECHNICAL_VERIFICATION
+  QUOTE_REQUIRED
+  QUOTED
+  FOLLOW_UP
+  WON
+  LOST
 }
 
 enum LeadType {
@@ -291,6 +302,7 @@ model User {
   createdRevisions  QuoteRevision[]        @relation("RevisionAuthor")
   assignedRequests  ServiceRequest[]       @relation("ServiceRequestAssignee")
   verifiedCompat    ProductCompatibility[] @relation("CompatibilityVerifier")
+  verifiedFitment   MachineComponentFitment[] @relation("FitmentVerifier")
   importJobs        ImportJob[]
 
   @@index([role, isActive])
@@ -585,6 +597,7 @@ model Product {
   media           ProductMedia[]
   attributeValues AttributeValue[]
   compatibility   ProductCompatibility[]
+  enrichment      ProductEnrichment?
 
   @@index([categoryId, isActive, deletedAt])
   @@index([partBrandId, isActive])
@@ -667,6 +680,21 @@ model ProductMedia {
   /// specification documents.
   altText   String?   @map("alt_text") @db.VarChar(255)
   title     String?   @db.VarChar(255)
+
+  /// Attribution for images LEI does not own outright.
+  ///
+  /// Without these, the ONLY images LEI can lawfully publish are its own
+  /// photographs: every other lawful route — Creative Commons, a manufacturer's
+  /// written permission, licensed stock — carries a credit obligation, and
+  /// publishing without displaying the credit breaches the licence just as
+  /// surely as copying an image outright.
+  ///
+  /// All three stay NULL for LEI's own photography, and the storefront then
+  /// renders no credit line.
+  credit    String? @db.VarChar(255)
+  licence   String? @db.VarChar(120)
+  sourceUrl String? @map("source_url") @db.VarChar(500)
+
   sortOrder Int       @default(0) @map("sort_order")
   isPrimary Boolean   @default(false) @map("is_primary")
   createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
@@ -739,21 +767,87 @@ model AttributeValue {
 // MACHINES & COMPATIBILITY  (Tier 1)
 // ============================================================================
 
+/// A machine, a cutting head, a laser source, a chiller, a controller and a
+/// servo are different systems even when the same company makes several of
+/// them — Mitsubishi builds machines and servos, Fanuc builds controllers and
+/// servos. `kind` keeps them as separate entities rather than one blurred
+/// "brand", which is what makes compatibility answerable per component.
+/// Where a product has reached in the enrichment pipeline (§18).
+enum EnrichmentStatus {
+  DRAFT
+  RESEARCHED
+  TECHNICALLY_VERIFIED
+  IMAGE_RESEARCHED
+  IMAGE_READY
+  CONTENT_READY
+  PUBLISHED
+  REVIEW_REQUIRED
+}
+
+/// Whether an image may lawfully be published.
+///
+/// The default is UNKNOWN and the only values that permit publication are the
+/// four affirmative ones. "No copyright notice on the page" is not permission,
+/// so absence of evidence lands in RIGHTS_UNCLEAR, not in a usable state.
+enum ImageRightsStatus {
+  UNKNOWN
+  OEM_PERMITTED
+  AUTHORIZED_SOURCE
+  LICENSED
+  LEI_OWNED
+  LEI_ORIGINAL
+  WATERMARKED
+  RIGHTS_UNCLEAR
+  REVIEW_REQUIRED
+}
+
+/// Generic three-state used for technical data and compatibility.
+enum VerificationStatus {
+  NOT_STARTED
+  TO_BE_VERIFIED
+  VERIFIED
+  NOT_AVAILABLE
+}
+
+/// How a market-discovered candidate was dispositioned (§12).
+enum CandidateStatus {
+  MARKET_DISCOVERED
+  DUPLICATE_OF_EXISTING
+  NEW_PRODUCT_CANDIDATE
+  REVIEW_REQUIRED
+  APPROVED
+  REJECTED
+}
+
+enum ComponentKind {
+  MACHINE
+  CUTTING_HEAD
+  LASER_SOURCE
+  CHILLER
+  CONTROLLER
+  SERVO
+}
+
 model MachineBrand {
-  id         Int      @id @default(autoincrement())
-  name       String   @db.VarChar(150)
-  slug       String   @unique @db.VarChar(190)
-  logoFileId Int?     @map("logo_file_id")
-  isActive   Boolean  @default(true) @map("is_active")
-  sortOrder  Int      @default(0) @map("sort_order")
-  isSeedData Boolean  @default(false) @map("is_seed_data")
-  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  id         Int           @id @default(autoincrement())
+  kind       ComponentKind @default(MACHINE)
+  name       String        @db.VarChar(150)
+  /// Unique per kind, not globally: "mitsubishi" is a legitimate machine brand
+  /// AND a legitimate servo brand, and they are not the same record.
+  slug       String        @db.VarChar(190)
+  logoFileId Int?          @map("logo_file_id")
+  isActive   Boolean       @default(true) @map("is_active")
+  sortOrder  Int           @default(0) @map("sort_order")
+  isSeedData Boolean       @default(false) @map("is_seed_data")
+  createdAt  DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime      @updatedAt @map("updated_at") @db.DateTime(3)
 
   models          MachineModel[]
   compatibility   ProductCompatibility[]
   serviceRequests ServiceRequest[]
 
+  @@unique([kind, slug])
+  @@index([kind, isActive, sortOrder])
   @@index([isActive, sortOrder])
   @@map("machine_brands")
 }
@@ -773,6 +867,12 @@ model MachineModel {
   variants        MachineVariant[]
   compatibility   ProductCompatibility[]
   serviceRequests ServiceRequest[]
+
+  /// Both sides of the machine <-> component fitment edge. A row is a machine
+  /// when read through `fittedComponents`, and a component when read through
+  /// `fittedToMachines`; which one it is depends on its brand's `kind`.
+  fittedComponents MachineComponentFitment[] @relation("FitmentMachine")
+  fittedToMachines MachineComponentFitment[] @relation("FitmentComponent")
 
   @@unique([machineBrandId, slug])
   @@index([machineBrandId, isActive])
@@ -798,6 +898,127 @@ model MachineVariant {
   @@unique([machineModelId, name])
   @@index([machineModelId, isActive])
   @@map("machine_variants")
+}
+
+/// Internal research record for one product (§17).
+///
+/// A SEPARATE TABLE, not columns on Product, and that is the whole point: every
+/// public query selects explicit fields from `products`, so research notes,
+/// source URLs and rights status cannot reach the storefront by someone later
+/// adding a field to a select. Nothing in the public API references this model.
+///
+/// One row per product, created lazily when research starts.
+model ProductEnrichment {
+  id        Int @id @default(autoincrement())
+  productId Int @unique @map("product_id")
+
+  status             EnrichmentStatus   @default(DRAFT)
+  technicalStatus    VerificationStatus @default(NOT_STARTED) @map("technical_status")
+  compatibilityStatus VerificationStatus @default(NOT_STARTED) @map("compatibility_status")
+
+  /// Identity as confirmed by research — kept separate from the public
+  /// product fields so a proposed correction can be reviewed before it ships.
+  manufacturer      String? @db.VarChar(150)
+  modelReference    String? @map("model_reference") @db.VarChar(150)
+  partNumber        String? @map("part_number") @db.VarChar(150)
+  proposedName      String? @map("proposed_name") @db.VarChar(255)
+
+  /// Where the technical facts came from. Research is worthless six months
+  /// later if nobody can retrace where a dimension came from.
+  contentSourceUrl  String? @map("content_source_url") @db.VarChar(500)
+  sourceType        String? @map("source_type") @db.VarChar(80)
+
+  // ── Image research (§5, §6) ──────────────────────────────────────────
+  imageRights       ImageRightsStatus @default(UNKNOWN) @map("image_rights")
+  imageSearchTerm   String?           @map("image_search_term") @db.VarChar(255)
+  imageSourceUrl    String?           @map("image_source_url") @db.VarChar(500)
+  /// Why a found image was NOT used. Required reading for the human review.
+  imageNotUsedReason String?          @map("image_not_used_reason") @db.VarChar(500)
+  suggestedAction   String?           @map("suggested_action") @db.VarChar(255)
+
+  notes         String?   @db.Text
+  lastCheckedAt DateTime? @map("last_checked_at") @db.DateTime(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([imageRights])
+  @@map("product_enrichment")
+}
+
+/// A product seen in the market that LEI does not currently list (§11, §12).
+///
+/// Deliberately NOT a Product row. A candidate is a research finding, not
+/// something LEI has decided to sell — writing it into `products` would inflate
+/// the catalogue with items the business never approved, which is exactly what
+/// §11 forbids. Promotion to a real product is a separate, deliberate act.
+model MarketCandidate {
+  id       Int             @id @default(autoincrement())
+  name     String          @db.VarChar(255)
+  status   CandidateStatus @default(MARKET_DISCOVERED)
+
+  categorySlug   String? @map("category_slug") @db.VarChar(190)
+  componentBrand String? @map("component_brand") @db.VarChar(150)
+  componentModel String? @map("component_model") @db.VarChar(150)
+
+  /// Set when the duplicate check matched something already in the catalogue,
+  /// so the finding becomes "enrich product N" rather than "add a product".
+  duplicateOfProductId Int? @map("duplicate_of_product_id")
+
+  sourceUrl  String? @map("source_url") @db.VarChar(500)
+  rationale  String? @db.Text
+  notes      String? @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@unique([name, componentBrand])
+  @@index([status])
+  @@map("market_candidates")
+}
+
+/// Which component models are installed on a machine model (§6).
+///
+/// This is the missing edge in the compatibility chain. `ProductCompatibility`
+/// already answers "which parts fit a RayTools BM111", because MachineBrand
+/// carries `kind` and a cutting-head brand is simply a brand with
+/// kind = CUTTING_HEAD. What it could not answer is "which head does a Bodor
+/// i5 carry", and without that, Find My Part cannot walk
+/// machine -> head -> part.
+///
+/// Deliberately generic: the component side is any non-MACHINE model, so the
+/// same table carries machine -> laser source, machine -> chiller,
+/// machine -> controller and machine -> servo without five near-identical
+/// tables. The `kind` on each side is enforced in application code, since a
+/// self-referencing FK cannot express it.
+///
+/// `isVerified` mirrors ProductCompatibility for the same reason: an
+/// unverified fitment claim must never render as though an engineer confirmed
+/// it (§7).
+model MachineComponentFitment {
+  id               Int     @id @default(autoincrement())
+  machineModelId   Int     @map("machine_model_id")
+  componentModelId Int     @map("component_model_id")
+  notes            String? @db.VarChar(500)
+
+  isVerified   Boolean   @default(false) @map("is_verified")
+  verifiedById Int?      @map("verified_by_id")
+  verifiedAt   DateTime? @map("verified_at") @db.DateTime(3)
+
+  isSeedData Boolean  @default(false) @map("is_seed_data")
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  machineModel   MachineModel @relation("FitmentMachine", fields: [machineModelId], references: [id], onDelete: Cascade)
+  componentModel MachineModel @relation("FitmentComponent", fields: [componentModelId], references: [id], onDelete: Cascade)
+  verifiedBy     User?        @relation("FitmentVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@unique([machineModelId, componentModelId])
+  @@index([componentModelId])
+  @@index([isVerified])
+  @@map("machine_component_fitment")
 }
 
 /// The commercial core of the platform.
@@ -960,6 +1181,20 @@ model Enquiry {
   machineBrandId   Int? @map("machine_brand_id")
   machineModelId   Int? @map("machine_model_id")
   machineVariantId Int? @map("machine_variant_id")
+
+  /// Cutting-head context, captured alongside the machine.
+  ///
+  /// These point at the SAME tables as the machine columns above — a cutting
+  /// head brand is a MachineBrand row with kind = CUTTING_HEAD. They are
+  /// separate columns rather than a second machine_brand_id because a customer
+  /// legitimately has both ("Bodor machine, RayTools BM111 head"), and that
+  /// pairing is exactly what sales needs to quote the right nozzle.
+  cuttingHeadBrandId Int? @map("cutting_head_brand_id")
+  cuttingHeadModelId Int? @map("cutting_head_model_id")
+
+  /// The page the customer was on when they enquired. Sales otherwise has to
+  /// reverse-engineer intent from a part name typed into a message box.
+  productContextUrl String? @map("product_context_url") @db.VarChar(500)
 
   /// DPDP Act 2023 — consent is recorded with its text and timestamp,
   /// not assumed.

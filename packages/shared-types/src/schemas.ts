@@ -159,7 +159,27 @@ export const quoteRequestSchema = z
     machineModelId: z.number().int().positive().optional(),
     machineVariantId: z.number().int().positive().optional(),
 
-    items: z.array(quoteRequestItemSchema).min(1, 'Add at least one item').max(100),
+    // Cutting-head context (§11). A nozzle is chosen by the HEAD, not the
+    // machine, so without this sales has to phone back for it every time.
+    cuttingHeadBrandId: z.number().int().positive().optional(),
+    cuttingHeadModelId: z.number().int().positive().optional(),
+
+    /** The page the customer enquired from, so sales sees the intent. */
+    productContextUrl: z.string().trim().max(500).optional(),
+
+    /**
+     * Photos of the part (§24), already uploaded to /enquiries/attachments.
+     *
+     * Ids rather than bytes: the upload happens while the customer is still
+     * filling the form, so a slow 4G photo upload never blocks — or loses —
+     * the submission itself.
+     */
+    attachmentFileIds: z.array(z.number().int().positive()).max(8).optional(),
+
+    // Not `.min(1)`: a photo-identification enquiry is legitimate with no line
+    // items at all — the customer has a broken part and no idea what it is
+    // called. The refine below requires items OR a photo.
+    items: z.array(quoteRequestItemSchema).max(100).default([]),
 
     // DPDP Act 2023 — consent is recorded, not assumed.
     consent: z.literal(true, {
@@ -174,6 +194,10 @@ export const quoteRequestSchema = z
   .refine((data) => Boolean(data.contactEmail || data.contactPhone), {
     path: ['contactEmail'],
     message: 'Enter an email address or a phone number so we can reply',
+  })
+  .refine((data) => data.items.length > 0 || (data.attachmentFileIds?.length ?? 0) > 0, {
+    path: ['items'],
+    message: 'Add at least one item, or upload a photo of the part you need',
   });
 export type QuoteRequestInput = z.infer<typeof quoteRequestSchema>;
 
@@ -334,7 +358,17 @@ export type UpsertCompatibilityInput = z.infer<typeof upsertCompatibilitySchema>
 
 export const updateEnquirySchema = z.object({
   status: z
-    .enum(['NEW', 'CALLED', 'CONFIRMED', 'CLOSED'])
+    .enum([
+      'NEW',
+      'ASSIGNED',
+      'CONTACTED',
+      'TECHNICAL_VERIFICATION',
+      'QUOTE_REQUIRED',
+      'QUOTED',
+      'FOLLOW_UP',
+      'WON',
+      'LOST',
+    ])
     .optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   assignedToId: z.number().int().positive().nullable().optional(),
@@ -376,6 +410,17 @@ export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 
 export const createMachineBrandSchema = z.object({
   name: z.string().trim().min(1).max(150),
+  /**
+   * Which kind of component this brand makes.
+   *
+   * Defaults to MACHINE so existing callers keep working, but it must be
+   * settable: without it, admin can only ever create machine brands, and a new
+   * cutting-head or chiller maker would have to be inserted by hand. Uniqueness
+   * is (kind, slug), so the same name under two kinds is legitimate.
+   */
+  kind: z
+    .enum(['MACHINE', 'CUTTING_HEAD', 'LASER_SOURCE', 'CHILLER', 'CONTROLLER', 'SERVO'])
+    .default('MACHINE'),
 });
 export type CreateMachineBrandInput = z.infer<typeof createMachineBrandSchema>;
 
@@ -414,8 +459,9 @@ export type CreateAttributeInput = z.infer<typeof createAttributeSchema>;
 export const dashboardResponseSchema = z.object({
   enquiries: z.object({
     new: z.number(),
-    called: z.number(),
-    confirmed: z.number(),
+    contacted: z.number(),
+    quoted: z.number(),
+    won: z.number(),
     total: z.number(),
   }),
   quotes: z.object({

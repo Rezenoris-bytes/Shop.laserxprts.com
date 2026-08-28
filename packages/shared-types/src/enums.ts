@@ -115,11 +115,48 @@ export const EnquiryType = {
 } as const;
 export type EnquiryType = (typeof EnquiryType)[keyof typeof EnquiryType];
 
+/**
+ * What kind of thing a MachineBrand/MachineModel describes.
+ *
+ * The six kinds share one pair of tables because they share one shape (brand
+ * -> model -> variant) and one relationship to products (compatibility). They
+ * are NOT interchangeable: "which machine do you have" must never be answered
+ * with a chiller brand, so every tree query is scoped by kind.
+ *
+ * Mirrors the Prisma `ComponentKind` enum. Kept here so the storefront can
+ * name a kind without importing anything server-side.
+ */
+export const ComponentKind = {
+  MACHINE: 'MACHINE',
+  CUTTING_HEAD: 'CUTTING_HEAD',
+  LASER_SOURCE: 'LASER_SOURCE',
+  CHILLER: 'CHILLER',
+  CONTROLLER: 'CONTROLLER',
+  SERVO: 'SERVO',
+} as const;
+export type ComponentKind = (typeof ComponentKind)[keyof typeof ComponentKind];
+
+/** URL segment <-> kind, for the public /brands/<segment> routes. */
+export const COMPONENT_KIND_SLUGS = {
+  machines: ComponentKind.MACHINE,
+  'cutting-heads': ComponentKind.CUTTING_HEAD,
+  'laser-sources': ComponentKind.LASER_SOURCE,
+  chillers: ComponentKind.CHILLER,
+  controllers: ComponentKind.CONTROLLER,
+  servo: ComponentKind.SERVO,
+} as const;
+export type ComponentKindSlug = keyof typeof COMPONENT_KIND_SLUGS;
+
 export const EnquiryStatus = {
   NEW: 'NEW',
-  CALLED: 'CALLED',
-  CONFIRMED: 'CONFIRMED',
-  CLOSED: 'CLOSED',
+  ASSIGNED: 'ASSIGNED',
+  CONTACTED: 'CONTACTED',
+  TECHNICAL_VERIFICATION: 'TECHNICAL_VERIFICATION',
+  QUOTE_REQUIRED: 'QUOTE_REQUIRED',
+  QUOTED: 'QUOTED',
+  FOLLOW_UP: 'FOLLOW_UP',
+  WON: 'WON',
+  LOST: 'LOST',
 } as const;
 export type EnquiryStatus = (typeof EnquiryStatus)[keyof typeof EnquiryStatus];
 
@@ -261,3 +298,21 @@ export const Locale = {
   hi: 'hi',
 } as const;
 export type Locale = (typeof Locale)[keyof typeof Locale];
+
+/**
+ * Category slugs presented as grouped "family" cards (one card per family,
+ * with Layer/Size/etc. selectors) instead of one flat row or sidebar link per
+ * DB product.
+ *
+ * Lives here — not duplicated once in the API and once in the web app —
+ * because the two disagreeing is exactly the bug this constant exists to
+ * prevent: the API's category-tree sidebar preview independently discovered
+ * "Amada Double Layer Cutting Nozzle" and "18*2" as individual product names
+ * to show as quick-links, even after the web app's own copy of this set had
+ * already been taught to hide them for their own category node — because a
+ * PARENT category's preview panel borrows sample products from its
+ * descendants when it has too few of its own, and that borrowing logic lived
+ * in the API, which had no way to know which descendant categories were
+ * meant to stay ungrouped in the sidebar. One set, two consumers, is the fix.
+ */
+export const FAMILY_VIEW_CATEGORY_SLUGS = new Set(['nozzles', 'o-rings-seals']);

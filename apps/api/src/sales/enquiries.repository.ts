@@ -20,11 +20,16 @@ export interface CreateEnquiryData {
   machineBrandId?: number;
   machineModelId?: number;
   machineVariantId?: number;
+  cuttingHeadBrandId?: number;
+  cuttingHeadModelId?: number;
+  productContextUrl?: string;
   consentText: string;
   ipAddress?: string;
   userAgent?: string;
   spamScore: number;
   items: Array<{ variantId: number; quantity: number; note?: string }>;
+  /** Ids of files already stored by the public attachment endpoint. */
+  attachmentFileIds?: number[];
 }
 
 export interface CreateContactEnquiryData {
@@ -88,6 +93,9 @@ export class EnquiriesRepository {
           machineBrandId: data.machineBrandId ?? null,
           machineModelId: data.machineModelId ?? null,
           machineVariantId: data.machineVariantId ?? null,
+          cuttingHeadBrandId: data.cuttingHeadBrandId ?? null,
+          cuttingHeadModelId: data.cuttingHeadModelId ?? null,
+          productContextUrl: data.productContextUrl ?? null,
           consentGiven: true,
           consentText: data.consentText,
           consentAt: new Date(),
@@ -116,6 +124,22 @@ export class EnquiriesRepository {
           };
         }),
       });
+
+      // Photos of the part (§24). Filtered against the files table first: the
+      // ids arrive from the browser, so an attacker could otherwise attach any
+      // file id in the system to their own enquiry and read it back.
+      const fileIds = data.attachmentFileIds ?? [];
+      if (fileIds.length > 0) {
+        const known = await tx.file.findMany({
+          where: { id: { in: fileIds }, context: 'ENQUIRY' },
+          select: { id: true },
+        });
+        if (known.length > 0) {
+          await tx.enquiryAttachment.createMany({
+            data: known.map((file) => ({ enquiryId: enquiry.id, fileId: file.id })),
+          });
+        }
+      }
 
       // Every enquiry becomes a lead, so nothing sits in a queue nobody watches.
       if (customer) {

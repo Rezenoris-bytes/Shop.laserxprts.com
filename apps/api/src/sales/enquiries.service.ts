@@ -38,8 +38,12 @@ export class EnquiriesService {
       return { publicRef: this.passwords.generatePublicRef(), itemCount: input.items.length };
     }
 
-    if (input.items.length === 0) {
-      throw new BadRequestException('Add at least one item to your request');
+    // A photo-only enquiry is valid (§24): the customer has a broken part and
+    // no name for it. Something must identify the request, though.
+    if (input.items.length === 0 && (input.attachmentFileIds?.length ?? 0) === 0) {
+      throw new BadRequestException(
+        'Add at least one item, or upload a photo of the part you need',
+      );
     }
 
     const result = await this.repository.createEnquiry({
@@ -53,11 +57,15 @@ export class EnquiriesService {
       machineBrandId: input.machineBrandId,
       machineModelId: input.machineModelId,
       machineVariantId: input.machineVariantId,
+      cuttingHeadBrandId: input.cuttingHeadBrandId,
+      cuttingHeadModelId: input.cuttingHeadModelId,
+      productContextUrl: input.productContextUrl,
       consentText: CONSENT_TEXT,
       ipAddress: context.ip,
       userAgent: context.userAgent,
       spamScore,
       items: input.items,
+      attachmentFileIds: input.attachmentFileIds,
     });
 
     await this.audit.record({

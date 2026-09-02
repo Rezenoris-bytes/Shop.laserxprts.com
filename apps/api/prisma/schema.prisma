@@ -22,7 +22,14 @@
 // ============================================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // Binary (not library/in-process) engine: an engine panic — e.g. the known
+  // "PANIC: timer has gone away" bug that surfaces when the host suspends an
+  // idle process and resumes it later, common on shared hosting — kills only
+  // the engine subprocess, which Prisma respawns automatically. With the
+  // default in-process library engine, the same panic takes the whole API
+  // process down with it.
+  engineType = "binary"
 }
 
 datasource db {

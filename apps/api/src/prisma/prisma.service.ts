@@ -1,5 +1,26 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+
+/**
+ * Builds the driver adapter from DATABASE_URL by hand rather than passing the
+ * URL straight through, since the `mariadb` package's own URL parser doesn't
+ * reliably surface a unix-socket path (`?socket=`) the way Prisma's engine
+ * URL convention does — an explicit config object is unambiguous.
+ */
+function buildAdapter(databaseUrl: string): PrismaMariaDb {
+  const url = new URL(databaseUrl);
+  const socketPath = url.searchParams.get('socket');
+
+  return new PrismaMariaDb({
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    database: url.pathname.replace(/^\//, ''),
+    ...(socketPath
+      ? { socketPath }
+      : { host: url.hostname, port: url.port ? Number(url.port) : 3306 }),
+  });
+}
 
 /**
  * Models carrying a `deletedAt` column.
@@ -29,7 +50,9 @@ const FILTERED_READS = new Set<string>([
 ]);
 
 function buildClient(logQueries: boolean) {
+  const adapter = buildAdapter(process.env.DATABASE_URL ?? '');
   const base = new PrismaClient({
+    adapter,
     log: logQueries
       ? [
           { emit: 'event', level: 'query' },

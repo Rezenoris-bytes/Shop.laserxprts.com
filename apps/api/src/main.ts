@@ -21,7 +21,7 @@ async function bootstrap(): Promise<void> {
   // NestJS + Prisma initialization can take longer, causing a PANIC timeout.
   // We bind the port immediately with a raw server to satisfy the timeout.
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
-  
+
   let isReady = false;
   let appHandler: any = null;
 
@@ -41,7 +41,7 @@ async function bootstrap(): Promise<void> {
   const adapter = new FastifyAdapter({
     serverFactory: (handler: any) => {
       appHandler = handler;
-      
+
       // Prevent Fastify from throwing EADDRINUSE when Nest calls app.listen()
       // But we MUST invoke the callback Fastify passes, or its internal state corrupts.
       server.listen = (...args: any[]) => {
@@ -61,9 +61,13 @@ async function bootstrap(): Promise<void> {
     bodyLimit: 2 * 1024 * 1024,
   });
 
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter, {
-    bufferLogs: true,
-  });
+  // bufferLogs is deliberately OFF. With it on, Nest holds every log line in
+  // memory until app.useLogger() is called — and if module initialisation
+  // hangs or throws before that point, the explanation is buffered and never
+  // printed. That combination produced completely empty runtime logs while the
+  // early listener served "API is starting up" indefinitely, leaving no way to
+  // see what actually failed.
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter);
 
   const config = app.get(AppConfigService);
 
@@ -155,8 +159,6 @@ async function bootstrap(): Promise<void> {
 
   app.enableShutdownHooks();
 
-
-
   await app.listen(port, '0.0.0.0');
 
   isReady = true;
@@ -165,4 +167,12 @@ async function bootstrap(): Promise<void> {
   logger.log(`Allowed origins: ${config.allowedOrigins.join(', ')}`);
 }
 
-void bootstrap();
+// A bare `void bootstrap()` discards any rejection, so a failure during
+// startup left no trace at all — the process just sat there with the early
+// listener answering 503 forever. Print it and exit non-zero instead, so the
+// platform reports a crashed app rather than a permanently "starting" one.
+bootstrap().catch((error: unknown) => {
+  // eslint-disable-next-line no-console
+  console.error('FATAL: API bootstrap failed', error);
+  process.exit(1);
+});

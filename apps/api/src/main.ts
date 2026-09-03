@@ -217,9 +217,23 @@ async function bootstrap(): Promise<void> {
 
   trace('static:register:done');
 
-  trace('app:listen:begin');
-  await app.listen(port, '0.0.0.0');
-  trace('app:listen:done');
+  // NOT app.listen(). The port was already bound by the early listener above,
+  // and that server emitted 'listening' at the time. Fastify's listen() waits
+  // for a fresh 'listening' event on the server it was handed — an event that
+  // has already fired and will never fire again — so app.listen() hung here
+  // forever, leaving the app permanently answering "starting up".
+  //
+  // With an externally-owned server the correct sequence is to initialise Nest
+  // (which registers the routes onto the Fastify instance) and then await
+  // Fastify's own ready(), which finalises plugin and route registration
+  // without touching the socket.
+  trace('app:init:begin');
+  await app.init();
+  trace('app:init:done');
+
+  trace('fastify:ready:begin');
+  await app.getHttpAdapter().getInstance().ready();
+  trace('fastify:ready:done');
 
   isReady = true;
   booted = true;

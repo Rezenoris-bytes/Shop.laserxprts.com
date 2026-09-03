@@ -6,16 +6,58 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import fastifyMultipart from '@fastify/multipart';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { appendFileSync } from 'node:fs';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
+/**
+ * Boot tracing that survives a broken log pipeline.
+ *
+ * Hostinger's Runtime Logs panel does not capture this app's stdout — the
+ * early listener demonstrably runs and answers requests, yet not a single
+ * console line ever reaches the panel. That left a hung startup completely
+ * undiagnosable. These traces are written synchronously to a file under
+ * STORAGE_ROOT (readable in hPanel's File Manager) so the last line written
+ * tells you exactly which stage the boot reached before stalling.
+ *
+ * Synchronous on purpose: a queued async write is lost if the process hangs
+ * or is killed, which is precisely the case being debugged.
+ */
+const BOOT_LOG = join(process.env.STORAGE_ROOT ?? process.cwd(), 'boot-debug.log');
+
+/** Set once the API is fully serving, so the watchdog knows to stand down. */
+let booted = false;
+
+function trace(stage: string, detail?: unknown): void {
+  const line =
+    `[${new Date().toISOString()}] ${stage}` +
+    (detail === undefined
+      ? ''
+      : ` :: ${detail instanceof Error ? (detail.stack ?? detail.message) : JSON.stringify(detail)}`) +
+    '\n';
+  try {
+    appendFileSync(BOOT_LOG, line);
+  } catch {
+    // Never let tracing itself break startup.
+  }
+  // eslint-disable-next-line no-console
+  console.log(line.trimEnd());
+}
+
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
+  trace('bootstrap:start', {
+    node: process.version,
+    cwd: process.cwd(),
+    storageRoot: process.env.STORAGE_ROOT ?? '(unset)',
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    port: process.env.PORT ?? '(unset)',
+  });
 
   // 1. Phusion Passenger (Hostinger) requires listen() within 3 seconds.
   // NestJS + Prisma initialization can take longer, causing a PANIC timeout.
@@ -36,6 +78,7 @@ async function bootstrap(): Promise<void> {
   });
   server.listen(port, '0.0.0.0');
   logger.log(`Early listener started on port ${port} to satisfy Hostinger timeout.`);
+  trace('early-listener:bound', { port });
 
   // 2. Provide this existing server to Fastify.
   const adapter = new FastifyAdapter({
@@ -67,9 +110,19 @@ async function bootstrap(): Promise<void> {
   // printed. That combination produced completely empty runtime logs while the
   // early listener served "API is starting up" indefinitely, leaving no way to
   // see what actually failed.
+  trace(
+    'nest:create:begin  <-- if this is the last line, module init (usually the DB connection) is hanging',
+  );
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter);
+  trace('nest:create:done');
 
   const config = app.get(AppConfigService);
+  trace('config:loaded', {
+    storageRoot: config.storageRoot,
+    resolvedStorageRoot: resolve(config.storageRoot),
+    demoMode: config.demoMode,
+    allowedOrigins: config.allowedOrigins,
+  });
 
   // ── Security headers ──────────────────────────────────────────────────
   await app.register(fastifyHelmet, {
@@ -119,6 +172,9 @@ async function bootstrap(): Promise<void> {
   // the filename is the SHA-256 of the bytes — so a given URL can never point
   // at different content and is safe to cache indefinitely. Registered before
   // the global prefix is set so the path stays /uploads, not /api/v1/uploads.
+  trace(
+    'static:register:begin  <-- if this is the last line, STORAGE_ROOT is likely unreadable/missing',
+  );
   await app.register(fastifyStatic, {
     root: resolve(config.storageRoot),
     prefix: '/uploads/',
@@ -159,9 +215,15 @@ async function bootstrap(): Promise<void> {
 
   app.enableShutdownHooks();
 
+  trace('static:register:done');
+
+  trace('app:listen:begin');
   await app.listen(port, '0.0.0.0');
+  trace('app:listen:done');
 
   isReady = true;
+  booted = true;
+  trace('READY  <-- API is fully serving');
   logger.log(`LEI API listening on ${config.apiUrl}`);
   logger.log(`Environment: ${config.nodeEnv}  |  DEMO_MODE: ${config.demoMode ? 'ON' : 'OFF'}`);
   logger.log(`Allowed origins: ${config.allowedOrigins.join(', ')}`);
@@ -172,7 +234,18 @@ async function bootstrap(): Promise<void> {
 // listener answering 503 forever. Print it and exit non-zero instead, so the
 // platform reports a crashed app rather than a permanently "starting" one.
 bootstrap().catch((error: unknown) => {
+  trace('FATAL:bootstrap-failed', error);
   // eslint-disable-next-line no-console
   console.error('FATAL: API bootstrap failed', error);
   process.exit(1);
 });
+
+// A hang leaves no trace of its own, so record one from the outside: if the
+// boot has not reported READY within 45s, write what we know and exit rather
+// than sitting there answering "starting up" forever with nothing logged.
+const watchdog = setTimeout(() => {
+  if (booted) return;
+  trace('WATCHDOG:boot-did-not-complete-in-45s — exiting so the platform reports a crash');
+  process.exit(1);
+}, 45_000);
+watchdog.unref();

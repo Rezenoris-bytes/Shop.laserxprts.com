@@ -19,6 +19,14 @@ function buildAdapter(databaseUrl: string): PrismaMariaDb {
     ...(socketPath
       ? { socketPath }
       : { host: url.hostname, port: url.port ? Number(url.port) : 3306 }),
+    // Without these the driver waits indefinitely for a connection it may never
+    // get. A hang here is far worse than a failure: Nest's module init awaits
+    // $connect(), so the whole app sits half-started with nothing logged and no
+    // error raised — which is exactly what happened on Hostinger. Bounding the
+    // wait turns that silent hang into a real, reportable error.
+    connectTimeout: 10_000,
+    acquireTimeout: 10_000,
+    initializationTimeout: 10_000,
   });
 }
 
@@ -123,8 +131,32 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    await this.raw.$connect();
-    this.logger.log('Database connected');
+    // Bounded explicitly rather than awaiting $connect() bare. Nest blocks the
+    // entire application bootstrap on this hook, so a connection that neither
+    // resolves nor rejects leaves the app permanently half-started, serving
+    // "starting up" with an empty log and no error to diagnose. Failing loudly
+    // after 15s is far more useful than waiting forever in silence.
+    this.logger.log('Connecting to database…');
+
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(
+        () => reject(new Error('Database connection timed out after 15s')),
+        15_000,
+      );
+    });
+
+    try {
+      await Promise.race([this.raw.$connect(), timeout]);
+      this.logger.log('Database connected');
+    } catch (error) {
+      this.logger.error(
+        `Database connection failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

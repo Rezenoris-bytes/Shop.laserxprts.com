@@ -116,6 +116,13 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   public readonly raw: PrismaClient;
   public readonly client: ExtendedPrismaClient;
 
+  /** Whether the warm-up connection has succeeded; surfaced by /health. */
+  private connected = false;
+
+  get isConnected(): boolean {
+    return this.connected;
+  }
+
   constructor() {
     const logQueries = process.env.PRISMA_LOG_QUERIES === 'true';
     this.client = buildClient(logQueries);
@@ -130,30 +137,59 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async onModuleInit(): Promise<void> {
-    // Bounded explicitly rather than awaiting $connect() bare. Nest blocks the
-    // entire application bootstrap on this hook, so a connection that neither
-    // resolves nor rejects leaves the app permanently half-started, serving
-    // "starting up" with an empty log and no error to diagnose. Failing loudly
-    // after 15s is far more useful than waiting forever in silence.
-    this.logger.log('Connecting to database…');
+  /**
+   * Startup must never depend on the database being reachable.
+   *
+   * Nest blocks the whole bootstrap on this hook, so throwing here kills the
+   * process: a momentary blip on the database host during a deploy took the
+   * entire API down until someone intervened by hand. Prisma opens connections
+   * lazily on first query regardless — $connect() only warms the pool — so a
+   * failure here costs nothing but a slower first request.
+   *
+   * The connection is therefore attempted in the background and retried with
+   * backoff. The app serves immediately either way, /health reports the real
+   * database state, and a database that comes back is picked up on its own
+   * without a redeploy.
+   */
+  onModuleInit(): void {
+    void this.connectWithRetry();
+  }
+
+  private async connectWithRetry(attempt = 1): Promise<void> {
+    const MAX_ATTEMPTS = 10;
+    const TIMEOUT_MS = 15_000;
 
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(
-        () => reject(new Error('Database connection timed out after 15s')),
-        15_000,
+        () => reject(new Error(`Database connection timed out after ${TIMEOUT_MS / 1000}s`)),
+        TIMEOUT_MS,
       );
     });
 
     try {
       await Promise.race([this.raw.$connect(), timeout]);
-      this.logger.log('Database connected');
+      this.connected = true;
+      this.logger.log(`Database connected${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
     } catch (error) {
-      this.logger.error(
-        `Database connection failed: ${error instanceof Error ? error.message : String(error)}`,
+      this.connected = false;
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (attempt >= MAX_ATTEMPTS) {
+        this.logger.error(
+          `Database connection failed after ${MAX_ATTEMPTS} attempts: ${message}. ` +
+            'The API stays up and will connect on the next successful query.',
+        );
+        return;
+      }
+
+      // 2s, 4s, 8s … capped at 30s.
+      const delayMs = Math.min(2_000 * 2 ** (attempt - 1), 30_000);
+      this.logger.warn(
+        `Database connection failed (attempt ${attempt}/${MAX_ATTEMPTS}): ${message}. ` +
+          `Retrying in ${delayMs / 1000}s.`,
       );
-      throw error;
+      setTimeout(() => void this.connectWithRetry(attempt + 1), delayMs).unref();
     } finally {
       if (timer) clearTimeout(timer);
     }

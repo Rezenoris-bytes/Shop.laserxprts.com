@@ -31,9 +31,12 @@ export function ProductMediaManager({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const addRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const [replacingId, setReplacingId] = useState<number | null>(null);
+  // Counter prevents isDragging flickering when cursor moves across child elements.
+  const dragCounter = useRef(0);
 
   /** Every mutation reports through here so one failure cannot leave the UI stuck busy. */
   const run = async (action: () => Promise<AdminProductMedia[]>, success?: string) => {
@@ -123,6 +126,79 @@ export function ProductMediaManager({
         )}
       </div>
 
+      {canUpdate && (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Drop images here or click to browse"
+          onClick={() => !busy && addRef.current?.click()}
+          onKeyDown={(e) => e.key === 'Enter' && !busy && addRef.current?.click()}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            dragCounter.current += 1;
+            setIsDragging(true);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            dragCounter.current -= 1;
+            if (dragCounter.current === 0) setIsDragging(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            dragCounter.current = 0;
+            setIsDragging(false);
+            const files = Array.from(e.dataTransfer.files).filter((f) =>
+              f.type.startsWith('image/'),
+            );
+            if (files.length === 0) {
+              setError('Only image files are accepted (JPEG, PNG, WebP, AVIF, GIF).');
+              return;
+            }
+            void upload({
+              length: files.length,
+              item: (i: number) => files[i] ?? null,
+              [Symbol.iterator]: () => files[Symbol.iterator](),
+            } as unknown as FileList);
+          }}
+          className={[
+            'mb-4 flex cursor-pointer select-none flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed transition-all duration-150',
+            media.length === 0 ? 'py-12' : 'py-5',
+            isDragging
+              ? 'scale-[1.01] border-amber bg-amber/10 text-amber'
+              : 'border-ink-line text-ink-muted hover:border-amber/50 hover:text-ink',
+            busy ? 'pointer-events-none opacity-50' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className={`transition-transform duration-150 ${isDragging ? 'scale-125' : ''} ${media.length === 0 ? 'h-9 w-9' : 'h-6 w-6'}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+            />
+          </svg>
+          <span className={`font-medium ${media.length === 0 ? 'text-sm' : 'text-xs'}`}>
+            {isDragging ? 'Drop to upload' : 'Drag & drop images here'}
+          </span>
+          {media.length === 0 && (
+            <span className="text-xs">or click to browse · JPEG, PNG, WebP, AVIF, GIF</span>
+          )}
+        </div>
+      )}
+
       {/* Hidden input reused for whichever slot is being replaced. */}
       <input
         ref={replaceRef}
@@ -146,11 +222,7 @@ export function ProductMediaManager({
       {error && <p className="mb-3 text-xs text-bad">{error}</p>}
       {notice && !error && <p className="mb-3 text-xs text-ok">{notice}</p>}
 
-      {media.length === 0 ? (
-        <p className="rounded border border-dashed border-ink-line px-4 py-8 text-center text-sm text-ink-muted">
-          No images on this product.
-        </p>
-      ) : (
+      {media.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {media.map((row, index) => (
             <li key={row.id} className="rounded border border-ink-line p-2">

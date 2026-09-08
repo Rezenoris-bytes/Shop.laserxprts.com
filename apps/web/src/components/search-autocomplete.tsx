@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, type AutocompleteSuggestion } from '@/lib/api';
 import { env } from '@/lib/env';
+import { mediaUrl } from '@/lib/format';
 
 interface SearchAutocompleteProps {
   id?: string;
@@ -130,8 +131,9 @@ export function SearchAutocomplete({
                 >
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded border border-ink-line bg-white">
                     {item.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`${env.apiUrl}/api/v1/media/${item.image.storedName}`}
+                        src={mediaUrl(item.image.path)}
                         alt={item.name}
                         className="h-full w-full object-contain"
                       />

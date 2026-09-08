@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useQuoteRequest } from '@/lib/quote-request';
 import { primaryNav, siteName, businessLocation } from '@/lib/site';
@@ -17,7 +16,6 @@ export function SiteHeader({
   email: string;
   gstin: string;
 }) {
-  const router = useRouter();
   const { count, open } = useQuoteRequest();
   const [scrolled, setScrolled] = useState(false);
 
@@ -27,14 +25,6 @@ export function SiteHeader({
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const input = event.currentTarget.querySelector('input[type="search"]') as HTMLInputElement;
-    const trimmed = (input?.value ?? '').trim();
-    if (!trimmed) return;
-    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-  };
 
   return (
     <>
@@ -184,31 +174,15 @@ export function SiteHeader({
           </nav>
 
           {/* Search bar */}
-          <form
-            onSubmit={submit}
-            role="search"
-            className="ml-auto flex min-w-0 flex-1 items-center gap-2 lg:max-w-sm"
-          >
-            <label htmlFor="scroll-search" className="sr-only">
-              Search products
-            </label>
-            <div className="relative flex-1">
-              <input
-                id="scroll-search"
-                name="q"
-                type="search"
-                placeholder="Search Products / Services"
-                className="h-10 w-full rounded-md border border-white/20 bg-white/10 pl-3 pr-3 text-sm text-white placeholder:text-white/50 focus:border-amber focus:bg-white/20 focus:outline-none"
-              />
-            </div>
-            <button
-              type="submit"
-              className="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-amber px-4 text-sm font-semibold text-ink hover:bg-amber/80"
-            >
-              <SearchIcon className="text-ink" />
-              Search
-            </button>
-          </form>
+          <div className="ml-auto flex min-w-0 flex-1 items-center gap-2 lg:max-w-sm">
+            <SearchAutocomplete
+              id="scroll-search"
+              placeholder="Search Products / Services"
+              inputClassName="h-10 w-full rounded-md border border-white/20 bg-white/10 pl-3 pr-3 text-sm text-white placeholder:text-white/50 focus:border-amber focus:bg-white/20 focus:outline-none"
+              buttonClassName="flex h-10 shrink-0 items-center gap-1.5 rounded-md bg-amber px-4 text-sm font-semibold text-ink hover:bg-amber/80"
+              buttonContent={<><SearchIcon className="text-ink" />Search</>}
+            />
+          </div>
 
           {/* Call + Email */}
           <div className="hidden shrink-0 items-center gap-2 xl:flex">

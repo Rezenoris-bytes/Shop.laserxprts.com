@@ -765,6 +765,9 @@ export class CatalogueRepository {
       OR: words.flatMap((word) => [
         { name: { contains: word } },
         { shortDescription: { contains: word } },
+        { brand: { name: { contains: word } } },
+        { category: { name: { contains: word } } },
+        { variants: { some: { mpn: { contains: word } } } },
       ]),
     };
 
@@ -828,7 +831,7 @@ export class CatalogueRepository {
       }
     }
 
-    // Stage 2: Fallback to full text over product names
+    // Stage 2: Fallback to full text over product names and brand/category
     const words = term.trim().split(/\s+/).filter(Boolean);
     if (words.length === 0) return [];
 
@@ -838,6 +841,9 @@ export class CatalogueRepository {
       OR: words.flatMap((word) => [
         { name: { contains: word } },
         { shortDescription: { contains: word } },
+        { brand: { name: { contains: word } } },
+        { category: { name: { contains: word } } },
+        { variants: { some: { mpn: { contains: word } } } },
       ]),
     };
 

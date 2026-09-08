@@ -13,6 +13,9 @@
   "dependencies": {
     "@lei/shared": "*",
     "@types/leaflet": "^1.9.22",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",
     "dotenv": "^16.4.7",
     "leaflet": "^1.9.4",
@@ -23,14 +26,12 @@
     "react-dom": "^19.0.0",
     "react-phone-number-input": "^3.4.18",
     "tailwindcss": "^3.4.17",
+    "typescript": "^5.6.3",
     "zod": "^3.23.8"
   },
+  "//typescript-in-dependencies": "The deploy host installs production dependencies only. next build type-checks, so without these it decides TypeScript is 'not installed', shells out to yarn to fetch them mid-build, and yarn dies on an engine mismatch (cookie@2.0.1 wants Node >=22, the host runs 20) that npm only warns about. Same reason typescript and @nestjs/cli sit in dependencies over in apps/api.",
   "devDependencies": {
-    "@types/node": "^22.10.5",
-    "@types/react": "^19.0.7",
-    "@types/react-dom": "^19.0.3",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^15.1.4",
-    "typescript": "^5.6.3"
+    "eslint-config-next": "^15.1.4"
   }
 }

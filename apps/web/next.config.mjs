@@ -18,6 +18,16 @@ const nextConfig = {
   poweredByHeader: false,
   transpilePackages: ['@lei/shared'],
 
+  eslint: {
+    // The deploy host installs production dependencies only, so ESLint is not
+    // present during `next build` — and Next reacts to that by shelling out to
+    // yarn mid-build to install it, which fails outright on this host over an
+    // engine mismatch. Linting is not a build concern anyway: CI runs it on
+    // every push and will fail there instead, without shipping ESLint and its
+    // dependency tree to production.
+    ignoreDuringBuilds: true,
+  },
+
   images: {
     // Images are served straight from the API rather than proxied through
     // Next's optimiser. The optimiser requests every image at nine widths

@@ -155,9 +155,24 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     void this.connectWithRetry();
   }
 
+  /**
+   * Retries forever, deliberately.
+   *
+   * This database is intermittently unreachable — it fails for a stretch and
+   * recovers on its own, which is characteristic of shared-hosting resource
+   * limits rather than a misconfiguration. Giving up after a fixed number of
+   * attempts meant an outage that resolved itself at 3am still left the API
+   * degraded until someone noticed and redeployed.
+   *
+   * Backoff climbs to a minute and stays there, so recovery is picked up
+   * within ~60s of the database returning, at negligible cost while it is
+   * down. Logging quietens off after the first few failures so a long outage
+   * cannot flood the log with identical lines.
+   */
   private async connectWithRetry(attempt = 1): Promise<void> {
-    const MAX_ATTEMPTS = 10;
     const TIMEOUT_MS = 15_000;
+    const MAX_DELAY_MS = 60_000;
+    const NOISY_ATTEMPTS = 5;
 
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_resolve, reject) => {
@@ -169,26 +184,37 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
 
     try {
       await Promise.race([this.raw.$connect(), timeout]);
+      const wasDown = !this.connected && attempt > 1;
       this.connected = true;
-      this.logger.log(`Database connected${attempt > 1 ? ` (attempt ${attempt})` : ''}`);
+      this.logger.log(
+        wasDown
+          ? `Database reconnected after ${attempt} attempts — recovered without a redeploy`
+          : 'Database connected',
+      );
     } catch (error) {
       this.connected = false;
       const message = error instanceof Error ? error.message : String(error);
 
-      if (attempt >= MAX_ATTEMPTS) {
-        this.logger.error(
-          `Database connection failed after ${MAX_ATTEMPTS} attempts: ${message}. ` +
-            'The API stays up and will connect on the next successful query.',
+      // 2s, 4s, 8s … settling at 60s and retrying at that interval forever.
+      const delayMs = Math.min(2_000 * 2 ** (attempt - 1), MAX_DELAY_MS);
+
+      if (attempt <= NOISY_ATTEMPTS) {
+        this.logger.warn(
+          `Database connection failed (attempt ${attempt}): ${message}. ` +
+            `Retrying in ${delayMs / 1000}s. The API stays up and serves regardless.`,
         );
-        return;
+      } else if (attempt === NOISY_ATTEMPTS + 1) {
+        this.logger.error(
+          `Database still unreachable after ${attempt} attempts: ${message}. ` +
+            `Continuing to retry every ${MAX_DELAY_MS / 1000}s; further attempts are logged hourly.`,
+        );
+      } else if (attempt % 60 === 0) {
+        // Roughly hourly once the delay has settled at its maximum.
+        this.logger.error(
+          `Database unreachable for ~${Math.round((attempt * MAX_DELAY_MS) / 60_000)} minutes: ${message}`,
+        );
       }
 
-      // 2s, 4s, 8s … capped at 30s.
-      const delayMs = Math.min(2_000 * 2 ** (attempt - 1), 30_000);
-      this.logger.warn(
-        `Database connection failed (attempt ${attempt}/${MAX_ATTEMPTS}): ${message}. ` +
-          `Retrying in ${delayMs / 1000}s.`,
-      );
       setTimeout(() => void this.connectWithRetry(attempt + 1), delayMs).unref();
     } finally {
       if (timer) clearTimeout(timer);

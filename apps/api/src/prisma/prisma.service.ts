@@ -27,6 +27,13 @@ function buildAdapter(databaseUrl: string): PrismaMariaDb {
     connectTimeout: 10_000,
     acquireTimeout: 10_000,
     initializationTimeout: 10_000,
+    // The driver pools 10 connections by default. Each one costs tasks against
+    // the hosting account's process/thread ceiling, which this account runs
+    // close to. Three is ample for a low-traffic catalogue where queries are
+    // short, and leaves headroom rather than reserving it speculatively.
+    connectionLimit: 3,
+    // Return idle connections instead of holding all three open indefinitely.
+    idleTimeout: 60,
   });
 }
 

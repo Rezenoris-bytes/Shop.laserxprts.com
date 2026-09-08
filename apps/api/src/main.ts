@@ -49,6 +49,87 @@ function trace(stage: string, detail?: unknown): void {
   console.log(line.trimEnd());
 }
 
+/**
+ * Reports which database endpoints this machine can actually reach.
+ *
+ * Whether the app server can open a connection to MySQL is only answerable
+ * from the app server itself — phpMyAdmin connecting proves nothing, since it
+ * runs on the database host. This probes every plausible endpoint and records
+ * the outcome of each (with the real driver error) into the boot log, turning
+ * "the connection times out" into a specific, actionable answer.
+ *
+ * Diagnostic only: it never throws and never blocks startup.
+ */
+async function probeDatabaseEndpoints(): Promise<void> {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    trace('db-probe:skipped', 'DATABASE_URL is not set');
+    return;
+  }
+
+  let user = '';
+  let password = '';
+  let database = '';
+  try {
+    const parsed = new URL(url);
+    user = decodeURIComponent(parsed.username);
+    password = decodeURIComponent(parsed.password);
+    database = parsed.pathname.replace(/^\//, '');
+    trace('db-probe:config', {
+      user,
+      database,
+      configuredHost: parsed.hostname,
+      configuredPort: parsed.port || '(default)',
+      configuredSocket: parsed.searchParams.get('socket') ?? '(none)',
+    });
+  } catch (error) {
+    trace('db-probe:bad-url', error);
+    return;
+  }
+
+  const candidates: Array<{ label: string; config: Record<string, unknown> }> = [
+    {
+      label: 'socket:/var/lib/mysql/mysql.sock',
+      config: { socketPath: '/var/lib/mysql/mysql.sock' },
+    },
+    { label: 'tcp:localhost:3306', config: { host: 'localhost', port: 3306 } },
+    { label: 'tcp:127.0.0.1:3306', config: { host: '127.0.0.1', port: 3306 } },
+    { label: 'tcp:srv875.hstgr.io:3306', config: { host: 'srv875.hstgr.io', port: 3306 } },
+  ];
+
+  // Imported lazily so a probe never becomes a startup dependency.
+  const mariadb = (await import('mariadb')) as unknown as {
+    createConnection: (config: Record<string, unknown>) => Promise<{
+      query: (sql: string) => Promise<unknown>;
+      end: () => Promise<void>;
+    }>;
+  };
+
+  for (const candidate of candidates) {
+    const started = Date.now();
+    try {
+      const connection = await mariadb.createConnection({
+        user,
+        password,
+        database,
+        connectTimeout: 8_000,
+        initializationTimeout: 8_000,
+        ...candidate.config,
+      });
+      await connection.query('SELECT 1');
+      await connection.end();
+      trace(`db-probe:OK    ${candidate.label}`, { ms: Date.now() - started });
+    } catch (error) {
+      trace(`db-probe:FAIL  ${candidate.label}`, {
+        ms: Date.now() - started,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  trace('db-probe:done  <-- use the OK line above as the DATABASE_URL host');
+}
+
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
   trace('bootstrap:start', {
@@ -79,6 +160,12 @@ async function bootstrap(): Promise<void> {
   server.listen(port, '0.0.0.0');
   logger.log(`Early listener started on port ${port} to satisfy Hostinger timeout.`);
   trace('early-listener:bound', { port });
+
+  // Runs before Nest starts, and deliberately awaited: the port is already
+  // bound so requests are being answered meanwhile, and knowing which
+  // endpoints are reachable is worth a few seconds on a boot that is
+  // currently failing anyway. Remove once the correct host is settled.
+  await probeDatabaseEndpoints();
 
   // 2. Provide this existing server to Fastify.
   const adapter = new FastifyAdapter({

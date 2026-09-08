@@ -200,20 +200,49 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     this.logger.log('Database disconnected');
   }
 
-  /** Liveness probe used by /health. */
+  /**
+   * Liveness probe used by /health.
+   *
+   * Bounded, because an unreachable database makes this query hang rather than
+   * fail — which made /health itself hang and the whole endpoint useless at
+   * exactly the moment it was needed most. A health check must always answer,
+   * especially when the news is bad.
+   */
   async ping(): Promise<number> {
     const start = Date.now();
-    await this.raw.$queryRaw`SELECT 1`;
-    return Date.now() - start;
+
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('Database ping timed out after 5s')), 5_000);
+    });
+
+    try {
+      await Promise.race([this.raw.$queryRaw`SELECT 1`, timeout]);
+      return Date.now() - start;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   /** Number of migrations recorded as applied — surfaced by /health. */
   async appliedMigrationCount(): Promise<number> {
-    const rows = await this.raw.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(*) AS count
-      FROM _prisma_migrations
-      WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
-    `;
-    return Number(rows[0]?.count ?? 0);
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error('Migration count timed out after 5s')), 5_000);
+    });
+
+    try {
+      const rows = await Promise.race([
+        this.raw.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(*) AS count
+          FROM _prisma_migrations
+          WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL
+        `,
+        timeout,
+      ]);
+      return Number(rows[0]?.count ?? 0);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 }
